@@ -19,6 +19,10 @@ final class InputCapture {
     /// is captured (including during crossing, before suppression).
     typealias MouseCallback = @Sendable (MouseData) -> Void
 
+    /// Callback for mouse position tracking (e.g. edge detection). Includes
+    /// the screen-space point alongside the protocol ``MouseData``.
+    typealias MousePositionCallback = @Sendable (MouseData, CGPoint) -> Void
+
     /// Callback invoked with a ``KeyboardData`` packet whenever a local keyboard
     /// event is captured (including during crossing, before suppression).
     typealias KeyboardCallback = @Sendable (KeyboardData) -> Void
@@ -35,6 +39,7 @@ final class InputCapture {
     // MARK: - Callbacks
 
     var onMouseEvent: MouseCallback?
+    var onMousePosition: MousePositionCallback?
     var onKeyboardEvent: KeyboardCallback?
 
     // MARK: - Private state
@@ -258,6 +263,7 @@ final class InputCapture {
 
         // Forward to callback regardless of suppression state.
         onMouseEvent?(mouseData)
+        onMousePosition?(mouseData, location)
 
         // Suppress the event when crossing is active.
         if crossingActive {
