@@ -38,6 +38,8 @@
 		CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */; };
 		E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B03D6DF490960A2425D804 /* SettingsWindow.swift */; };
 		FE988D34BABCD3A73AD97BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C99E0500DC51D1376645C1E2 /* Assets.xcassets */; };
+		1DAFBEF6AD6C446CA0DE07FD /* InputLayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36B6002F11148C98A88FD92 /* InputLayerTests.swift */; };
+		0F6D75CCA5C64B099054F314 /* InputIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5DCE18E5F8C4EEB8F1E56C8 /* InputIntegrationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -86,6 +88,8 @@
 		F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCrypto.swift; sourceTree = "<group>"; };
 		FB048089A977A0BC32B0369B /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMapper.swift; sourceTree = "<group>"; };
+		A36B6002F11148C98A88FD92 /* InputLayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputLayerTests.swift; sourceTree = "<group>"; };
+		B5DCE18E5F8C4EEB8F1E56C8 /* InputIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputIntegrationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -122,6 +126,8 @@
 			isa = PBXGroup;
 			children = (
 				EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */,
+				A36B6002F11148C98A88FD92 /* InputLayerTests.swift */,
+				B5DCE18E5F8C4EEB8F1E56C8 /* InputIntegrationTests.swift */,
 					F1E0D1C2B3A4958677A8B9C0 /* ProtocolCompatibilityTests.swift */,
 			);
 			path = MWBClientTests;
@@ -352,6 +358,8 @@
 			files = (
 				612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */,
 					A1B2C3D4E5F6A7B8C9D0E1F2 /* ProtocolCompatibilityTests.swift in Sources */,
+				1DAFBEF6AD6C446CA0DE07FD /* InputLayerTests.swift in Sources */,
+				0F6D75CCA5C64B099054F314 /* InputIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
