@@ -40,6 +40,8 @@
 		FE988D34BABCD3A73AD97BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C99E0500DC51D1376645C1E2 /* Assets.xcassets */; };
 		1DAFBEF6AD6C446CA0DE07FD /* InputLayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36B6002F11148C98A88FD92 /* InputLayerTests.swift */; };
 		0F6D75CCA5C64B099054F314 /* InputIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5DCE18E5F8C4EEB8F1E56C8 /* InputIntegrationTests.swift */; };
+			A1C3E5F7B2D4A890C1D6E3F8 /* InputTestHarnessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D4A890C1D6E3F8A1C3E5F7 /* InputTestHarnessApp.swift */; };
+			C4D6E8F0A2B3C5D7E9F1A2B4 /* TestHarnessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E8F0A2B3C5D7E9F1A2B4C4 /* TestHarnessView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +52,13 @@
 			remoteGlobalIDString = 5C3B493D1934DAC02F1A86A1;
 			remoteInfo = MWBClient;
 		};
+			D0E2F4A6B8C1D3E5F7A9B2C0 /* PBXContainerItemProxy */ = {
+				isa = PBXContainerItemProxy;
+				containerPortal = 7BD8EB1106FFA347D01C62BC /* Project object */;
+				proxyType = 1;
+				remoteGlobalIDString = 5C3B493D1934DAC02F1A86A1;
+				remoteInfo = MWBClient;
+			};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -90,6 +99,11 @@
 		FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMapper.swift; sourceTree = "<group>"; };
 		A36B6002F11148C98A88FD92 /* InputLayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputLayerTests.swift; sourceTree = "<group>"; };
 		B5DCE18E5F8C4EEB8F1E56C8 /* InputIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputIntegrationTests.swift; sourceTree = "<group>"; };
+			B2D4A890C1D6E3F8A1C3E5F7 /* InputTestHarnessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTestHarnessApp.swift; sourceTree = "<group>"; };
+			D6E8F0A2B3C5D7E9F1A2B4C4 /* TestHarnessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestHarnessView.swift; sourceTree = "<group>"; };
+			E9F1A2B4C4D6E8F0A2B3C5D7 /* InputTestHarness.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = InputTestHarness.entitlements; sourceTree = "<group>"; };
+			F1A2B4C4D6E8F0A2B3C5D7E9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+			A3B5C7D9E1F2A4B6C8D0E2F4 /* InputTestHarness.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = InputTestHarness.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -184,6 +198,7 @@
 			children = (
 				D0C8527F2B08DB37865B336E /* MWBClient */,
 				3A9FC251097701A2BF3D282F /* MWBClientTests */,
+				F7A9B2C0D4E6F8A1B3C5D7E2 /* InputTestHarness */,
 				CC37FDC08603DA01A10EC562 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -224,6 +239,7 @@
 			isa = PBXGroup;
 			children = (
 				B09568AF0CC3622C18EA8D74 /* MWBClient.app */,
+				A3B5C7D9E1F2A4B6C8D0E2F4 /* InputTestHarness.app */,
 				75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */,
 			);
 			name = Products;
@@ -264,6 +280,17 @@
 			path = UI;
 			sourceTree = "<group>";
 		};
+			F7A9B2C0D4E6F8A1B3C5D7E2 /* InputTestHarness */ = {
+				isa = PBXGroup;
+				children = (
+					B2D4A890C1D6E3F8A1C3E5F7 /* InputTestHarnessApp.swift */,
+					D6E8F0A2B3C5D7E9F1A2B4C4 /* TestHarnessView.swift */,
+					E9F1A2B4C4D6E8F0A2B3C5D7 /* InputTestHarness.entitlements */,
+					F1A2B4C4D6E8F0A2B3C5D7E9 /* Info.plist */,
+				);
+				path = InputTestHarness;
+				sourceTree = "<group>";
+			};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -303,7 +330,37 @@
 			productReference = B09568AF0CC3622C18EA8D74 /* MWBClient.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E5F7A9B2C0D4E6F8A1B3C5D7 /* InputTestHarness */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B3C5D7E5F7A9B2C0D4E6F8 /* Build configuration list for PBXNativeTarget "InputTestHarness" */;
+			buildPhases = (
+				C0D4E6F8A1B3C5D7E5F7A9B2 /* Sources */,
+				D4E6F8A1B3C5D7E5F7A9B2C0 /* Resources */,
+				E6F8A1B3C5D7E5F7A9B2C0D4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F8A1B3C5D7E5F7A9B2C0D4E6 /* PBXTargetDependency */,
+			);
+			name = InputTestHarness;
+			packageProductDependencies = (
+			);
+			productName = InputTestHarness;
+			productReference = A3B5C7D9E1F2A4B6C8D0E2F4 /* InputTestHarness.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E6F8A1B3C5D7E5F7A9B2C0D4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXProject section */
 		7BD8EB1106FFA347D01C62BC /* Project object */ = {
@@ -316,6 +373,9 @@
 						ProvisioningStyle = Automatic;
 					};
 					5C3B493D1934DAC02F1A86A1 = {
+						ProvisioningStyle = Automatic;
+					};
+					E5F7A9B2C0D4E6F8A1B3C5D7 = {
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -336,6 +396,7 @@
 			targets = (
 				5C3B493D1934DAC02F1A86A1 /* MWBClient */,
 				52DE2E9BACF025BE2D3E66E9 /* MWBClientTests */,
+				E5F7A9B2C0D4E6F8A1B3C5D7 /* InputTestHarness */,
 			);
 		};
 /* End PBXProject section */
@@ -346,6 +407,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				FE988D34BABCD3A73AD97BBD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E6F8A1B3C5D7E5F7A9B2C0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -398,6 +466,42 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0D4E6F8A1B3C5D7E5F7A9B2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C3E5F7B2D4A890C1D6E3F8 /* InputTestHarnessApp.swift in Sources */,
+				C4D6E8F0A2B3C5D7E9F1A2B4 /* TestHarnessView.swift in Sources */,
+				93C6BFBF8C21BAD92CECFBA0 /* AppCoordinator.swift in Sources */,
+				6C2B7A995DA6FBEFEBC26538 /* AppDelegate.swift in Sources */,
+				C7A95CBA30FE515DF2F2278A /* ClipboardCodec.swift in Sources */,
+				2A4B51C885C8AE958B57EEF3 /* ClipboardManager.swift in Sources */,
+				49B80F2968571D548F8D1F7B /* ClipboardView.swift in Sources */,
+				805EB3CA3399A58A45A7BC04 /* ConnectionView.swift in Sources */,
+				CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */,
+				ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */,
+				1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */,
+				711217305E826FC8505F9940 /* InputCapture.swift in Sources */,
+				6FA563E0B55479657E09821E /* InputInjection.swift in Sources */,
+				06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */,
+				34D5E78EA0EF050D71D06129 /* LayoutView.swift in Sources */,
+				5D474965B74691874F7CD6EE /* MWBConstants.swift in Sources */,
+				742D77599C631DD05494E75A /* MWBCrypto.swift in Sources */,
+				8A12B0E405E18FB930D91923 /* MWBHandshake.swift in Sources */,
+				A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */,
+				564A59595DFAFCAB8F83C87A /* MWBMouseData.swift in Sources */,
+				188C72432675028FAD914BDC /* MWBPacket.swift in Sources */,
+				1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */,
+				86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */,
+				76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */,
+				1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */,
+				7F771834B9783E346FDA5EF1 /* ServerListener.swift in Sources */,
+				777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */,
+				E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */,
+				48EB907090A3E8A126AB063A /* TrayMenu.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -405,6 +509,11 @@
 			isa = PBXTargetDependency;
 			target = 5C3B493D1934DAC02F1A86A1 /* MWBClient */;
 			targetProxy = BC571693B5F63F671E7D3746 /* PBXContainerItemProxy */;
+		};
+		F8A1B3C5D7E5F7A9B2C0D4E6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5C3B493D1934DAC02F1A86A1 /* MWBClient */;
+			targetProxy = D0E2F4A6B8C1D3E5F7A9B2C0 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -612,6 +721,48 @@
 			};
 			name = Release;
 		};
+		B3C5D7E5F7A9B2C0D4E6F8A1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = InputTestHarness/InputTestHarness.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = InputTestHarness/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mwbclient.input-test-harness;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C5D7E5F7A9B2C0D4E6F8A1B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = InputTestHarness/InputTestHarness.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = InputTestHarness/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mwbclient.input-test-harness;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -638,6 +789,15 @@
 			buildConfigurations = (
 				726B24D1FF6C119F5B8F0DA2 /* Debug */,
 				50FB6CB9387D13BA2821FC43 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A1B3C5D7E5F7A9B2C0D4E6F8 /* Build configuration list for PBXNativeTarget "InputTestHarness" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B3C5D7E5F7A9B2C0D4E6F8A1 /* Debug */,
+				C5D7E5F7A9B2C0D4E6F8A1B3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
