@@ -5,8 +5,13 @@ struct MWBApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup {
-            EmptyView()
+        Window("MWB Client", id: "settings") {
+            SettingsWindow()
+        }
+        .windowStyle(.titleBar)
+        .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .newItem) {}
         }
     }
 }
