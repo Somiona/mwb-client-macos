@@ -24,7 +24,7 @@ struct HandshakeHandler {
 
     mutating func receiveChallenge(_ packet: MWBPacket) -> MWBPacket? {
         switch state {
-        case .exchangingNoise, .receivingChallenge:
+        case .exchangingNoise, .receivingChallenge, .sendingIdentity, .completed:
             break
         default:
             state = .failed("unexpected challenge in state \(state)")
