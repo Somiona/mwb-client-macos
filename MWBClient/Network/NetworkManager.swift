@@ -3,12 +3,6 @@ import Foundation
 import Network
 import Security
 
-// MARK: - Callback Types
-
-typealias MouseCallback = @Sendable (MouseData) -> Void
-typealias KeyboardCallback = @Sendable (KeyboardData) -> Void
-typealias ClipboardCallback = @Sendable (MWBPacket) -> Void
-
 // MARK: - Connection State
 
 enum ConnectionState: Sendable, Equatable {
@@ -311,6 +305,10 @@ actor NetworkManager {
                 }
 
                 let packet = MWBPacket(rawData: fullData)
+
+                guard packet.validateChecksum() else { continue }
+                guard packet.validateMagic(magicHash) else { continue }
+
                 dispatchPacket(packet)
 
             } catch {

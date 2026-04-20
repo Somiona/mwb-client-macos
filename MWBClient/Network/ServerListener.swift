@@ -296,6 +296,9 @@ actor ServerListener {
 
                 let packet = MWBPacket(rawData: fullData)
 
+                guard packet.validateChecksum() else { continue }
+                guard packet.validateMagic(magicHash) else { continue }
+
                 // Handle re-handshake and heartbeat echo inline; dispatch everything else
                 if await handleSpecialPacket(packet, connection: conn, crypto: crypto, magicHash: magicHash, handler: &handler) {
                     continue
