@@ -1,0 +1,1 @@
+// MWB Mouse data structure

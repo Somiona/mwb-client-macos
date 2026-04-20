@@ -1,0 +1,632 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */; };
+		188C72432675028FAD914BDC /* MWBPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */; };
+		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
+		1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5929D4D7603B549A3D3E214C /* HeartbeatService.swift */; };
+		2A4B51C885C8AE958B57EEF3 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */; };
+		34D5E78EA0EF050D71D06129 /* LayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44757A274942A16843F68B9E /* LayoutView.swift */; };
+		48EB907090A3E8A126AB063A /* TrayMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30AAC773F12E24AB0F72A82 /* TrayMenu.swift */; };
+		49B80F2968571D548F8D1F7B /* ClipboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 641FE17D9AFE54ED91ED5FE1 /* ClipboardView.swift */; };
+		564A59595DFAFCAB8F83C87A /* MWBMouseData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB222A87194D78042767C39F /* MWBMouseData.swift */; };
+		5D474965B74691874F7CD6EE /* MWBConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */; };
+		612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */; };
+		641D0DCE57A302CCCE6DD70E /* MWBApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFA93B213339C595595EFE7 /* MWBApp.swift */; };
+		6C2B7A995DA6FBEFEBC26538 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBC2304145EBEC609D6A75 /* AppDelegate.swift */; };
+		6FA563E0B55479657E09821E /* InputInjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26795837B7EC4F86C491C10 /* InputInjection.swift */; };
+		711217305E826FC8505F9940 /* InputCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */; };
+		742D77599C631DD05494E75A /* MWBCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */; };
+		76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0303F387359BE5F8635EA8C /* PermissionsView.swift */; };
+		777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA5714D75003D2FD578D32A /* SettingsStore.swift */; };
+		7F771834B9783E346FDA5EF1 /* ServerListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82F62EBF6436F652A1861C1D /* ServerListener.swift */; };
+		805EB3CA3399A58A45A7BC04 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55DC62E228DC882B82162C7 /* ConnectionView.swift */; };
+		86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F38E9FDB3A364CEC11978A /* NetworkManager.swift */; };
+		8A12B0E405E18FB930D91923 /* MWBHandshake.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F3D0296E0F76D9C47BD4AE /* MWBHandshake.swift */; };
+		93C6BFBF8C21BAD92CECFBA0 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB048089A977A0BC32B0369B /* AppCoordinator.swift */; };
+		A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59334291F885148BC161FCE2 /* MWBKeyboardData.swift */; };
+		ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC5F135996CBF70C5BCB674 /* GeneralView.swift */; };
+		C7A95CBA30FE515DF2F2278A /* ClipboardCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */; };
+		CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */; };
+		E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B03D6DF490960A2425D804 /* SettingsWindow.swift */; };
+		FE988D34BABCD3A73AD97BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C99E0500DC51D1376645C1E2 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BC571693B5F63F671E7D3746 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7BD8EB1106FFA347D01C62BC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C3B493D1934DAC02F1A86A1;
+			remoteInfo = MWBClient;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputCapture.swift; sourceTree = "<group>"; };
+		0FC5F135996CBF70C5BCB674 /* GeneralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralView.swift; sourceTree = "<group>"; };
+		2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetector.swift; sourceTree = "<group>"; };
+		2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBConstants.swift; sourceTree = "<group>"; };
+		3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
+		44757A274942A16843F68B9E /* LayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutView.swift; sourceTree = "<group>"; };
+		4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCodec.swift; sourceTree = "<group>"; };
+		4DA5714D75003D2FD578D32A /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		5929D4D7603B549A3D3E214C /* HeartbeatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartbeatService.swift; sourceTree = "<group>"; };
+		59334291F885148BC161FCE2 /* MWBKeyboardData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBKeyboardData.swift; sourceTree = "<group>"; };
+		641FE17D9AFE54ED91ED5FE1 /* ClipboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardView.swift; sourceTree = "<group>"; };
+		75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MWBClientTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		82F62EBF6436F652A1861C1D /* ServerListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerListener.swift; sourceTree = "<group>"; };
+		90CF48864FCE733E195625FD /* MWBClient.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MWBClient.entitlements; sourceTree = "<group>"; };
+		93F3D0296E0F76D9C47BD4AE /* MWBHandshake.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBHandshake.swift; sourceTree = "<group>"; };
+		A1BBC2304145EBEC609D6A75 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A26795837B7EC4F86C491C10 /* InputInjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputInjection.swift; sourceTree = "<group>"; };
+		AB222A87194D78042767C39F /* MWBMouseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBMouseData.swift; sourceTree = "<group>"; };
+		AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenInfo.swift; sourceTree = "<group>"; };
+		B09568AF0CC3622C18EA8D74 /* MWBClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MWBClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0B03D6DF490960A2425D804 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
+		B30AAC773F12E24AB0F72A82 /* TrayMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayMenu.swift; sourceTree = "<group>"; };
+		BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBPacket.swift; sourceTree = "<group>"; };
+		C2F38E9FDB3A364CEC11978A /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
+		C99E0500DC51D1376645C1E2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D4CDB2AFF1972828D0E8BE1C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D55DC62E228DC882B82162C7 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
+		E0303F387359BE5F8635EA8C /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
+		EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBClientTests.swift; sourceTree = "<group>"; };
+		EFFA93B213339C595595EFE7 /* MWBApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBApp.swift; sourceTree = "<group>"; };
+		F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCrypto.swift; sourceTree = "<group>"; };
+		FB048089A977A0BC32B0369B /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
+		FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMapper.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		02DB26265D070924FB2B0F1E /* Clipboard */ = {
+			isa = PBXGroup;
+			children = (
+				4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */,
+				3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */,
+			);
+			path = Clipboard;
+			sourceTree = "<group>";
+		};
+		1395016B28A86661D7529FBB /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		1AE39F3B38371A7B17E088FB /* Protocol */ = {
+			isa = PBXGroup;
+			children = (
+				2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */,
+				93F3D0296E0F76D9C47BD4AE /* MWBHandshake.swift */,
+				59334291F885148BC161FCE2 /* MWBKeyboardData.swift */,
+				AB222A87194D78042767C39F /* MWBMouseData.swift */,
+				BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */,
+			);
+			path = Protocol;
+			sourceTree = "<group>";
+		};
+		3A9FC251097701A2BF3D282F /* MWBClientTests */ = {
+			isa = PBXGroup;
+			children = (
+				EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */,
+			);
+			path = MWBClientTests;
+			sourceTree = "<group>";
+		};
+		3E351B09B7FD8C6E6A34D197 /* Tray */ = {
+			isa = PBXGroup;
+			children = (
+				B30AAC773F12E24AB0F72A82 /* TrayMenu.swift */,
+			);
+			path = Tray;
+			sourceTree = "<group>";
+		};
+		5E3307291A327785C1664B17 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A1BBC2304145EBEC609D6A75 /* AppDelegate.swift */,
+				D4CDB2AFF1972828D0E8BE1C /* Info.plist */,
+				EFFA93B213339C595595EFE7 /* MWBApp.swift */,
+				90CF48864FCE733E195625FD /* MWBClient.entitlements */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		663D0DAC18CF1D7D5D0A6E78 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				4DA5714D75003D2FD578D32A /* SettingsStore.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		738DE99CA05426C984D8B5C8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C99E0500DC51D1376645C1E2 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		73AB60F674EC0F68ED085994 /* Input */ = {
+			isa = PBXGroup;
+			children = (
+				2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */,
+				085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */,
+				A26795837B7EC4F86C491C10 /* InputInjection.swift */,
+				FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */,
+			);
+			path = Input;
+			sourceTree = "<group>";
+		};
+		7C8675122AE4E73572159F2F = {
+			isa = PBXGroup;
+			children = (
+				D0C8527F2B08DB37865B336E /* MWBClient */,
+				3A9FC251097701A2BF3D282F /* MWBClientTests */,
+				CC37FDC08603DA01A10EC562 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7FDCB4E9048B3E471D5236ED /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				641FE17D9AFE54ED91ED5FE1 /* ClipboardView.swift */,
+				D55DC62E228DC882B82162C7 /* ConnectionView.swift */,
+				0FC5F135996CBF70C5BCB674 /* GeneralView.swift */,
+				44757A274942A16843F68B9E /* LayoutView.swift */,
+				E0303F387359BE5F8635EA8C /* PermissionsView.swift */,
+				B0B03D6DF490960A2425D804 /* SettingsWindow.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		81C8D5DC84A0DDB727B6B28B /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				5929D4D7603B549A3D3E214C /* HeartbeatService.swift */,
+				C2F38E9FDB3A364CEC11978A /* NetworkManager.swift */,
+				82F62EBF6436F652A1861C1D /* ServerListener.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		C48C42558A090CF60D96DCD7 /* Crypto */ = {
+			isa = PBXGroup;
+			children = (
+				F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */,
+			);
+			path = Crypto;
+			sourceTree = "<group>";
+		};
+		CC37FDC08603DA01A10EC562 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B09568AF0CC3622C18EA8D74 /* MWBClient.app */,
+				75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D0C8527F2B08DB37865B336E /* MWBClient */ = {
+			isa = PBXGroup;
+			children = (
+				5E3307291A327785C1664B17 /* App */,
+				02DB26265D070924FB2B0F1E /* Clipboard */,
+				D643CBFA9C550E30B207E88C /* Coordinator */,
+				C48C42558A090CF60D96DCD7 /* Crypto */,
+				73AB60F674EC0F68ED085994 /* Input */,
+				81C8D5DC84A0DDB727B6B28B /* Network */,
+				663D0DAC18CF1D7D5D0A6E78 /* Persistence */,
+				1AE39F3B38371A7B17E088FB /* Protocol */,
+				738DE99CA05426C984D8B5C8 /* Resources */,
+				E333B6A56ED8A1DE77C67EF4 /* UI */,
+				1395016B28A86661D7529FBB /* Utils */,
+			);
+			path = MWBClient;
+			sourceTree = "<group>";
+		};
+		D643CBFA9C550E30B207E88C /* Coordinator */ = {
+			isa = PBXGroup;
+			children = (
+				FB048089A977A0BC32B0369B /* AppCoordinator.swift */,
+			);
+			path = Coordinator;
+			sourceTree = "<group>";
+		};
+		E333B6A56ED8A1DE77C67EF4 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				7FDCB4E9048B3E471D5236ED /* Settings */,
+				3E351B09B7FD8C6E6A34D197 /* Tray */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		52DE2E9BACF025BE2D3E66E9 /* MWBClientTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8EF93BCA56FE8EBC51DEC376 /* Build configuration list for PBXNativeTarget "MWBClientTests" */;
+			buildPhases = (
+				885DC605F292BF48894C66F3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6B9919C739B447590A9BFE0D /* PBXTargetDependency */,
+			);
+			name = MWBClientTests;
+			packageProductDependencies = (
+			);
+			productName = MWBClientTests;
+			productReference = 75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		5C3B493D1934DAC02F1A86A1 /* MWBClient */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 48A7A8EE93BC1E3686F1EAEB /* Build configuration list for PBXNativeTarget "MWBClient" */;
+			buildPhases = (
+				8DD1B25B011D8455C0F16FC4 /* Sources */,
+				ABB9C017B21BA0802D878536 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MWBClient;
+			packageProductDependencies = (
+			);
+			productName = MWBClient;
+			productReference = B09568AF0CC3622C18EA8D74 /* MWBClient.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7BD8EB1106FFA347D01C62BC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					52DE2E9BACF025BE2D3E66E9 = {
+						ProvisioningStyle = Automatic;
+					};
+					5C3B493D1934DAC02F1A86A1 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 705C0B4DFC70C24BB6A206DA /* Build configuration list for PBXProject "MWBClient" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7C8675122AE4E73572159F2F;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CC37FDC08603DA01A10EC562 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5C3B493D1934DAC02F1A86A1 /* MWBClient */,
+				52DE2E9BACF025BE2D3E66E9 /* MWBClientTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		ABB9C017B21BA0802D878536 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE988D34BABCD3A73AD97BBD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		885DC605F292BF48894C66F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8DD1B25B011D8455C0F16FC4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				93C6BFBF8C21BAD92CECFBA0 /* AppCoordinator.swift in Sources */,
+				6C2B7A995DA6FBEFEBC26538 /* AppDelegate.swift in Sources */,
+				C7A95CBA30FE515DF2F2278A /* ClipboardCodec.swift in Sources */,
+				2A4B51C885C8AE958B57EEF3 /* ClipboardManager.swift in Sources */,
+				49B80F2968571D548F8D1F7B /* ClipboardView.swift in Sources */,
+				805EB3CA3399A58A45A7BC04 /* ConnectionView.swift in Sources */,
+				CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */,
+				ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */,
+				1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */,
+				711217305E826FC8505F9940 /* InputCapture.swift in Sources */,
+				6FA563E0B55479657E09821E /* InputInjection.swift in Sources */,
+				06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */,
+				34D5E78EA0EF050D71D06129 /* LayoutView.swift in Sources */,
+				641D0DCE57A302CCCE6DD70E /* MWBApp.swift in Sources */,
+				5D474965B74691874F7CD6EE /* MWBConstants.swift in Sources */,
+				742D77599C631DD05494E75A /* MWBCrypto.swift in Sources */,
+				8A12B0E405E18FB930D91923 /* MWBHandshake.swift in Sources */,
+				A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */,
+				564A59595DFAFCAB8F83C87A /* MWBMouseData.swift in Sources */,
+				188C72432675028FAD914BDC /* MWBPacket.swift in Sources */,
+				86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */,
+				76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */,
+				1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */,
+				7F771834B9783E346FDA5EF1 /* ServerListener.swift in Sources */,
+				777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */,
+				E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */,
+				48EB907090A3E8A126AB063A /* TrayMenu.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6B9919C739B447590A9BFE0D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5C3B493D1934DAC02F1A86A1 /* MWBClient */;
+			targetProxy = BC571693B5F63F671E7D3746 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		09994866CC9A7FD4E30B41A5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = MWBClient/App/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		50FB6CB9387D13BA2821FC43 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client.tests;
+				PRODUCT_NAME = MWBClientTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MWBClient.app/Contents/MacOS/MWBClient";
+			};
+			name = Release;
+		};
+		726B24D1FF6C119F5B8F0DA2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client.tests;
+				PRODUCT_NAME = MWBClientTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MWBClient.app/Contents/MacOS/MWBClient";
+			};
+			name = Debug;
+		};
+		96DB5D9FAFBF1065C1499BBC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MWBClient/App/MWBClient.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MWBClient/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
+				PRODUCT_NAME = MWBClient;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		98793193A279C13F1143B9C6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MWBClient/App/MWBClient.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MWBClient/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
+				PRODUCT_NAME = MWBClient;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		F58ABBC074A88B892EBA690D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = MWBClient/App/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		48A7A8EE93BC1E3686F1EAEB /* Build configuration list for PBXNativeTarget "MWBClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				98793193A279C13F1143B9C6 /* Debug */,
+				96DB5D9FAFBF1065C1499BBC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		705C0B4DFC70C24BB6A206DA /* Build configuration list for PBXProject "MWBClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				09994866CC9A7FD4E30B41A5 /* Debug */,
+				F58ABBC074A88B892EBA690D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8EF93BCA56FE8EBC51DEC376 /* Build configuration list for PBXNativeTarget "MWBClientTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				726B24D1FF6C119F5B8F0DA2 /* Debug */,
+				50FB6CB9387D13BA2821FC43 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7BD8EB1106FFA347D01C62BC /* Project object */;
+}

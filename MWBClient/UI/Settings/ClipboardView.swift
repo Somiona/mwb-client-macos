@@ -1,0 +1,1 @@
+// Clipboard settings view

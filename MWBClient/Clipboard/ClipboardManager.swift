@@ -1,0 +1,1 @@
+// NSPasteboard-based clipboard sync
