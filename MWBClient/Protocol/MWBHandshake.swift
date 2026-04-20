@@ -44,9 +44,10 @@ struct HandshakeHandler {
         ack.src = packet.src
         ack.des = packet.des
 
-        let challengeData = packet.data
+        let challengeData = Array(packet.data)
+        let fieldSize = min(challengeData.count, MWBConstants.dataFieldSize)
         var responseData = Data(count: MWBConstants.dataFieldSize)
-        for i in 0..<min(challengeData.count, MWBConstants.dataFieldSize) {
+        for i in 0..<fieldSize {
             responseData[i] = ~challengeData[i]
         }
         ack.data = responseData

@@ -101,7 +101,7 @@ struct MWBPacket {
     // MARK: - Data field (offset 16, 48 bytes)
 
     var data: Data {
-        get { bytes[16..<(16 + MWBConstants.dataFieldSize)] }
+        get { Data(bytes[16..<(16 + MWBConstants.dataFieldSize)]) }
         set {
             let clamped = newValue.prefix(MWBConstants.dataFieldSize)
             bytes.replaceSubrange(16..<(16 + clamped.count), with: clamped)

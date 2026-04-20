@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */; };
+		1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */; };
 		188C72432675028FAD914BDC /* MWBPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */; };
 		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
 		1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5929D4D7603B549A3D3E214C /* HeartbeatService.swift */; };
@@ -18,6 +19,7 @@
 		564A59595DFAFCAB8F83C87A /* MWBMouseData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB222A87194D78042767C39F /* MWBMouseData.swift */; };
 		5D474965B74691874F7CD6EE /* MWBConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */; };
 		612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */; };
+			A1B2C3D4E5F6A7B8C9D0E1F2 /* ProtocolCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E0D1C2B3A4958677A8B9C0 /* ProtocolCompatibilityTests.swift */; };
 		641D0DCE57A302CCCE6DD70E /* MWBApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFA93B213339C595595EFE7 /* MWBApp.swift */; };
 		6C2B7A995DA6FBEFEBC26538 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBC2304145EBEC609D6A75 /* AppDelegate.swift */; };
 		6FA563E0B55479657E09821E /* InputInjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26795837B7EC4F86C491C10 /* InputInjection.swift */; };
@@ -61,6 +63,7 @@
 		59334291F885148BC161FCE2 /* MWBKeyboardData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBKeyboardData.swift; sourceTree = "<group>"; };
 		641FE17D9AFE54ED91ED5FE1 /* ClipboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardView.swift; sourceTree = "<group>"; };
 		75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MWBClientTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkCallbacks.swift; sourceTree = "<group>"; };
 		82F62EBF6436F652A1861C1D /* ServerListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerListener.swift; sourceTree = "<group>"; };
 		90CF48864FCE733E195625FD /* MWBClient.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MWBClient.entitlements; sourceTree = "<group>"; };
 		93F3D0296E0F76D9C47BD4AE /* MWBHandshake.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBHandshake.swift; sourceTree = "<group>"; };
@@ -78,6 +81,7 @@
 		D55DC62E228DC882B82162C7 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
 		E0303F387359BE5F8635EA8C /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
 		EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBClientTests.swift; sourceTree = "<group>"; };
+			F1E0D1C2B3A4958677A8B9C0 /* ProtocolCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolCompatibilityTests.swift; sourceTree = "<group>"; };
 		EFFA93B213339C595595EFE7 /* MWBApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBApp.swift; sourceTree = "<group>"; };
 		F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCrypto.swift; sourceTree = "<group>"; };
 		FB048089A977A0BC32B0369B /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
@@ -118,6 +122,7 @@
 			isa = PBXGroup;
 			children = (
 				EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */,
+					F1E0D1C2B3A4958677A8B9C0 /* ProtocolCompatibilityTests.swift */,
 			);
 			path = MWBClientTests;
 			sourceTree = "<group>";
@@ -194,6 +199,7 @@
 			isa = PBXGroup;
 			children = (
 				5929D4D7603B549A3D3E214C /* HeartbeatService.swift */,
+				7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */,
 				C2F38E9FDB3A364CEC11978A /* NetworkManager.swift */,
 				82F62EBF6436F652A1861C1D /* ServerListener.swift */,
 			);
@@ -345,6 +351,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */,
+					A1B2C3D4E5F6A7B8C9D0E1F2 /* ProtocolCompatibilityTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -372,6 +379,7 @@
 				A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */,
 				564A59595DFAFCAB8F83C87A /* MWBMouseData.swift in Sources */,
 				188C72432675028FAD914BDC /* MWBPacket.swift in Sources */,
+				1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */,
 				86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */,
 				76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */,
 				1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */,
