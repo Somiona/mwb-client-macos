@@ -130,7 +130,7 @@ final class SettingsStore {
 
     // MARK: - Helpers
 
-    /// Resets all settings to their default values and clears UserDefaults entries.
+    /// Resets all settings to their default values.
     func resetToDefaults() {
         windowsIP = ""
         securityKey = ""
