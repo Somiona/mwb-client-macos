@@ -6,12 +6,14 @@ struct MWBApp: App {
 
     private let settings: SettingsStore
     private let coordinator: AppCoordinator
-    @State private var trayMenu: TrayMenu?
 
     init() {
         let store = SettingsStore()
+        let coord = AppCoordinator(settings: store)
         self.settings = store
-        self.coordinator = AppCoordinator(settings: store)
+        self.coordinator = coord
+        AppDelegate.sharedCoordinator = coord
+        AppDelegate.sharedSettings = store
     }
 
     var body: some Scene {
@@ -24,21 +26,6 @@ struct MWBApp: App {
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .newItem) {}
-        }
-    }
-
-    /// Creates the tray menu and optionally auto-connects.
-    ///
-    /// Called from `AppDelegate.applicationDidFinishLaunching` so that
-    /// `NSApp` and the SwiftUI scene graph are both initialized.
-    func applicationDidFinishLaunching() {
-        let tray = TrayMenu(coordinator: coordinator)
-        trayMenu = tray
-        appDelegate.trayMenu = tray
-
-        // Auto-connect if both connection settings are present
-        if !settings.windowsIP.isEmpty && !settings.securityKey.isEmpty {
-            coordinator.connect()
         }
     }
 }

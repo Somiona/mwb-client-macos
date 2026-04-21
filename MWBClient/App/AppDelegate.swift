@@ -2,17 +2,19 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
-    // MARK: - Tray Menu Reference
+    // MARK: - Shared References
 
-    /// Set by MWBApp after the SwiftUI scene is initialized.
-    weak var trayMenu: TrayMenu?
+    /// Set by MWBApp.init() before the delegate methods fire.
+    nonisolated(unsafe) static weak var sharedCoordinator: AppCoordinator?
+    nonisolated(unsafe) static weak var sharedSettings: SettingsStore?
+
+    // MARK: - State
+
+    private var trayMenu: TrayMenu?
 
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Dock icon starts hidden (LSUIElement = true in Info.plist).
-        // It will be toggled to .regular when the settings window opens.
-
         // Observe window lifecycle for dock icon toggle
         NotificationCenter.default.addObserver(
             self,
@@ -27,14 +29,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
 
-        // Initialize tray menu and auto-connect via MWBApp
-        if let app = NSApp.delegate as? MWBApp {
-            app.applicationDidFinishLaunching()
+        // Set up tray menu and auto-connect
+        if let coordinator = Self.sharedCoordinator, let settings = Self.sharedSettings {
+            trayMenu = TrayMenu(coordinator: coordinator)
+
+            if !settings.windowsIP.isEmpty && !settings.securityKey.isEmpty {
+                coordinator.connect()
+            }
         }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        // Click dock icon -> show settings window
         if !flag {
             openSettingsWindow()
         }
@@ -60,7 +65,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openSettingsWindow() {
-        // Bring existing settings window to front, or let SwiftUI create it
         if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "settings" }) {
             window.makeKeyAndOrderFront(nil)
         } else {
