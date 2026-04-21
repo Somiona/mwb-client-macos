@@ -96,9 +96,9 @@ final class TrayMenu {
             guard let self else { return }
 
             withObservationTracking {
-                _ = coordinator.connectionState
-                _ = coordinator.windowsMachineName
-                _ = coordinator.isSharingEnabled
+                _ = self.coordinator.connectionState
+                _ = self.coordinator.windowsMachineName
+                _ = self.coordinator.isSharingEnabled
             } onChange: { [weak self] in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
