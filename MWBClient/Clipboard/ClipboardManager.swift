@@ -239,7 +239,7 @@ actor ClipboardManager {
             }
 
             let challengeDecrypted = crypto.decrypt(padToBlock(challengeEncrypted))
-            var challengePacket = MWBPacket(rawData: challengeDecrypted)
+            let challengePacket = MWBPacket(rawData: challengeDecrypted)
 
             guard challengePacket.packageType == .handshake else {
                 throw NetworkError.handshakeFailed("expected type 126, got \(challengePacket.type)")
@@ -467,7 +467,7 @@ actor ClipboardManager {
             guard !Task.isCancelled else { break }
             guard isConnected else { break }
 
-            await checkAndSendClipboard()
+            checkAndSendClipboard()
         }
     }
 
