@@ -50,6 +50,17 @@ actor NetworkManager {
     var onKeyboard: KeyboardCallback?
     var onClipboard: ClipboardCallback?
 
+    /// Sets all three callbacks in a single actor-isolated call.
+    func setCallbacks(
+        onMouse: MouseCallback?,
+        onKeyboard: KeyboardCallback?,
+        onClipboard: ClipboardCallback?
+    ) {
+        self.onMouse = onMouse
+        self.onKeyboard = onKeyboard
+        self.onClipboard = onClipboard
+    }
+
     // MARK: Init
 
     init(
@@ -224,7 +235,7 @@ actor NetworkManager {
             }
 
             let challengeDecrypted = crypto.decrypt(padToBlock(challengeEncrypted))
-            var challengePacket = MWBPacket(rawData: challengeDecrypted)
+            let challengePacket = MWBPacket(rawData: challengeDecrypted)
 
             guard challengePacket.packageType == .handshake else {
                 throw NetworkError.handshakeFailed("expected type 126, got \(challengePacket.type)")

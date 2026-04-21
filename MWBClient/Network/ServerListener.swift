@@ -31,6 +31,17 @@ actor ServerListener {
     var onKeyboard: KeyboardCallback?
     var onClipboard: ClipboardCallback?
 
+    /// Sets all three callbacks in a single actor-isolated call.
+    func setCallbacks(
+        onMouse: MouseCallback?,
+        onKeyboard: KeyboardCallback?,
+        onClipboard: ClipboardCallback?
+    ) {
+        self.onMouse = onMouse
+        self.onKeyboard = onKeyboard
+        self.onClipboard = onClipboard
+    }
+
     // MARK: Init
 
     init(
