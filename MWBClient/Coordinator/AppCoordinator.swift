@@ -52,6 +52,7 @@ final class AppCoordinator {
     // MARK: - State Polling
 
     private var statePollTask: Task<Void, Never>?
+    private var connectTask: Task<Void, Never>?
 
     // MARK: - Init
 
@@ -122,7 +123,7 @@ final class AppCoordinator {
         let captureStarted = inputCapture.start()
 
         // --- Wire callbacks and start subsystems on actor contexts ---
-        Task { [weak self] in
+        connectTask = Task { [weak self] in
             guard let self else { return }
 
             // Wire NetworkManager callbacks
@@ -173,14 +174,26 @@ final class AppCoordinator {
     }
 
     func disconnect() {
+        connectTask?.cancel()
+        connectTask = nil
         statePollTask?.cancel()
         statePollTask = nil
 
+        let nm = networkManager
+        let sl = serverListener
+        let hb = heartbeatService
+        let cm = clipboardManager
+
+        networkManager = nil
+        serverListener = nil
+        heartbeatService = nil
+        clipboardManager = nil
+
         Task {
-            await networkManager?.disconnect()
-            await serverListener?.stop()
-            await heartbeatService?.stop()
-            await clipboardManager?.stop()
+            await nm?.disconnect()
+            await sl?.stop()
+            await hb?.stop()
+            await cm?.stop()
         }
 
         inputCapture.stop()
@@ -192,11 +205,6 @@ final class AppCoordinator {
         isSharingEnabled = false
         connectionState = .disconnected
         windowsMachineName = ""
-
-        networkManager = nil
-        serverListener = nil
-        heartbeatService = nil
-        clipboardManager = nil
     }
 
     // MARK: - Settings Observation
@@ -237,6 +245,7 @@ final class AppCoordinator {
     ) async {
         // Wait for the connection to reach .connected state
         while true {
+            guard !Task.isCancelled else { return }
             let state = await nm.state
             if state == .connected {
                 break
