@@ -12,6 +12,7 @@ private enum SettingsKey {
     static let syncImages = "settings.syncImages"
     static let syncFiles = "settings.syncFiles"
     static let startAtLogin = "settings.startAtLogin"
+    static let showInMenuBar = "settings.showInMenuBar"
     static let crossingEdge = "settings.crossingEdge"
     static let machineName = "settings.machineName"
 }
@@ -25,6 +26,7 @@ private enum SettingsDefault {
     static let syncImages = true
     static let syncFiles = true
     static let startAtLogin = false
+    static let showInMenuBar = true
     static let crossingEdge: CrossingEdge = .right
 
     static var machineName: String {
@@ -89,6 +91,11 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(startAtLogin, forKey: SettingsKey.startAtLogin) }
     }
 
+    /// Whether to show the menu bar tray icon.
+    var showInMenuBar: Bool {
+        didSet { UserDefaults.standard.set(showInMenuBar, forKey: SettingsKey.showInMenuBar) }
+    }
+
     /// The screen edge that triggers cursor crossing to the remote machine.
     ///
     /// Stored as a raw string in UserDefaults for compatibility with the
@@ -117,6 +124,7 @@ final class SettingsStore {
         self.syncImages = defaults.object(forKey: SettingsKey.syncImages) as? Bool ?? SettingsDefault.syncImages
         self.syncFiles = defaults.object(forKey: SettingsKey.syncFiles) as? Bool ?? SettingsDefault.syncFiles
         self.startAtLogin = defaults.object(forKey: SettingsKey.startAtLogin) as? Bool ?? SettingsDefault.startAtLogin
+        self.showInMenuBar = defaults.object(forKey: SettingsKey.showInMenuBar) as? Bool ?? SettingsDefault.showInMenuBar
 
         if let raw = defaults.string(forKey: SettingsKey.crossingEdge),
            let edge = CrossingEdge(rawValue: raw) {
@@ -140,6 +148,7 @@ final class SettingsStore {
         syncImages = SettingsDefault.syncImages
         syncFiles = SettingsDefault.syncFiles
         startAtLogin = SettingsDefault.startAtLogin
+        showInMenuBar = SettingsDefault.showInMenuBar
         crossingEdge = SettingsDefault.crossingEdge
         machineName = SettingsDefault.machineName
     }

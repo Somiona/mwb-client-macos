@@ -23,6 +23,10 @@ struct GeneralView: View {
             Section("Startup") {
                 Toggle("Start at login", isOn: $settings.startAtLogin)
             }
+
+            Section("Menu Bar") {
+                Toggle("Show in menu bar", isOn: $settings.showInMenuBar)
+            }
         }
         .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
