@@ -1,3 +1,4 @@
+import ServiceManagement
 import SwiftUI
 
 struct GeneralView: View {
@@ -22,6 +23,9 @@ struct GeneralView: View {
 
             Section("Startup") {
                 Toggle("Start at login", isOn: $settings.startAtLogin)
+                    .onChange(of: settings.startAtLogin) { _, newValue in
+                        setLoginItemEnabled(newValue)
+                    }
             }
 
             Section("Menu Bar") {
@@ -31,5 +35,18 @@ struct GeneralView: View {
         .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .navigationTitle("General")
+    }
+
+    private func setLoginItemEnabled(_ enabled: Bool) {
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            // Revert the toggle on failure so it stays in sync with the system state.
+            settings.startAtLogin = !enabled
+        }
     }
 }
