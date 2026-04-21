@@ -7,13 +7,13 @@ struct SettingsWindow: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $selectedPage) {
-                Label("Connection", systemImage: "link")
+                Label("Connection", systemImage: "antenna.radiowaves.left.and.right")
                     .tag(SettingsPage.connection)
-                Label("Screen Layout", systemImage: "display")
+                Label("Screen Layout", systemImage: "rectangle.split.2x1")
                     .tag(SettingsPage.layout)
-                Label("Clipboard", systemImage: "doc.on.doc")
+                Label("Clipboard", systemImage: "clipboard")
                     .tag(SettingsPage.clipboard)
-                Label("General", systemImage: "gear")
+                Label("General", systemImage: "gearshape")
                     .tag(SettingsPage.general)
                 Label("Permissions", systemImage: "lock.shield")
                     .tag(SettingsPage.permissions)

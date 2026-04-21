@@ -24,10 +24,7 @@ final class TrayMenu {
         self.coordinator = coordinator
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.image = NSImage(
-            systemSymbolName: "cursorarrow.and.square.on.square.dashed",
-            accessibilityDescription: "MWB Client"
-        )
+        statusItem.button?.image = TrayMenu.iconForState(.disconnected)
 
         let menu = NSMenu()
         menu.autoenablesItems = false
@@ -131,10 +128,7 @@ final class TrayMenu {
         switch coordinator.connectionState {
         case .disconnected:
             statusLabelItem.title = "Status: Disconnected"
-            statusItem.button?.image = NSImage(
-                systemSymbolName: "cursorarrow.and.square.on.square.dashed",
-                accessibilityDescription: "MWB Client"
-            )
+            statusItem.button?.image = TrayMenu.iconForState(.disconnected)
             machineNameItem.isHidden = true
             enabledToggleItem.title = "Connect"
             enabledToggleItem.state = .off
@@ -148,20 +142,14 @@ final class TrayMenu {
             default: label = "Connecting..."
             }
             statusLabelItem.title = "Status: \(label)"
-            statusItem.button?.image = NSImage(
-                systemSymbolName: "arrow.triangle.2.circlepath",
-                accessibilityDescription: "MWB Client"
-            )
+            statusItem.button?.image = TrayMenu.iconForState(.connecting)
             machineNameItem.isHidden = true
             enabledToggleItem.title = "Disconnect"
             enabledToggleItem.state = .on
 
         case .connected:
             statusLabelItem.title = "Status: Connected"
-            statusItem.button?.image = NSImage(
-                systemSymbolName: "cursorarrow.and.square.on.square",
-                accessibilityDescription: "MWB Client"
-            )
+            statusItem.button?.image = TrayMenu.iconForState(.connected)
             if !coordinator.windowsMachineName.isEmpty {
                 machineNameItem.title = coordinator.windowsMachineName
                 machineNameItem.isHidden = false
@@ -196,5 +184,37 @@ final class TrayMenu {
     @objc private func quit() {
         coordinator.disconnect()
         NSApp.terminate(nil)
+    }
+
+    // MARK: - Tray Icon Assets
+
+    private enum TrayIconState {
+        case disconnected
+        case connecting
+        case connected
+    }
+
+    private static func iconForState(_ state: TrayIconState) -> NSImage {
+        let symbolName: String
+        switch state {
+        case .disconnected:
+            symbolName = "cursorarrow.and.square.on.square.dashed"
+        case .connecting:
+            symbolName = "arrow.triangle.2.circlepath"
+        case .connected:
+            symbolName = "square.on.square.fill"
+        }
+
+        let config = NSImage.SymbolConfiguration(
+            pointSize: 14,
+            weight: .medium
+        )
+        guard let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: "MWB Client"),
+              let image = baseImage.withSymbolConfiguration(config) else {
+            return NSImage(systemSymbolName: "questionmark.square", accessibilityDescription: "MWB Client")!
+        }
+
+        image.isTemplate = true
+        return image
     }
 }
