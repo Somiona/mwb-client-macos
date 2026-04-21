@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct SettingsWindow: View {
+    @Environment(AppCoordinator.self) private var coordinator
+    @Environment(SettingsStore.self) private var settings
+
     var body: some View {
         NavigationSplitView {
             List(selection: $selectedPage) {
@@ -20,15 +23,15 @@ struct SettingsWindow: View {
         } detail: {
             switch selectedPage {
             case .connection:
-                Text("Connection")
+                ConnectionView()
             case .layout:
-                Text("Screen Layout")
+                LayoutView()
             case .clipboard:
-                Text("Clipboard")
+                ClipboardView()
             case .general:
-                Text("General")
+                GeneralView()
             case .permissions:
-                Text("Permissions")
+                PermissionsView()
             }
         }
         .frame(minWidth: 600, minHeight: 400)
