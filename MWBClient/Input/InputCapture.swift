@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import os.log
 
 /// Captures local mouse and keyboard events via CGEventTap and converts them
 /// to MWB protocol format for forwarding to a remote machine.
@@ -42,6 +43,9 @@ final class InputCapture {
     var onMousePosition: MousePositionCallback?
     var onKeyboardEvent: KeyboardCallback?
 
+    /// Called when accessibility permission is revoked while the event tap is running.
+    var onPermissionRevoked: (@Sendable () -> Void)?
+
     // MARK: - Private state
 
     /// The CFMachPort for the event tap. Exposed as ``fileprivate`` so the
@@ -51,6 +55,9 @@ final class InputCapture {
 
     /// Screen bounds in Quartz (top-left origin) coordinates. Cached on start().
     private var screenBounds: CGRect = CGDisplayBounds(CGMainDisplayID())
+
+    /// Timer for periodic accessibility permission checks.
+    private var permissionCheckTimer: DispatchSourceTimer?
 
     // MARK: - Accessibility permission
 
@@ -81,9 +88,12 @@ final class InputCapture {
         guard !isRunning else { return true }
 
         guard InputCapture.hasAccessibilityPermission() else {
+            Logger.input.warning("Accessibility permission not granted, requesting")
             InputCapture.requestAccessibilityPermission()
             return false
         }
+
+        Logger.input.info("Starting input capture")
 
         // Cache the main display bounds for coordinate mapping.
         screenBounds = CGDisplayBounds(CGMainDisplayID())
@@ -134,12 +144,16 @@ final class InputCapture {
 
         CGEvent.tapEnable(tap: tap, enable: true)
         isRunning = true
+
+        startPermissionMonitor()
+
         return true
     }
 
     /// Disables and removes the event tap from the run loop.
     func stop() {
         guard isRunning else { return }
+        Logger.input.info("Stopping input capture")
 
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
@@ -153,10 +167,33 @@ final class InputCapture {
         runLoopSource = nil
         inputCaptureBridge = nil
         isRunning = false
+
+        permissionCheckTimer?.cancel()
+        permissionCheckTimer = nil
     }
 
     deinit {
         stop()
+    }
+
+    // MARK: - Permission Monitoring
+
+    /// Starts a periodic timer that checks if accessibility permission has been revoked.
+    /// If revoked mid-session, stops the event tap and notifies via ``onPermissionRevoked``.
+    private func startPermissionMonitor() {
+        permissionCheckTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + 5.0, repeating: 5.0)
+        timer.setEventHandler { [weak self] in
+            guard let self, self.isRunning else { return }
+            if !Self.hasAccessibilityPermission() {
+                Logger.input.error("Accessibility permission revoked mid-session, stopping capture")
+                self.stop()
+                self.onPermissionRevoked?()
+            }
+        }
+        timer.resume()
+        permissionCheckTimer = timer
     }
 
     // MARK: - Coordinate mapping (screen -> MWB virtual desktop)

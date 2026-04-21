@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Network
+import os.log
 import Security
 
 // MARK: - Connection State
@@ -13,15 +14,35 @@ enum ConnectionState: Sendable, Equatable {
     case reconnecting
 }
 
+// MARK: - Connection Error Type
+
+/// Categorizes why a connection attempt failed, used for UI error messages.
+enum ConnectionFailureReason: Sendable, Equatable {
+    case none
+    case connectionRefused
+    case timeout
+    case handshakeFailed
+    case hostUnreachable
+    case cancelled
+    case unknown(String)
+}
+
 // MARK: - NetworkManager
 
 actor NetworkManager {
 
     // MARK: Public State
 
-    private(set) var state: ConnectionState = .disconnected
+    private(set) var state: ConnectionState = .disconnected {
+        didSet {
+            Logger.network.info("Connection state: \(String(describing: oldValue)) -> \(String(describing: self.state))")
+        }
+    }
     private(set) var machineID: UInt32 = 0
     private(set) var connectedMachineName: String = ""
+
+    /// The reason the last connection attempt failed. Reset on successful connection.
+    private(set) var failureReason: ConnectionFailureReason = .none
 
     // MARK: Configuration
 
@@ -89,6 +110,8 @@ actor NetworkManager {
     func connect() {
         guard state == .disconnected || state == .reconnecting else { return }
 
+        Logger.network.info("Connecting to \(self.host):\(self.port)")
+        failureReason = .none
         state = .connecting
 
         let endpointHost = NWEndpoint.Host(host)
@@ -104,6 +127,8 @@ actor NetworkManager {
     }
 
     func disconnect() {
+        Logger.network.info("Disconnecting")
+        failureReason = .none
         reconnectTask?.cancel()
         reconnectTask = nil
         receiveTask?.cancel()
@@ -121,7 +146,11 @@ actor NetworkManager {
         let data = packet.transmittedData
         let encrypted = crypto.encrypt(padToBlock(data))
 
-        conn.send(content: encrypted, completion: .contentProcessed({ _ in }))
+        conn.send(content: encrypted, completion: .contentProcessed { error in
+            if let error {
+                Logger.network.error("Send failed: \(error.localizedDescription)")
+            }
+        })
     }
 
     // MARK: Internal - Receive Loop
@@ -136,6 +165,7 @@ actor NetworkManager {
 
     private func runConnectionSequence() async {
         guard let conn = connection else {
+            Logger.network.error("No connection available")
             state = .disconnected
             return
         }
@@ -143,8 +173,13 @@ actor NetworkManager {
         // Wait for TCP connection to establish
         do {
             try await waitForConnection(conn)
+        } catch let error as NWError {
+            classifyAndLogConnectionError(error)
+            scheduleReconnect(reason: classifyNWError(error))
+            return
         } catch {
-            scheduleReconnect()
+            Logger.network.error("Connection wait failed: \(error.localizedDescription)")
+            scheduleReconnect(reason: .unknown(error.localizedDescription))
             return
         }
 
@@ -153,7 +188,8 @@ actor NetworkManager {
         do {
             try await exchangeNoise(conn)
         } catch {
-            scheduleReconnect()
+            Logger.network.error("Noise exchange failed: \(error.localizedDescription)")
+            disconnectDueToError(.handshakeFailed)
             return
         }
 
@@ -163,7 +199,8 @@ actor NetworkManager {
         do {
             try await performHandshake(conn)
         } catch {
-            scheduleReconnect()
+            Logger.network.error("Handshake failed: \(error.localizedDescription)")
+            disconnectDueToError(.handshakeFailed)
             return
         }
 
@@ -171,12 +208,15 @@ actor NetworkManager {
         do {
             try await sendIdentity(conn)
         } catch {
-            scheduleReconnect()
+            Logger.network.error("Send identity failed: \(error.localizedDescription)")
+            scheduleReconnect(reason: .unknown(error.localizedDescription))
             return
         }
 
         // Phase 4: Connected - enter receive pump
+        failureReason = .none
         state = .connected
+        Logger.network.info("Connected successfully")
 
         if handshakeHandler.adoptedMachineID != 0 {
             machineID = handshakeHandler.adoptedMachineID
@@ -288,6 +328,7 @@ actor NetworkManager {
                 )
 
                 guard let firstData = firstChunk, firstData.count == MWBConstants.smallPacketSize else {
+                    Logger.network.info("Receive pump: connection closed (no data)")
                     break // Connection closed or error
                 }
 
@@ -306,6 +347,7 @@ actor NetworkManager {
                     )
 
                     guard let secondData = secondChunk, secondData.count == MWBConstants.smallPacketSize else {
+                        Logger.network.warning("Receive pump: incomplete big packet (partial read)")
                         break
                     }
 
@@ -317,19 +359,27 @@ actor NetworkManager {
 
                 let packet = MWBPacket(rawData: fullData)
 
-                guard packet.validateChecksum() else { continue }
-                guard packet.validateMagic(magicHash) else { continue }
+                guard packet.validateChecksum() else {
+                    Logger.network.warning("Receive pump: invalid checksum, skipping packet")
+                    continue
+                }
+                guard packet.validateMagic(magicHash) else {
+                    Logger.network.warning("Receive pump: invalid magic, skipping packet")
+                    continue
+                }
 
                 dispatchPacket(packet)
 
             } catch {
+                Logger.network.error("Receive pump error: \(error.localizedDescription)")
                 break
             }
         }
 
         // If we exit the pump while still "connected", schedule reconnect
         if state == .connected {
-            scheduleReconnect()
+            Logger.network.info("Receive pump exited while connected, scheduling reconnect")
+            scheduleReconnect(reason: .unknown("Connection lost"))
         }
     }
 
@@ -381,21 +431,40 @@ actor NetworkManager {
     // MARK: Re-handshake
 
     private func handleRehandshake(_ packet: MWBPacket) {
-        guard var ack = handshakeHandler.receiveChallenge(packet) else { return }
+        guard var ack = handshakeHandler.receiveChallenge(packet) else {
+            Logger.network.warning("Re-handshake: handler rejected challenge")
+            return
+        }
         ack.setMagic(magicHash)
         _ = ack.computeChecksum()
 
         guard let conn = connection else { return }
         let encrypted = crypto.encrypt(padToBlock(ack.transmittedData))
-        conn.send(content: encrypted, completion: .contentProcessed({ _ in }))
+        conn.send(content: encrypted, completion: .contentProcessed { error in
+            if let error {
+                Logger.network.error("Re-handshake send failed: \(error.localizedDescription)")
+            }
+        })
     }
 
     // MARK: Reconnect
 
-    private func scheduleReconnect() {
-        state = .reconnecting
+    private func disconnectDueToError(_ reason: ConnectionFailureReason) {
+        state = .disconnected
+        failureReason = reason
         crypto.reset()
         handshakeHandler.reset()
+        connection?.cancel()
+        connection = nil
+        Logger.network.info("Disconnected due to error: \(String(describing: reason)), manual reconnect required")
+    }
+
+    private func scheduleReconnect(reason: ConnectionFailureReason = .unknown("Unknown")) {
+        state = .reconnecting
+        failureReason = reason
+        crypto.reset()
+        handshakeHandler.reset()
+        Logger.network.info("Scheduling reconnect in \(MWBConstants.reconnectDelay)s, reason: \(String(describing: reason))")
 
         connection?.cancel()
         connection = nil
@@ -420,6 +489,52 @@ actor NetworkManager {
         let remainder = data.count % MWBConstants.ivLength
         if remainder == 0 { return data }
         return data + Data(count: MWBConstants.ivLength - remainder)
+    }
+
+    // MARK: Error Classification
+
+    /// Logs a detailed message for the given NWError.
+    private func classifyAndLogConnectionError(_ error: NWError) {
+        switch error {
+        case .posix(.ECONNREFUSED):
+            Logger.network.error("Connection refused (ECONNREFUSED) to \(self.host):\(self.port)")
+        case .posix(.ETIMEDOUT):
+            Logger.network.error("Connection timed out (ETIMEDOUT) to \(self.host):\(self.port)")
+        case .posix(.EHOSTUNREACH):
+            Logger.network.error("Host unreachable (EHOSTUNREACH): \(self.host)")
+        case .posix(.ENETUNREACH):
+            Logger.network.error("Network unreachable (ENETUNREACH)")
+        case .posix(let code):
+            Logger.network.error("Connection failed (POSIX \(code.rawValue)): \(error.localizedDescription)")
+        case .tls:
+            Logger.network.error("TLS error: \(error.localizedDescription)")
+        case .dns:
+            Logger.network.error("DNS error: \(error.localizedDescription)")
+        case .wifiAware:
+            Logger.network.error("WiFi Aware error: \(error.localizedDescription)")
+        @unknown default:
+            Logger.network.error("Unknown connection error: \(error.localizedDescription)")
+        }
+    }
+
+    /// Maps an NWError to a ConnectionFailureReason for UI display.
+    private func classifyNWError(_ error: NWError) -> ConnectionFailureReason {
+        switch error {
+        case .posix(.ECONNREFUSED):
+            return .connectionRefused
+        case .posix(.ETIMEDOUT):
+            return .timeout
+        case .posix(.EHOSTUNREACH), .posix(.ENETUNREACH):
+            return .hostUnreachable
+        case .posix(.ECANCELED):
+            return .cancelled
+        case .posix:
+            return .unknown(error.localizedDescription)
+        case .dns:
+            return .hostUnreachable
+        default:
+            return .unknown(error.localizedDescription)
+        }
     }
 
     // MARK: Configuration Updates

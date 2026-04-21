@@ -1,3 +1,8 @@
+docs/
+.claude/
+Package.swift
+CLAUDE.md
+
 # Xcode
 build/
 DerivedData/

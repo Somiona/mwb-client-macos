@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import os.log
 
 /// Which screen edge triggers cursor crossing to the remote machine.
 enum CrossingEdge: String, Sendable, CaseIterable {
@@ -125,6 +126,7 @@ final class EdgeDetector {
     func crossingDidEnd() {
         let warpTarget = insetPosition(crossingEntryPosition, for: crossingEdge, inset: threshold + 1)
         CGWarpMouseCursorPosition(warpTarget)
+        Logger.input.info("Edge crossing ended, warped cursor to (\(warpTarget.x), \(warpTarget.y))")
 
         isCrossingActive = false
         crossingEntryPosition = .zero
@@ -135,6 +137,7 @@ final class EdgeDetector {
     ///
     /// Useful when the connection is lost or crossing is explicitly cancelled.
     func reset() {
+        Logger.input.debug("Edge detector reset")
         isCrossingActive = false
         crossingEntryPosition = .zero
         cancelDebounce()
@@ -170,6 +173,8 @@ final class EdgeDetector {
 
         isCrossingActive = true
         crossingEntryPosition = screenPoint
+        let edgeName = crossingEdge.rawValue
+        Logger.input.info("Edge crossing triggered at \(edgeName) edge, screen: (\(screenPoint.x), \(screenPoint.y))")
 
         let info = CrossingStartInfo(
             edge: crossingEdge,

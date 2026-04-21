@@ -1,6 +1,7 @@
 import CommonCrypto
 import CryptoKit
 import Foundation
+import os.log
 
 final class MWBCrypto {
     private let key: [UInt8]
@@ -11,6 +12,7 @@ final class MWBCrypto {
 
     init(securityKey: String) {
         self.securityKey = securityKey
+        Logger.crypto.debug("Deriving encryption key from security key")
 
         let salt = MWBConstants.saltString.data(using: .utf16LittleEndian)!
         var derivedKey = [UInt8](repeating: 0, count: MWBConstants.derivedKeyLength)
@@ -86,6 +88,7 @@ final class MWBCrypto {
     }
 
     func reset() {
+        Logger.crypto.debug("Resetting crypto IV state")
         encryptIV = initialIV
         decryptIV = initialIV
     }

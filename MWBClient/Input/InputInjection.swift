@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import os.log
 
 /// Injects mouse and keyboard events into macOS via CGEvent.
 ///
@@ -61,7 +62,12 @@ final class InputInjection {
     /// On the first packet after a crossing, the cursor is warped to
     /// the target position instead of posting a relative move.
     func injectMouse(_ data: MouseData) {
-        guard let message = data.wmMessage else { return }
+        guard let message = data.wmMessage else {
+            Logger.input.warning("Inject mouse: unknown WM message")
+            return
+        }
+
+        Logger.input.debug("Inject mouse: \(String(describing: message)) at (\(data.x), \(data.y))")
 
         let target = mapVirtualToScreen(x: data.x, y: data.y)
 
@@ -103,7 +109,10 @@ final class InputInjection {
             mouseType: .mouseMoved,
             mouseCursorPosition: target,
             mouseButton: .left
-        ) else { return }
+        ) else {
+            Logger.input.error("Failed to create mouse move CGEvent")
+            return
+        }
 
         event.setIntegerValueField(.mouseEventDeltaX, value: Int64(dx))
         event.setIntegerValueField(.mouseEventDeltaY, value: Int64(dy))
@@ -127,7 +136,10 @@ final class InputInjection {
             mouseType: type,
             mouseCursorPosition: location,
             mouseButton: button
-        ) else { return }
+        ) else {
+            Logger.input.error("Failed to create mouse button CGEvent")
+            return
+        }
 
         // For middle button, set the mouse button number
         if button == .center {
@@ -155,7 +167,10 @@ final class InputInjection {
             wheel1: horizontal ? pixelDelta : -pixelDelta,
             wheel2: 0,
             wheel3: 0
-        ) else { return }
+        ) else {
+            Logger.input.error("Failed to create scroll wheel CGEvent")
+            return
+        }
 
         event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 0)
         event.post(tap: .cghidEventTap)
@@ -170,6 +185,7 @@ final class InputInjection {
     /// ignored.
     func injectKeyboard(_ data: KeyboardData) {
         guard let macOSKeycode = KeyCodeMapper.vkToMacOS(vkCode: data.vkCode) else {
+            Logger.input.debug("Inject keyboard: unmapped VK code \(data.vkCode)")
             return
         }
 
@@ -177,7 +193,10 @@ final class InputInjection {
             keyboardEventSource: nil,
             virtualKey: macOSKeycode,
             keyDown: !data.isKeyUp
-        ) else { return }
+        ) else {
+            Logger.input.error("Failed to create keyboard CGEvent for keycode \(macOSKeycode)")
+            return
+        }
 
         // Set the keycode explicitly (redundant with virtualKey but ensures correctness)
         event.setIntegerValueField(.keyboardEventKeycode, value: Int64(macOSKeycode))

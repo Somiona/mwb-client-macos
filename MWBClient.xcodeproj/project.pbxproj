@@ -11,6 +11,7 @@
 		1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */; };
 		188C72432675028FAD914BDC /* MWBPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */; };
 		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
+		42C9BE9B6E1423F876CB6C9E /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ADF0B5998100AEF965CEAAA /* Logger.swift */; };
 		1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5929D4D7603B549A3D3E214C /* HeartbeatService.swift */; };
 		2A4B51C885C8AE958B57EEF3 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */; };
 		34D5E78EA0EF050D71D06129 /* LayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44757A274942A16843F68B9E /* LayoutView.swift */; };
@@ -63,6 +64,7 @@
 
 /* Begin PBXFileReference section */
 		085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputCapture.swift; sourceTree = "<group>"; };
+		1ADF0B5998100AEF965CEAAA /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		0FC5F135996CBF70C5BCB674 /* GeneralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralView.swift; sourceTree = "<group>"; };
 		2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetector.swift; sourceTree = "<group>"; };
 		2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBConstants.swift; sourceTree = "<group>"; };
@@ -119,6 +121,7 @@
 		1395016B28A86661D7529FBB /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				1ADF0B5998100AEF965CEAAA /* Logger.swift */,
 				AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */,
 			);
 			path = Utils;
@@ -459,6 +462,7 @@
 				86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */,
 				76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */,
 				1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */,
+				42C9BE9B6E1423F876CB6C9E /* Logger.swift in Sources */,
 				7F771834B9783E346FDA5EF1 /* ServerListener.swift in Sources */,
 				777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */,
 				E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */,
@@ -495,6 +499,7 @@
 				86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */,
 				76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */,
 				1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */,
+				42C9BE9B6E1423F876CB6C9E /* Logger.swift in Sources */,
 				7F771834B9783E346FDA5EF1 /* ServerListener.swift in Sources */,
 				777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */,
 				E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */,

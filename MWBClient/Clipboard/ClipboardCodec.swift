@@ -1,5 +1,6 @@
 import Foundation
 import Compression
+import os.log
 
 /// Encodes and decodes clipboard data (text and images) into MWB protocol packets.
 ///
@@ -32,11 +33,18 @@ enum ClipboardCodec {
     /// decompresses, and decodes from UTF-16 LE back to a String.
     static func decodeText(from packets: [MWBPacket]) -> String? {
         let chunks = extractChunks(from: packets, expectedType: .clipboardText)
-        guard !chunks.isEmpty else { return nil }
+        guard !chunks.isEmpty else {
+            Logger.clipboard.warning("ClipboardCodec: no text chunks found in \(packets.count) packets")
+            return nil
+        }
         let assembled = reassemble(chunks: chunks)
         guard !assembled.isEmpty else { return nil }
         let decompressed = decompressData(assembled)
-        return String(data: decompressed, encoding: .utf16LittleEndian)
+        guard let text = String(data: decompressed, encoding: .utf16LittleEndian) else {
+            Logger.clipboard.error("ClipboardCodec: failed to decode UTF-16 LE text (\(decompressed.count) bytes)")
+            return nil
+        }
+        return text
     }
 
     // MARK: - Encode Image
@@ -59,7 +67,10 @@ enum ClipboardCodec {
     /// into the original raw image data.
     static func decodeImage(from packets: [MWBPacket]) -> Data? {
         let chunks = extractChunks(from: packets, expectedType: .clipboardImage)
-        guard !chunks.isEmpty else { return nil }
+        guard !chunks.isEmpty else {
+            Logger.clipboard.warning("ClipboardCodec: no image chunks found in \(packets.count) packets")
+            return nil
+        }
         let assembled = reassemble(chunks: chunks)
         guard !assembled.isEmpty else { return nil }
         return assembled
@@ -146,7 +157,10 @@ enum ClipboardCodec {
                 nil,
                 COMPRESSION_ZLIB
             )
-            guard result > 0 else { return Data() }
+            guard result > 0 else {
+                Logger.clipboard.error("ClipboardCodec: compression failed for \(data.count) bytes input")
+                return Data()
+            }
             return Data(bytes: outputBuffer, count: result)
         }
     }
@@ -167,7 +181,10 @@ enum ClipboardCodec {
                 nil,
                 COMPRESSION_ZLIB
             )
-            guard result > 0 else { return Data() }
+            guard result > 0 else {
+                Logger.clipboard.error("ClipboardCodec: decompression failed for \(data.count) bytes input")
+                return Data()
+            }
             return Data(bytes: outputBuffer, count: result)
         }
     }

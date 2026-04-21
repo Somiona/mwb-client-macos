@@ -16,6 +16,7 @@ final class TrayMenu {
     private let statusLabelItem: NSMenuItem
     private let machineNameItem: NSMenuItem
     private let enabledToggleItem: NSMenuItem
+    private let errorItem: NSMenuItem
 
     // MARK: - Init
 
@@ -39,6 +40,11 @@ final class TrayMenu {
         machineNameItem.isEnabled = false
         machineNameItem.isHidden = true
         menu.addItem(machineNameItem)
+
+        errorItem = NSMenuItem()
+        errorItem.isEnabled = false
+        errorItem.isHidden = true
+        menu.addItem(errorItem)
 
         menu.addItem(.separator())
 
@@ -99,6 +105,7 @@ final class TrayMenu {
                 _ = self.coordinator.connectionState
                 _ = self.coordinator.windowsMachineName
                 _ = self.coordinator.isSharingEnabled
+                _ = self.coordinator.errorMessage
             } onChange: { [weak self] in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
@@ -113,6 +120,14 @@ final class TrayMenu {
     // MARK: - Menu Update
 
     private func updateMenu() {
+        // Update error item visibility
+        if let error = coordinator.errorMessage {
+            errorItem.title = "Error: \(error)"
+            errorItem.isHidden = false
+        } else {
+            errorItem.isHidden = true
+        }
+
         switch coordinator.connectionState {
         case .disconnected:
             statusLabelItem.title = "Status: Disconnected"

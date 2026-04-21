@@ -51,6 +51,16 @@ struct ConnectionView: View {
 
                     connectButton
                 }
+
+                if let error = coordinator.errorMessage {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.yellow)
+                        Text(error)
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                }
             }
         }
         .formStyle(.grouped)

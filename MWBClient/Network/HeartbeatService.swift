@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 
 actor HeartbeatService {
 
@@ -49,6 +50,7 @@ actor HeartbeatService {
 
     func start() {
         guard heartbeatTask == nil else { return }
+        Logger.network.info("HeartbeatService starting")
 
         heartbeatTask = Task { [weak self] in
             guard let self else { return }
@@ -57,6 +59,7 @@ actor HeartbeatService {
     }
 
     func stop() {
+        Logger.network.info("HeartbeatService stopping")
         heartbeatTask?.cancel()
         heartbeatTask = nil
     }
@@ -83,7 +86,16 @@ actor HeartbeatService {
     }
 
     private func sendHeartbeat() async {
-        guard let networkManager else { return }
+        guard let networkManager else {
+            Logger.network.warning("HeartbeatService: no NetworkManager bound, skipping heartbeat")
+            return
+        }
+
+        let state = await networkManager.state
+        guard state == .connected else {
+            Logger.network.debug("HeartbeatService: NetworkManager not connected (\(String(describing: state))), skipping heartbeat")
+            return
+        }
 
         var packet = HandshakeHandler.makeIdentityPacket(
             machineName: machineName,

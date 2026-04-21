@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Network
+import os.log
 import Security
 
 // MARK: - ServerListener
@@ -63,7 +64,10 @@ actor ServerListener {
     func start() async {
         guard !isListening else { return }
 
-        guard let nwPort = NWEndpoint.Port(rawValue: port) else { return }
+        guard let nwPort = NWEndpoint.Port(rawValue: port) else {
+            Logger.network.error("ServerListener: invalid port \(self.port)")
+            return
+        }
 
         do {
             let parameters = NWParameters.tcp
@@ -71,6 +75,7 @@ actor ServerListener {
 
             listener = try NWListener(using: parameters, on: nwPort)
         } catch {
+            Logger.network.error("ServerListener: failed to create listener: \(error.localizedDescription)")
             return
         }
 
@@ -90,9 +95,11 @@ actor ServerListener {
 
         listener.start(queue: .global(qos: .userInitiated))
         isListening = true
+        Logger.network.info("ServerListener started on port \(self.port)")
     }
 
     func stop() {
+        Logger.network.info("ServerListener stopping")
         for task in connectionTasks {
             task.cancel()
         }
@@ -110,8 +117,13 @@ actor ServerListener {
         switch state {
         case .ready:
             isListening = true
-        case .failed, .cancelled:
+            Logger.network.info("ServerListener ready and listening")
+        case .failed(let error):
             isListening = false
+            Logger.network.error("ServerListener failed: \(error.localizedDescription)")
+        case .cancelled:
+            isListening = false
+            Logger.network.info("ServerListener cancelled")
         default:
             break
         }
@@ -120,6 +132,8 @@ actor ServerListener {
     // MARK: New Connection
 
     private func handleNewConnection(_ connection: NWConnection) {
+        let remoteEndpoint = connection.endpoint
+        Logger.network.info("ServerListener: new connection from \(String(describing: remoteEndpoint))")
         connection.start(queue: .global(qos: .userInitiated))
 
         let task = Task { [weak self] in
@@ -135,6 +149,7 @@ actor ServerListener {
     private func handleConnection(_ connection: NWConnection) async {
         defer {
             connection.cancel()
+            Logger.network.info("ServerListener: connection closed")
             Task { [weak self] in
                 await self?.connectionDidClose()
             }
@@ -149,6 +164,7 @@ actor ServerListener {
         do {
             try await exchangeNoiseInbound(connection, crypto: crypto)
         } catch {
+            Logger.network.error("ServerListener: inbound noise exchange failed: \(error.localizedDescription)")
             return
         }
 
@@ -157,6 +173,7 @@ actor ServerListener {
         do {
             try await performHandshakeInbound(connection, crypto: crypto, magicHash: magicHash, handler: &handshakeHandler)
         } catch {
+            Logger.network.error("ServerListener: inbound handshake failed: \(error.localizedDescription)")
             return
         }
 
@@ -164,10 +181,12 @@ actor ServerListener {
         do {
             try await sendIdentityInbound(connection, crypto: crypto, magicHash: magicHash, handler: handshakeHandler)
         } catch {
+            Logger.network.error("ServerListener: send identity failed: \(error.localizedDescription)")
             return
         }
 
         // Phase 4: Receive pump
+        Logger.network.info("ServerListener: inbound connection established, entering receive pump")
         await receivePump(connection, crypto: crypto, magicHash: magicHash, handler: &handshakeHandler)
     }
 
@@ -280,6 +299,7 @@ actor ServerListener {
                 )
 
                 guard let firstData = firstChunk, firstData.count == MWBConstants.smallPacketSize else {
+                    Logger.network.info("ServerListener receive pump: connection closed")
                     break
                 }
 
@@ -296,6 +316,7 @@ actor ServerListener {
                     )
 
                     guard let secondData = secondChunk, secondData.count == MWBConstants.smallPacketSize else {
+                        Logger.network.warning("ServerListener receive pump: incomplete big packet")
                         break
                     }
 
@@ -307,17 +328,24 @@ actor ServerListener {
 
                 let packet = MWBPacket(rawData: fullData)
 
-                guard packet.validateChecksum() else { continue }
-                guard packet.validateMagic(magicHash) else { continue }
-
-                // Handle re-handshake and heartbeat echo inline; dispatch everything else
-                if await handleSpecialPacket(packet, connection: conn, crypto: crypto, magicHash: magicHash, handler: &handler) {
+                guard packet.validateChecksum() else {
+                    Logger.network.warning("ServerListener: invalid checksum, skipping packet")
+                    continue
+                }
+                guard packet.validateMagic(magicHash) else {
+                    Logger.network.warning("ServerListener: invalid magic, skipping packet")
                     continue
                 }
 
-                await dispatchPacket(packet)
+                // Handle re-handshake and heartbeat echo inline; dispatch everything else
+                if handleSpecialPacket(packet, connection: conn, crypto: crypto, magicHash: magicHash, handler: &handler) {
+                    continue
+                }
+
+                dispatchPacket(packet)
 
             } catch {
+                Logger.network.error("ServerListener receive pump error: \(error.localizedDescription)")
                 break
             }
         }

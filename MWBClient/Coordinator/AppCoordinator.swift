@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import os.log
 
 // MARK: - AppCoordinator
 
@@ -27,6 +28,10 @@ final class AppCoordinator {
     var accessibilityGranted: Bool {
         InputCapture.hasAccessibilityPermission()
     }
+
+    /// Human-readable error message for the current failure state, if any.
+    /// Observed by UI to display error banners. Set to nil on successful connection.
+    private(set) var errorMessage: String?
 
     // MARK: - Subsystem References
 
@@ -66,6 +71,10 @@ final class AppCoordinator {
 
     func connect() {
         guard connectionState == .disconnected else { return }
+
+        let logIP = settings.windowsIP
+        let logPort = settings.port
+        Logger.coordinator.info("Connecting to Windows machine at \(logIP):\(logPort)")
 
         let host = settings.windowsIP
         let securityKey = settings.securityKey
@@ -171,13 +180,19 @@ final class AppCoordinator {
 
         connectionState = .connecting
         isSharingEnabled = captureStarted
+
+        if !captureStarted {
+            Logger.coordinator.warning("Input capture not started (accessibility permission may be missing)")
+        }
     }
 
     func disconnect() {
-        connectTask?.cancel()
-        connectTask = nil
+        Logger.coordinator.info("Disconnecting")
+        errorMessage = nil
         statePollTask?.cancel()
         statePollTask = nil
+        connectTask?.cancel()
+        connectTask = nil
 
         let nm = networkManager
         let sl = serverListener
@@ -278,6 +293,8 @@ final class AppCoordinator {
         await sl.start()
 
         connectionState = .connected
+        errorMessage = nil
+        Logger.coordinator.info("All services started, connected to \(connectedName)")
     }
 
     // MARK: - State Polling
@@ -295,6 +312,7 @@ final class AppCoordinator {
 
                 let state = await nm.state
                 let name = await nm.connectedMachineName
+                let reason = await nm.failureReason
 
                 await MainActor.run { [weak self] in
                     guard let self else { return }
@@ -302,14 +320,56 @@ final class AppCoordinator {
                     if !name.isEmpty {
                         self.windowsMachineName = name
                     }
+                    // Propagate error messages from NetworkManager
+                    if case .reconnecting = state {
+                        self.errorMessage = self.describeFailureReason(reason)
+                    } else if case .disconnected = state, case .none = reason {
+                        self.errorMessage = nil
+                    } else if case .disconnected = state {
+                        self.errorMessage = self.describeFailureReason(reason)
+                    } else if case .connected = state {
+                        self.errorMessage = nil
+                    }
                 }
             }
+        }
+    }
+
+    // MARK: - Error Messages
+
+    /// Returns a user-facing error message for the given connection failure reason.
+    private func describeFailureReason(_ reason: ConnectionFailureReason) -> String? {
+        switch reason {
+        case .none:
+            return nil
+        case .connectionRefused:
+            return "Connection refused. Check that the Windows machine is running Mouse Without Borders and the IP/port are correct."
+        case .timeout:
+            return "Connection timed out. Check your network connection and that the Windows machine is reachable."
+        case .handshakeFailed:
+            return "Handshake failed. Verify that the security key matches on both machines."
+        case .hostUnreachable:
+            return "Host unreachable. Check that the IP address is correct and the Windows machine is on the same network."
+        case .cancelled:
+            return nil
+        case .unknown(let message):
+            return "Connection error: \(message)"
         }
     }
 
     // MARK: - Event Wiring: Input Capture -> Edge Detection -> Forwarding
 
     private func wireInputCapture() {
+        // Handle accessibility permission revocation
+        inputCapture.onPermissionRevoked = { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                Logger.coordinator.error("Accessibility permission revoked mid-session")
+                self.errorMessage = "Accessibility permission was revoked. Input capture has been stopped. Please re-grant permission in System Settings."
+                self.isSharingEnabled = false
+            }
+        }
+
         // Forward mouse events when crossing is active
         inputCapture.onMouseEvent = { [weak self] mouseData in
             Task { @MainActor [weak self] in
@@ -347,6 +407,7 @@ final class AppCoordinator {
     private func handleCrossingStart(_ info: CrossingStartInfo) {
         guard !isCrossingActive else { return }
 
+        Logger.coordinator.info("Crossing started at \(info.edge.rawValue) edge")
         isCrossingActive = true
         inputCapture.crossingActive = true
         inputInjection.reset()
@@ -397,6 +458,7 @@ final class AppCoordinator {
     // MARK: - Crossing End
 
     private func endCrossing() {
+        Logger.coordinator.info("Crossing ended")
         isCrossingActive = false
         inputCapture.crossingActive = false
         edgeDetector.crossingDidEnd()

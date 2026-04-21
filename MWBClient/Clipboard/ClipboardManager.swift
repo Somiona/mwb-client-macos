@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Network
+import os.log
 import Security
 
 // MARK: - Clipboard Manager
@@ -90,10 +91,12 @@ actor ClipboardManager {
 
     func start() {
         guard !isConnected else { return }
+        Logger.clipboard.info("ClipboardManager starting, connecting to \(self.host):\(self.port)")
         connect()
     }
 
     func stop() {
+        Logger.clipboard.info("ClipboardManager stopping")
         pollTask?.cancel()
         pollTask = nil
         connectionTask?.cancel()
@@ -144,6 +147,7 @@ actor ClipboardManager {
         do {
             try await waitForConnection(conn)
         } catch {
+            Logger.clipboard.error("Clipboard connection failed: \(error.localizedDescription)")
             scheduleReconnect()
             return
         }
@@ -152,6 +156,7 @@ actor ClipboardManager {
         do {
             try await exchangeNoise(conn)
         } catch {
+            Logger.clipboard.error("Clipboard noise exchange failed: \(error.localizedDescription)")
             scheduleReconnect()
             return
         }
@@ -161,6 +166,7 @@ actor ClipboardManager {
         do {
             try await performHandshake(conn)
         } catch {
+            Logger.clipboard.error("Clipboard handshake failed: \(error.localizedDescription)")
             scheduleReconnect()
             return
         }
@@ -169,12 +175,14 @@ actor ClipboardManager {
         do {
             try await sendIdentity(conn)
         } catch {
+            Logger.clipboard.error("Clipboard send identity failed: \(error.localizedDescription)")
             scheduleReconnect()
             return
         }
 
         // Phase 4: Connected
         isConnected = true
+        Logger.clipboard.info("Clipboard connected")
         startPollLoop()
 
         // Phase 5: Receive pump (blocks until disconnect)
@@ -291,6 +299,7 @@ actor ClipboardManager {
                 )
 
                 guard let firstData = firstChunk, firstData.count == MWBConstants.smallPacketSize else {
+                    Logger.clipboard.info("Clipboard receive pump: connection closed")
                     break
                 }
 
@@ -307,6 +316,7 @@ actor ClipboardManager {
                     )
 
                     guard let secondData = secondChunk, secondData.count == MWBConstants.smallPacketSize else {
+                        Logger.clipboard.warning("Clipboard receive pump: incomplete big packet")
                         break
                     }
 
@@ -318,12 +328,19 @@ actor ClipboardManager {
 
                 let packet = MWBPacket(rawData: fullData)
 
-                guard packet.validateChecksum() else { continue }
-                guard packet.validateMagic(magicHash) else { continue }
+                guard packet.validateChecksum() else {
+                    Logger.clipboard.warning("Clipboard: invalid checksum, skipping packet")
+                    continue
+                }
+                guard packet.validateMagic(magicHash) else {
+                    Logger.clipboard.warning("Clipboard: invalid magic, skipping packet")
+                    continue
+                }
 
                 handleIncomingPacket(packet)
 
             } catch {
+                Logger.clipboard.error("Clipboard receive pump error: \(error.localizedDescription)")
                 break
             }
         }
@@ -378,13 +395,19 @@ actor ClipboardManager {
         case .clipboardText:
             guard syncText else { return }
             if let text = ClipboardCodec.decodeText(from: inboundPackets) {
+                Logger.clipboard.info("Received text clipboard (\(text.count) chars)")
                 writeTextToPasteboard(text)
+            } else {
+                Logger.clipboard.error("Failed to decode text clipboard from \(self.inboundPackets.count) packets")
             }
 
         case .clipboardImage:
             guard syncImages else { return }
             if let imageData = ClipboardCodec.decodeImage(from: inboundPackets) {
+                Logger.clipboard.info("Received image clipboard (\(imageData.count) bytes)")
                 writeImageToPasteboard(imageData)
+            } else {
+                Logger.clipboard.error("Failed to decode image clipboard from \(self.inboundPackets.count) packets")
             }
 
         case .clipboard:
@@ -403,16 +426,27 @@ actor ClipboardManager {
     private func writeTextToPasteboard(_ text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
-        lastWriteChangeCount = pasteboard.changeCount
+        let success = pasteboard.setString(text, forType: .string)
+        if success {
+            lastWriteChangeCount = pasteboard.changeCount
+        } else {
+            Logger.clipboard.error("Failed to write text to pasteboard")
+        }
     }
 
     private func writeImageToPasteboard(_ data: Data) {
-        guard let image = NSImage(data: data) else { return }
+        guard let image = NSImage(data: data) else {
+            Logger.clipboard.error("Failed to create NSImage from clipboard data")
+            return
+        }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.writeObjects([image])
-        lastWriteChangeCount = pasteboard.changeCount
+        let success = pasteboard.writeObjects([image])
+        if success {
+            lastWriteChangeCount = pasteboard.changeCount
+        } else {
+            Logger.clipboard.error("Failed to write image to pasteboard")
+        }
     }
 
     // MARK: Re-handshake
@@ -471,6 +505,8 @@ actor ClipboardManager {
         }
     }
 
+    private let maxClipboardDataSize = 10 * 1024 * 1024 // 10 MB
+
     private func checkAndSendClipboard() {
         let pasteboard = NSPasteboard.general
         let currentCount = pasteboard.changeCount
@@ -481,12 +517,24 @@ actor ClipboardManager {
 
         // Priority: text > image > files
         if syncText, let text = readTextFromPasteboard() {
+            if text.utf16.count > maxClipboardDataSize {
+                Logger.clipboard.warning("Text clipboard too large (\(text.utf16.count) bytes), skipping")
+                lastSentChangeCount = currentCount
+                return
+            }
+            Logger.clipboard.info("Sending text clipboard (\(text.count) chars)")
             sendTextClipboard(text)
             lastSentChangeCount = currentCount
             return
         }
 
         if syncImages, let imageData = readImageFromPasteboard() {
+            if imageData.count > maxClipboardDataSize {
+                Logger.clipboard.warning("Image clipboard too large (\(imageData.count) bytes), skipping")
+                lastSentChangeCount = currentCount
+                return
+            }
+            Logger.clipboard.info("Sending image clipboard (\(imageData.count) bytes)")
             sendImageClipboard(imageData)
             lastSentChangeCount = currentCount
             return
@@ -511,10 +559,19 @@ actor ClipboardManager {
 
     private func readImageFromPasteboard() -> Data? {
         let pasteboard = NSPasteboard.general
-        guard let image = NSImage(pasteboard: pasteboard) else { return nil }
+        guard let image = NSImage(pasteboard: pasteboard) else {
+            return nil
+        }
 
-        guard let tiffData = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData) else { return nil }
+        guard let tiffData = image.tiffRepresentation else {
+            Logger.clipboard.error("Failed to get TIFF representation from pasteboard image")
+            return nil
+        }
+
+        guard let bitmap = NSBitmapImageRep(data: tiffData) else {
+            Logger.clipboard.error("Failed to create NSBitmapImageRep from TIFF data")
+            return nil
+        }
 
         return bitmap.representation(using: .png, properties: [:])
     }
@@ -525,13 +582,18 @@ actor ClipboardManager {
         guard let conn = connection, isConnected else { return }
 
         let packets = ClipboardCodec.encodeText(text)
+        Logger.clipboard.debug("Sending text clipboard in \(packets.count) packets")
         for packet in packets {
             var mutablePacket = packet
             mutablePacket.setMagic(magicHash)
             _ = mutablePacket.computeChecksum()
 
             let encrypted = crypto.encrypt(padToBlock(mutablePacket.transmittedData))
-            conn.send(content: encrypted, completion: .contentProcessed({ _ in }))
+            conn.send(content: encrypted, completion: .contentProcessed { error in
+                if let error {
+                    Logger.clipboard.error("Failed to send clipboard packet: \(error.localizedDescription)")
+                }
+            })
         }
     }
 
@@ -539,13 +601,18 @@ actor ClipboardManager {
         guard let conn = connection, isConnected else { return }
 
         let packets = ClipboardCodec.encodeImage(data)
+        Logger.clipboard.debug("Sending image clipboard in \(packets.count) packets")
         for packet in packets {
             var mutablePacket = packet
             mutablePacket.setMagic(magicHash)
             _ = mutablePacket.computeChecksum()
 
             let encrypted = crypto.encrypt(padToBlock(mutablePacket.transmittedData))
-            conn.send(content: encrypted, completion: .contentProcessed({ _ in }))
+            conn.send(content: encrypted, completion: .contentProcessed { error in
+                if let error {
+                    Logger.clipboard.error("Failed to send clipboard packet: \(error.localizedDescription)")
+                }
+            })
         }
     }
 
