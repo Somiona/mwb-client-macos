@@ -49,8 +49,8 @@ final class InputCapture {
     private(set) fileprivate var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
 
-    /// Screen frame used for coordinate mapping. Cached on start().
-    private var screenFrame: CGRect = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
+    /// Screen bounds in Quartz (top-left origin) coordinates. Cached on start().
+    private var screenBounds: CGRect = CGDisplayBounds(CGMainDisplayID())
 
     // MARK: - Accessibility permission
 
@@ -85,8 +85,8 @@ final class InputCapture {
             return false
         }
 
-        // Cache the main screen frame for coordinate mapping.
-        screenFrame = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        // Cache the main display bounds for coordinate mapping.
+        screenBounds = CGDisplayBounds(CGMainDisplayID())
 
         // Store self in the global bridge so the C callback can reach it.
         inputCaptureBridge = self
@@ -161,17 +161,15 @@ final class InputCapture {
 
     // MARK: - Coordinate mapping (screen -> MWB virtual desktop)
 
-    /// Maps a macOS screen point to MWB virtual desktop coordinates (0-65535).
+    /// Maps a Quartz screen point to MWB virtual desktop coordinates (0-65535).
     ///
-    /// Inverse of ``InputInjection/mapVirtualToScreen``. Flips the Y axis
-    /// because macOS uses bottom-left origin while MWB uses top-left.
+    /// Both Quartz and MWB use top-left origin, so no Y-flip is needed.
     private func mapScreenToVirtual(_ point: CGPoint) -> (x: Int32, y: Int32) {
         let virtualMax = CGFloat(MWBConstants.virtualDesktopMax)
-        let frame = screenFrame
+        let bounds = screenBounds
 
-        let virtualX = Int32(((point.x - frame.minX) / frame.width) * virtualMax)
-        // Flip Y: NSScreen maxY = top, MWB 0 = top
-        let virtualY = Int32(((frame.maxY - point.y) / frame.height) * virtualMax)
+        let virtualX = Int32(((point.x - bounds.minX) / bounds.width) * virtualMax)
+        let virtualY = Int32(((point.y - bounds.minY) / bounds.height) * virtualMax)
 
         // Clamp to valid range. Use Swift.max/min to avoid ambiguity with CGFloat.
         let clampedX = Swift.max(Int32(0), Swift.min(MWBConstants.virtualDesktopMax, virtualX))

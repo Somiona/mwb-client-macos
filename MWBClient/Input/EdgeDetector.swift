@@ -78,8 +78,8 @@ final class EdgeDetector {
 
     // MARK: - Screen info cache
 
-    /// Cached screen frame, refreshed each time a position update is received.
-    private var screenFrame: CGRect = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
+    /// Cached display bounds in Quartz (top-left origin) coordinates.
+    private var displayBounds: CGRect = CGDisplayBounds(CGMainDisplayID())
 
     // MARK: - Public API
 
@@ -98,8 +98,8 @@ final class EdgeDetector {
             return
         }
 
-        // Refresh screen frame on each update (handles display changes).
-        screenFrame = NSScreen.main?.frame ?? screenFrame
+        // Refresh display bounds on each update (handles display changes).
+        displayBounds = CGDisplayBounds(CGMainDisplayID())
 
         if isAtEdge(screenPoint) {
             // Cursor is at the edge. Start or keep the debounce timer.
@@ -145,18 +145,18 @@ final class EdgeDetector {
     /// Returns true if the given screen point is within ``threshold`` of
     /// the configured ``crossingEdge``.
     private func isAtEdge(_ point: CGPoint) -> Bool {
-        let frame = screenFrame
+        let bounds = displayBounds
         switch crossingEdge {
         case .left:
-            return point.x - frame.minX <= threshold
+            return point.x - bounds.minX <= threshold
         case .right:
-            return frame.maxX - point.x <= threshold
+            return bounds.maxX - point.x <= threshold
         case .top:
-            // NSScreen: maxY = top of screen
-            return frame.maxY - point.y <= threshold
+            // Quartz: minY = top of screen
+            return point.y - bounds.minY <= threshold
         case .bottom:
-            // NSScreen: minY = bottom of screen
-            return point.y - frame.minY <= threshold
+            // Quartz: maxY = bottom of screen
+            return bounds.maxY - point.y <= threshold
         }
     }
 

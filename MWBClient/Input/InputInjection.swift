@@ -22,23 +22,21 @@ final class InputInjection {
 
     // MARK: - Coordinate mapping
 
-    /// Returns the frame of the main screen in global (Cocoa) coordinates.
-    private var mainScreenFrame: CGRect {
-        NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
+    /// Returns the main display bounds in Quartz (top-left origin) coordinates.
+    /// CGEvent uses Quartz coordinates, not NSScreen (bottom-left origin).
+    private var mainScreenBounds: CGRect {
+        CGDisplayBounds(CGMainDisplayID())
     }
 
-    /// Maps an MWB virtual desktop coordinate (0-65535) to a local screen point.
+    /// Maps an MWB virtual desktop coordinate (0-65535) to a Quartz screen point.
     ///
-    /// MWB uses a coordinate system where (0,0) is the top-left and
-    /// 65535 is the maximum for both axes. macOS NSScreen uses bottom-left
-    /// origin, so the Y axis is flipped.
+    /// Both MWB and Quartz use top-left origin, so no Y-flip is needed.
     private func mapVirtualToScreen(x: Int32, y: Int32) -> CGPoint {
-        let frame = mainScreenFrame
+        let bounds = mainScreenBounds
         let max = CGFloat(MWBConstants.virtualDesktopMax)
 
-        let screenX = frame.minX + (CGFloat(x) / max) * frame.width
-        // Flip Y: MWB 0 = top, NSScreen maxY = top
-        let screenY = frame.maxY - (CGFloat(y) / max) * frame.height
+        let screenX = bounds.minX + (CGFloat(x) / max) * bounds.width
+        let screenY = bounds.minY + (CGFloat(y) / max) * bounds.height
 
         return CGPoint(x: screenX, y: screenY)
     }
