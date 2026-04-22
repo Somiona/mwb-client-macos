@@ -66,15 +66,6 @@ struct ConnectionView: View {
         .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .navigationTitle("Connection")
-        .onChange(of: settings.windowsIP) {
-            coordinator.connectionSettingsDidChange()
-        }
-        .onChange(of: settings.securityKey) {
-            coordinator.connectionSettingsDidChange()
-        }
-        .onChange(of: settings.port) {
-            coordinator.connectionSettingsDidChange()
-        }
     }
 
     // MARK: - Subviews

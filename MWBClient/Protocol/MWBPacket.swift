@@ -158,9 +158,9 @@ struct MWBPacket {
     // MARK: - Checksum
 
     mutating func computeChecksum() -> UInt8 {
-        let end = isBig ? MWBConstants.bigPacketSize : MWBConstants.smallPacketSize
+        // PowerToys always checksums bytes 2-31, regardless of big/small packet
         var sum: UInt8 = 0
-        for i in 2..<end {
+        for i in 2..<MWBConstants.smallPacketSize {
             sum &+= bytes[i]
         }
         checksum = sum
@@ -168,9 +168,8 @@ struct MWBPacket {
     }
 
     func validateChecksum() -> Bool {
-        let end = isBig ? MWBConstants.bigPacketSize : MWBConstants.smallPacketSize
         var sum: UInt8 = 0
-        for i in 2..<end {
+        for i in 2..<MWBConstants.smallPacketSize {
             sum &+= bytes[i]
         }
         return sum == checksum
@@ -179,12 +178,12 @@ struct MWBPacket {
     // MARK: - Magic
 
     mutating func setMagic(_ hash24: UInt32) {
-        magic0 = UInt8(hash24 >> 16)
-        magic1 = UInt8((hash24 >> 8) & 0xFF)
+        magic0 = UInt8((hash24 >> 16) & 0xFF)
+        magic1 = UInt8((hash24 >> 24) & 0xFF)
     }
 
     func validateMagic(_ hash24: UInt32) -> Bool {
-        return magic0 == UInt8(hash24 >> 16) && magic1 == UInt8((hash24 >> 8) & 0xFF)
+        return magic0 == UInt8((hash24 >> 16) & 0xFF) && magic1 == UInt8((hash24 >> 24) & 0xFF)
     }
 
     private mutating func withUnsafeMutableBytes<R>(_ body: (UnsafeMutableRawBufferPointer) throws -> R) rethrows -> R {

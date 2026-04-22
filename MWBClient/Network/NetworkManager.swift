@@ -40,6 +40,7 @@ actor NetworkManager {
     }
     private(set) var machineID: UInt32 = 0
     private(set) var connectedMachineName: String = ""
+    private(set) var magicHash: UInt32 = 0
 
     /// The reason the last connection attempt failed. Reset on successful connection.
     private(set) var failureReason: ConnectionFailureReason = .none
@@ -57,13 +58,13 @@ actor NetworkManager {
 
     private var crypto: MWBCrypto
     private var handshakeHandler = HandshakeHandler()
-    private var magicHash: UInt32 = 0
 
     // MARK: Connection
 
     private var connection: NWConnection?
     private var receiveTask: Task<Void, Never>?
     private var reconnectTask: Task<Void, Never>?
+    private var intentionalDisconnect = false
 
     // MARK: Callbacks
 
@@ -110,6 +111,7 @@ actor NetworkManager {
     func connect() {
         guard state == .disconnected || state == .reconnecting else { return }
 
+        intentionalDisconnect = false
         Logger.network.info("Connecting to \(self.host):\(self.port)")
         failureReason = .none
         state = .connecting
@@ -128,6 +130,7 @@ actor NetworkManager {
 
     func disconnect() {
         Logger.network.info("Disconnecting")
+        intentionalDisconnect = true
         failureReason = .none
         reconnectTask?.cancel()
         reconnectTask = nil
@@ -177,6 +180,10 @@ actor NetworkManager {
             classifyAndLogConnectionError(error)
             scheduleReconnect(reason: classifyNWError(error))
             return
+        } catch is NetworkError {
+            Logger.network.info("Connection cancelled during wait")
+            state = .disconnected
+            return
         } catch {
             Logger.network.error("Connection wait failed: \(error.localizedDescription)")
             scheduleReconnect(reason: .unknown(error.localizedDescription))
@@ -198,8 +205,16 @@ actor NetworkManager {
         handshakeHandler.start()
         do {
             try await performHandshake(conn)
+        } catch let error as NetworkError {
+            Logger.network.error("Handshake failed (NetworkError): \(error)")
+            disconnectDueToError(.handshakeFailed)
+            return
+        } catch let error as NWError {
+            Logger.network.error("Handshake failed (NWError): \(error)")
+            disconnectDueToError(.handshakeFailed)
+            return
         } catch {
-            Logger.network.error("Handshake failed: \(error.localizedDescription)")
+            Logger.network.error("Handshake failed (unknown): \(type(of: error)) - \(error)")
             disconnectDueToError(.handshakeFailed)
             return
         }
@@ -227,13 +242,18 @@ actor NetworkManager {
 
     private func waitForConnection(_ conn: NWConnection) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let flag = ResumeOnce()
             conn.stateUpdateHandler = { newState in
+                guard !flag.fired else { return }
                 switch newState {
                 case .ready:
+                    flag.fired = true
                     continuation.resume()
                 case .failed(let error):
+                    flag.fired = true
                     continuation.resume(throwing: error)
                 case .cancelled:
+                    flag.fired = true
                     continuation.resume(throwing: NetworkError.connectionCancelled)
                 default:
                     break
@@ -264,25 +284,48 @@ actor NetworkManager {
     // MARK: Handshake
 
     private func performHandshake(_ conn: NWConnection) async throws {
-        for _ in 0..<MWBConstants.handshakeIterationCount {
-            // Read 32 bytes (challenge)
-            let raw = try await conn.receive(
+        // Receive and respond to 10 challenges from the server
+        for i in 0..<MWBConstants.handshakeIterationCount {
+            Logger.network.debug("Handshake iteration \(i): waiting for challenge")
+
+            // Read first 32 bytes (encrypted)
+            let rawFirst = try await conn.receive(
                 minimumIncompleteLength: MWBConstants.smallPacketSize,
                 maximumLength: MWBConstants.smallPacketSize
             )
-            guard let challengeEncrypted = raw, challengeEncrypted.count == MWBConstants.smallPacketSize else {
+            guard let firstEncrypted = rawFirst, firstEncrypted.count == MWBConstants.smallPacketSize else {
                 throw NetworkError.handshakeFailed("incomplete challenge packet")
             }
 
-            let challengeDecrypted = crypto.decrypt(padToBlock(challengeEncrypted))
-            let challengePacket = MWBPacket(rawData: challengeDecrypted)
+            let firstDecrypted = crypto.decrypt(firstEncrypted)
+
+            // Check if this is a big packet — if so, read second 32 bytes
+            let packetType = firstDecrypted[0]
+            let isBig = PackageType(rawValue: packetType)?.isBig ?? ((packetType & 0x80) != 0)
+
+            let fullDecrypted: Data
+            if isBig {
+                let rawSecond = try await conn.receive(
+                    minimumIncompleteLength: MWBConstants.smallPacketSize,
+                    maximumLength: MWBConstants.smallPacketSize
+                )
+                guard let secondEncrypted = rawSecond, secondEncrypted.count == MWBConstants.smallPacketSize else {
+                    throw NetworkError.handshakeFailed("incomplete big packet second half")
+                }
+                let secondDecrypted = crypto.decrypt(secondEncrypted)
+                fullDecrypted = firstDecrypted + secondDecrypted
+            } else {
+                fullDecrypted = firstDecrypted
+            }
+
+            let challengePacket = MWBPacket(rawData: fullDecrypted)
 
             guard challengePacket.packageType == .handshake else {
                 throw NetworkError.handshakeFailed("expected type 126, got \(challengePacket.type)")
             }
 
             // Build ACK (bitwise NOT of challenge data)
-            guard var ackPacket = handshakeHandler.receiveChallenge(challengePacket) else {
+            guard var ackPacket = handshakeHandler.receiveChallenge(challengePacket, localMachineName: localMachineName) else {
                 throw NetworkError.handshakeFailed("handshake handler rejected challenge")
             }
             ackPacket.setMagic(magicHash)
@@ -290,6 +333,7 @@ actor NetworkManager {
 
             // Encrypt and send ACK
             let ackEncrypted = crypto.encrypt(padToBlock(ackPacket.transmittedData))
+            Logger.network.debug("ACK \(i): type=\(ackPacket.type) m0=\(ackPacket.rawBytes[2]) m1=\(ackPacket.rawBytes[3]) cksum=\(ackPacket.rawBytes[1]) M1=\(ackPacket.dataUInt32(at: 0))")
             try await conn.send(content: ackEncrypted)
         }
 
@@ -369,6 +413,7 @@ actor NetworkManager {
                 }
 
                 dispatchPacket(packet)
+                Logger.network.debug("Receive pump: got packet type=\(packet.type) src=\(packet.src) des=\(packet.des)")
 
             } catch {
                 Logger.network.error("Receive pump error: \(error.localizedDescription)")
@@ -431,7 +476,7 @@ actor NetworkManager {
     // MARK: Re-handshake
 
     private func handleRehandshake(_ packet: MWBPacket) {
-        guard var ack = handshakeHandler.receiveChallenge(packet) else {
+        guard var ack = handshakeHandler.receiveChallenge(packet, localMachineName: localMachineName) else {
             Logger.network.warning("Re-handshake: handler rejected challenge")
             return
         }
@@ -450,6 +495,7 @@ actor NetworkManager {
     // MARK: Reconnect
 
     private func disconnectDueToError(_ reason: ConnectionFailureReason) {
+        guard !intentionalDisconnect else { return }
         state = .disconnected
         failureReason = reason
         crypto.reset()
@@ -460,6 +506,11 @@ actor NetworkManager {
     }
 
     private func scheduleReconnect(reason: ConnectionFailureReason = .unknown("Unknown")) {
+        guard !intentionalDisconnect else {
+            Logger.network.info("Skipping reconnect: intentional disconnect")
+            state = .disconnected
+            return
+        }
         state = .reconnecting
         failureReason = reason
         crypto.reset()

@@ -98,11 +98,13 @@ struct CryptoCompatibilityTests {
         let ct1 = crypto.encrypt(plaintext)
         let ct2 = crypto.encrypt(plaintext)
 
+        // PowerToys uses .NET CryptoStream which chains CBC state internally.
+        // Same plaintext produces different ciphertext on successive calls.
         #expect(ct1 != ct2, "CBC chaining must produce different ciphertext for identical plaintext")
         #expect(ct1.count == 16)
         #expect(ct2.count == 16)
 
-        // Both should decrypt back correctly
+        // Both should decrypt back correctly with a fresh instance
         let cryptoDecrypt = MWBCrypto(securityKey: "chaining-state-test!")
         let pt1 = cryptoDecrypt.decrypt(ct1)
         let pt2 = cryptoDecrypt.decrypt(ct2)
@@ -157,7 +159,7 @@ struct CryptoCompatibilityTests {
         #expect(heartbeatDec == heartbeatData)
     }
 
-    // MARK: 6. Crypto reset restores initial IV
+    // MARK: 6. Crypto reset restores initial IV state
 
     @Test("Crypto reset restores initial IV state")
     func testCryptoResetRestoresInitialIV() {
@@ -166,7 +168,7 @@ struct CryptoCompatibilityTests {
 
         let ct1 = crypto.encrypt(plaintext)
         let ct2 = crypto.encrypt(plaintext)
-        #expect(ct1 != ct2)
+        #expect(ct1 != ct2, "CBC chaining should produce different ciphertext")
 
         crypto.reset()
 
@@ -219,10 +221,10 @@ struct CryptoCompatibilityTests {
         }
 
         let bytes = Data(hashValue)
-        let expectedHash = UInt32(bytes[0]) << 23
-            | UInt32(bytes[1]) << 16
-            | UInt32(bytes[63]) << 8  // hashValue[^1] = last byte
-            | UInt32(bytes[2])
+        let expectedHash = (UInt32(bytes[0]) << 23)
+            + (UInt32(bytes[1]) << 16)
+            + (UInt32(bytes[63]) << 8)  // hashValue[^1] = last byte
+            + UInt32(bytes[2])
 
         let actualHash = crypto.get24BitHash()
         #expect(actualHash == expectedHash, "Hash formula must match PowerToys Get24BitHash")
@@ -481,7 +483,7 @@ struct HandshakeCompatibilityTests {
 
     // MARK: 13. Handshake challenge -> ack with bitwise NOT
 
-    @Test("Handshake challenge produces ACK with bitwise NOT data, adopting machine ID")
+    @Test("Handshake challenge produces ACK with bitwise NOT machine fields, adopting machine ID")
     func testHandshakeChallengeResponse() {
         var handler = HandshakeHandler()
         handler.start()
@@ -493,7 +495,7 @@ struct HandshakeCompatibilityTests {
         challenge.src = 0x05
         challenge.des = 0x03
 
-        // Set some challenge data
+        // Set Machine1 field at data offset 0-3 (UInt32 little-endian)
         var challengeData = Data(count: 48)
         challengeData[0] = 0x42
         challengeData[1] = 0x00
@@ -501,7 +503,7 @@ struct HandshakeCompatibilityTests {
         challengeData[3] = 0x80
         challenge.data = challengeData
 
-        guard let ack = handler.receiveChallenge(challenge) else {
+        guard let ack = handler.receiveChallenge(challenge, localMachineName: "TestMac") else {
             Issue.record("receiveChallenge should return an ACK packet")
             return
         }
@@ -509,17 +511,25 @@ struct HandshakeCompatibilityTests {
         // ACK should be type 127
         #expect(ack.type == PackageType.handshakeAck.rawValue)
 
-        // ACK data should be bitwise NOT of challenge data
+        // ACK Machine1 field should be bitwise NOT of challenge Machine1 (UInt32 at offset 0)
         let responseData = ack.data
-        #expect(responseData[0] == ~UInt8(0x42), "First byte should be ~0x42 = 0xBD")
-        #expect(responseData[1] == ~UInt8(0x00), "Second byte should be ~0x00 = 0xFF")
-        #expect(responseData[2] == ~UInt8(0xFF), "Third byte should be ~0xFF = 0x00")
-        #expect(responseData[3] == ~UInt8(0x80), "Fourth byte should be ~0x80 = 0x7F")
+        let ackMachine1 = responseData.withUnsafeBytes {
+            $0.loadUnaligned(fromByteOffset: 0, as: UInt32.self).littleEndian
+        }
+        let challengeMachine1 = challengeData.withUnsafeBytes {
+            $0.loadUnaligned(fromByteOffset: 0, as: UInt32.self).littleEndian
+        }
+        #expect(ackMachine1 == ~challengeMachine1, "Machine1 should be bitwise NOT of challenge")
 
-        // ACK should mirror id, src, des from challenge
+        // ACK src should be 0 (ID.NONE), not copied from challenge
         #expect(ack.id == 100)
-        #expect(ack.src == 0x05)
+        #expect(ack.src == 0)
         #expect(ack.des == 0x03)
+
+        // Machine name should be at data[16..47]
+        let nameBytes = Data(responseData[16..<48])
+        let nameString = String(data: nameBytes, encoding: .utf8)?.trimmingCharacters(in: .whitespaces)
+        #expect(nameString == "TestMac", "Machine name should appear at data[16..47]")
 
         // Machine ID should be adopted from challenge des
         #expect(handler.adoptedMachineID == 0x03)
@@ -541,7 +551,7 @@ struct HandshakeCompatibilityTests {
         // Send 9 challenges
         for i in 0..<9 {
             challenge.id = UInt32(i)
-            _ = handler.receiveChallenge(challenge)
+            _ = handler.receiveChallenge(challenge, localMachineName: "TestMac")
         }
 
         // Not ready after 9
@@ -551,7 +561,7 @@ struct HandshakeCompatibilityTests {
 
         // Send 10th challenge
         challenge.id = 9
-        _ = handler.receiveChallenge(challenge)
+        _ = handler.receiveChallenge(challenge, localMachineName: "TestMac")
         #expect(handler.receivedChallengeCount == 10)
 
         // Ready after 10
@@ -575,7 +585,7 @@ struct HandshakeCompatibilityTests {
         challenge.des = 0xFF
 
         for _ in 0..<10 {
-            _ = handler.receiveChallenge(challenge)
+            _ = handler.receiveChallenge(challenge, localMachineName: "TestMac")
         }
         _ = handler.completeIfReady()
         handler.completeIdentity()
@@ -585,7 +595,7 @@ struct HandshakeCompatibilityTests {
         challenge.id = 100
         challenge.des = 0x03
 
-        guard let ack = handler.receiveChallenge(challenge) else {
+        guard let ack = handler.receiveChallenge(challenge, localMachineName: "TestMac") else {
             Issue.record("Should accept re-handshake challenge after completion")
             return
         }

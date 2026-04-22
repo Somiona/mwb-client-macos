@@ -55,6 +55,7 @@ final class MWBCrypto {
         )
         assert(status == kCCSuccess)
 
+        // CBC: new IV = last ciphertext block
         if numBytesEncrypted >= MWBConstants.ivLength {
             encryptIV = Array(outBytes.suffix(MWBConstants.ivLength))
         }
@@ -64,7 +65,8 @@ final class MWBCrypto {
     func decrypt(_ ciphertext: Data) -> Data {
         precondition(ciphertext.count % MWBConstants.ivLength == 0, "Ciphertext must be block-aligned")
 
-        let previousIV = Array(ciphertext.suffix(MWBConstants.ivLength))
+        // CBC: save last ciphertext block as next IV before decrypting
+        let nextIV = Array(ciphertext.suffix(MWBConstants.ivLength))
         var inBytes = Array(ciphertext)
         var outBytes = [UInt8](repeating: 0, count: inBytes.count)
         var numBytesDecrypted: Int = 0
@@ -82,7 +84,7 @@ final class MWBCrypto {
         assert(status == kCCSuccess)
 
         if ciphertext.count >= MWBConstants.ivLength {
-            decryptIV = previousIV
+            decryptIV = nextIV
         }
         return Data(outBytes.prefix(numBytesDecrypted))
     }
@@ -107,9 +109,9 @@ final class MWBCrypto {
         }
 
         let bytes = Data(hashValue)
-        return UInt32(bytes[0]) << 23
-             | UInt32(bytes[1]) << 16
-             | UInt32(bytes[63]) << 8
-             | UInt32(bytes[2])
+        return (UInt32(bytes[0]) << 23)
+             + (UInt32(bytes[1]) << 16)
+             + (UInt32(bytes[63]) << 8)
+             + UInt32(bytes[2])
     }
 }

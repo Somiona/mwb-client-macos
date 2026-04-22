@@ -229,22 +229,41 @@ actor ServerListener {
         handler: inout HandshakeHandler
     ) async throws {
         for _ in 0..<MWBConstants.handshakeIterationCount {
-            let raw = try await conn.receive(
+            let rawFirst = try await conn.receive(
                 minimumIncompleteLength: MWBConstants.smallPacketSize,
                 maximumLength: MWBConstants.smallPacketSize
             )
-            guard let challengeEncrypted = raw, challengeEncrypted.count == MWBConstants.smallPacketSize else {
+            guard let firstEncrypted = rawFirst, firstEncrypted.count == MWBConstants.smallPacketSize else {
                 throw NetworkError.handshakeFailed("incomplete challenge packet")
             }
 
-            let challengeDecrypted = crypto.decrypt(padToBlock(challengeEncrypted))
-            let challengePacket = MWBPacket(rawData: challengeDecrypted)
+            let firstDecrypted = crypto.decrypt(firstEncrypted)
+
+            let packetType = firstDecrypted[0]
+            let isBig = PackageType(rawValue: packetType)?.isBig ?? ((packetType & 0x80) != 0)
+
+            let fullDecrypted: Data
+            if isBig {
+                let rawSecond = try await conn.receive(
+                    minimumIncompleteLength: MWBConstants.smallPacketSize,
+                    maximumLength: MWBConstants.smallPacketSize
+                )
+                guard let secondEncrypted = rawSecond, secondEncrypted.count == MWBConstants.smallPacketSize else {
+                    throw NetworkError.handshakeFailed("incomplete big packet second half")
+                }
+                let secondDecrypted = crypto.decrypt(secondEncrypted)
+                fullDecrypted = firstDecrypted + secondDecrypted
+            } else {
+                fullDecrypted = firstDecrypted
+            }
+
+            let challengePacket = MWBPacket(rawData: fullDecrypted)
 
             guard challengePacket.packageType == .handshake else {
                 throw NetworkError.handshakeFailed("expected type 126, got \(challengePacket.type)")
             }
 
-            guard var ackPacket = handler.receiveChallenge(challengePacket) else {
+            guard var ackPacket = handler.receiveChallenge(challengePacket, localMachineName: localMachineName) else {
                 throw NetworkError.handshakeFailed("handshake handler rejected challenge")
             }
             ackPacket.setMagic(magicHash)
@@ -389,7 +408,7 @@ actor ServerListener {
         magicHash: UInt32,
         handler: inout HandshakeHandler
     ) {
-        guard var ack = handler.receiveChallenge(packet) else { return }
+        guard var ack = handler.receiveChallenge(packet, localMachineName: localMachineName) else { return }
         ack.setMagic(magicHash)
         _ = ack.computeChecksum()
 

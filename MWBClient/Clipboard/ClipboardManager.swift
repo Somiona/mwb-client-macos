@@ -41,6 +41,7 @@ actor ClipboardManager {
     private var connection: NWConnection?
     private var connectionTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
+    private var intentionalDisconnect = false
 
     // MARK: Feedback Loop Prevention
 
@@ -91,12 +92,14 @@ actor ClipboardManager {
 
     func start() {
         guard !isConnected else { return }
+        intentionalDisconnect = false
         Logger.clipboard.info("ClipboardManager starting, connecting to \(self.host):\(self.port)")
         connect()
     }
 
     func stop() {
         Logger.clipboard.info("ClipboardManager stopping")
+        intentionalDisconnect = true
         pollTask?.cancel()
         pollTask = nil
         connectionTask?.cancel()
@@ -146,6 +149,10 @@ actor ClipboardManager {
         // Wait for TCP connection to establish
         do {
             try await waitForConnection(conn)
+        } catch is NetworkError {
+            Logger.clipboard.info("Clipboard connection cancelled")
+            isConnected = false
+            return
         } catch {
             Logger.clipboard.error("Clipboard connection failed: \(error.localizedDescription)")
             scheduleReconnect()
@@ -155,6 +162,10 @@ actor ClipboardManager {
         // Phase 1: Noise exchange
         do {
             try await exchangeNoise(conn)
+        } catch is NetworkError {
+            Logger.clipboard.info("Clipboard noise exchange cancelled")
+            isConnected = false
+            return
         } catch {
             Logger.clipboard.error("Clipboard noise exchange failed: \(error.localizedDescription)")
             scheduleReconnect()
@@ -165,6 +176,10 @@ actor ClipboardManager {
         handshakeHandler.start()
         do {
             try await performHandshake(conn)
+        } catch is NetworkError {
+            Logger.clipboard.info("Clipboard handshake cancelled")
+            isConnected = false
+            return
         } catch {
             Logger.clipboard.error("Clipboard handshake failed: \(error.localizedDescription)")
             scheduleReconnect()
@@ -174,6 +189,10 @@ actor ClipboardManager {
         // Phase 3: Send identity
         do {
             try await sendIdentity(conn)
+        } catch is NetworkError {
+            Logger.clipboard.info("Clipboard send identity cancelled")
+            isConnected = false
+            return
         } catch {
             Logger.clipboard.error("Clipboard send identity failed: \(error.localizedDescription)")
             scheduleReconnect()
@@ -197,13 +216,18 @@ actor ClipboardManager {
 
     private func waitForConnection(_ conn: NWConnection) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let flag = ResumeOnce()
             conn.stateUpdateHandler = { newState in
+                guard !flag.fired else { return }
                 switch newState {
                 case .ready:
+                    flag.fired = true
                     continuation.resume()
                 case .failed(let error):
+                    flag.fired = true
                     continuation.resume(throwing: error)
                 case .cancelled:
+                    flag.fired = true
                     continuation.resume(throwing: NetworkError.connectionCancelled)
                 default:
                     break
@@ -238,22 +262,41 @@ actor ClipboardManager {
 
     private func performHandshake(_ conn: NWConnection) async throws {
         for _ in 0..<MWBConstants.handshakeIterationCount {
-            let raw = try await conn.receive(
+            let rawFirst = try await conn.receive(
                 minimumIncompleteLength: MWBConstants.smallPacketSize,
                 maximumLength: MWBConstants.smallPacketSize
             )
-            guard let challengeEncrypted = raw, challengeEncrypted.count == MWBConstants.smallPacketSize else {
+            guard let firstEncrypted = rawFirst, firstEncrypted.count == MWBConstants.smallPacketSize else {
                 throw NetworkError.handshakeFailed("incomplete challenge packet")
             }
 
-            let challengeDecrypted = crypto.decrypt(padToBlock(challengeEncrypted))
-            let challengePacket = MWBPacket(rawData: challengeDecrypted)
+            let firstDecrypted = crypto.decrypt(firstEncrypted)
+
+            let packetType = firstDecrypted[0]
+            let isBig = PackageType(rawValue: packetType)?.isBig ?? ((packetType & 0x80) != 0)
+
+            let fullDecrypted: Data
+            if isBig {
+                let rawSecond = try await conn.receive(
+                    minimumIncompleteLength: MWBConstants.smallPacketSize,
+                    maximumLength: MWBConstants.smallPacketSize
+                )
+                guard let secondEncrypted = rawSecond, secondEncrypted.count == MWBConstants.smallPacketSize else {
+                    throw NetworkError.handshakeFailed("incomplete big packet second half")
+                }
+                let secondDecrypted = crypto.decrypt(secondEncrypted)
+                fullDecrypted = firstDecrypted + secondDecrypted
+            } else {
+                fullDecrypted = firstDecrypted
+            }
+
+            let challengePacket = MWBPacket(rawData: fullDecrypted)
 
             guard challengePacket.packageType == .handshake else {
                 throw NetworkError.handshakeFailed("expected type 126, got \(challengePacket.type)")
             }
 
-            guard var ackPacket = handshakeHandler.receiveChallenge(challengePacket) else {
+            guard var ackPacket = handshakeHandler.receiveChallenge(challengePacket, localMachineName: localMachineName) else {
                 throw NetworkError.handshakeFailed("handshake handler rejected challenge")
             }
             ackPacket.setMagic(magicHash)
@@ -452,7 +495,7 @@ actor ClipboardManager {
     // MARK: Re-handshake
 
     private func handleRehandshake(_ packet: MWBPacket) {
-        guard var ack = handshakeHandler.receiveChallenge(packet) else { return }
+        guard var ack = handshakeHandler.receiveChallenge(packet, localMachineName: localMachineName) else { return }
         ack.setMagic(magicHash)
         _ = ack.computeChecksum()
 
@@ -619,6 +662,11 @@ actor ClipboardManager {
     // MARK: Reconnect
 
     private func scheduleReconnect() {
+        guard !intentionalDisconnect else {
+            Logger.clipboard.info("Skipping reconnect: intentional disconnect")
+            isConnected = false
+            return
+        }
         connection?.cancel()
         connection = nil
         isConnected = false

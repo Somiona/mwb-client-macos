@@ -224,16 +224,6 @@ final class AppCoordinator {
 
     // MARK: - Settings Observation
 
-    /// Call when connection-related settings change (IP, security key, port).
-    /// Disconnects and reconnects with new settings.
-    func connectionSettingsDidChange() {
-        let wasConnected = connectionState != .disconnected
-        disconnect()
-        if wasConnected && !settings.windowsIP.isEmpty && !settings.securityKey.isEmpty {
-            connect()
-        }
-    }
-
     /// Call when clipboard sync settings change.
     func clipboardSettingsDidChange() {
         Task {
@@ -279,11 +269,12 @@ final class AppCoordinator {
         // Extract handshake results
         let machineID = await nm.machineID
         let connectedName = await nm.connectedMachineName
+        let magicHash = await nm.magicHash
         localMachineID = machineID
         windowsMachineName = connectedName
 
         // Configure and start heartbeat
-        await hb.configure(magicHash: 0, machineID: machineID)
+        await hb.configure(magicHash: magicHash, machineID: machineID)
         await hb.start()
 
         // Start clipboard manager
@@ -319,6 +310,14 @@ final class AppCoordinator {
                     self.connectionState = state
                     if !name.isEmpty {
                         self.windowsMachineName = name
+                    }
+                    // Safety: release input capture if connection lost during crossing
+                    if self.isCrossingActive && (state == .reconnecting || state == .disconnected) {
+                        Logger.coordinator.warning("Connection lost during edge crossing, releasing input capture")
+                        self.isCrossingActive = false
+                        self.inputCapture.crossingActive = false
+                        self.edgeDetector.reset()
+                        self.inputInjection.reset()
                     }
                     // Propagate error messages from NetworkManager
                     if case .reconnecting = state {
