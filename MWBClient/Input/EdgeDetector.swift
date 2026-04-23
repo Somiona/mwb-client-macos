@@ -51,8 +51,8 @@ final class EdgeDetector {
 
     /// How long (in seconds) the cursor must remain at the edge before
     /// crossing is triggered. Prevents accidental triggers from brief
-    /// edge touches. Defaults to 50ms.
-    var debounceInterval: TimeInterval = 0.05
+    /// edge touches. PowerToys uses 100ms (SKIP_PIXELS debounce).
+    var debounceInterval: TimeInterval = 0.10
 
     // MARK: - State
 
