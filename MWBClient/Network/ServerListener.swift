@@ -457,6 +457,10 @@ actor ServerListener {
              .clipboardAsk, .clipboardPush, .clipboardDragDrop, .clipboardDragDropEnd:
             onClipboard?(packet)
 
+        case .byeBye:
+            Logger.network.info("Received ByeBye packet, disconnecting")
+            // ServerListener doesn't maintain state, just log it
+
         default:
             break
         }

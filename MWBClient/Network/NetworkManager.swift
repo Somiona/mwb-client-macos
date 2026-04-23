@@ -468,6 +468,10 @@ actor NetworkManager {
                 connectedMachineName = name.trimmingCharacters(in: .whitespaces)
             }
 
+        case .byeBye:
+            Logger.network.info("Received ByeBye packet from remote, disconnecting")
+            state = .disconnected
+
         default:
             break
         }
