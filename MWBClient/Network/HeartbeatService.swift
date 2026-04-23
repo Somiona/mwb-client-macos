@@ -14,6 +14,7 @@ actor HeartbeatService {
 
     private let magicHash: UInt32
     private let machineID: UInt32
+    private let generatedKey: Bool
     private var heartbeatTask: Task<Void, Never>?
 
     // MARK: - Init
@@ -23,13 +24,15 @@ actor HeartbeatService {
         screenWidth: UInt16,
         screenHeight: UInt16,
         magicHash: UInt32,
-        machineID: UInt32
+        machineID: UInt32,
+        generatedKey: Bool
     ) {
         self.machineName = machineName
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
         self.magicHash = magicHash
         self.machineID = machineID
+        self.generatedKey = generatedKey
     }
 
     deinit {
@@ -93,12 +96,22 @@ actor HeartbeatService {
             return
         }
 
+        // Both heartbeat types (20 and 51) carry the same identity payload:
+        // screen dimensions and machine name. The receiver uses this data to
+        // add the sender to the machine pool. The only difference is the type
+        // byte: type 51 signals that the encryption key was auto-generated.
         var packet = HandshakeHandler.makeIdentityPacket(
             machineName: machineName,
             screenWidth: screenWidth,
             screenHeight: screenHeight,
             machineID: machineID
         )
+
+        if !generatedKey {
+            // User-provided key: use plain Heartbeat (type 20)
+            packet.type = PackageType.heartbeat.rawValue
+        }
+
         packet.setMagic(magicHash)
         _ = packet.computeChecksum()
 

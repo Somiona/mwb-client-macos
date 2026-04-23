@@ -268,7 +268,8 @@ final class AppCoordinator {
             screenWidth: ScreenInfo.mainScreenSizeUInt16.width,
             screenHeight: ScreenInfo.mainScreenSizeUInt16.height,
             magicHash: magicHash,
-            machineID: machineID
+            machineID: machineID,
+            generatedKey: false // User always provides key via settings
         )
         await hb.bind(networkManager: nm)
         heartbeatService = hb
