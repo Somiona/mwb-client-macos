@@ -737,7 +737,7 @@ struct HandshakeCompatibilityTests {
 
         // Machine name should be at data[16..47]
         let nameBytes = Data(responseData[16..<48])
-        let nameString = String(data: nameBytes, encoding: .utf8)?.trimmingCharacters(in: .whitespaces)
+        let nameString = String(data: nameBytes, encoding: .ascii)?.trimmingCharacters(in: .whitespaces)
         #expect(nameString == "TestMac", "Machine name should appear at data[16..47]")
 
         // Machine ID should be adopted from challenge des

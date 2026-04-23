@@ -447,9 +447,9 @@ actor NetworkManager {
             handleRehandshake(packet)
 
         case .heartbeatEx:
-            // Extract machine name from identity broadcast
+            // Extract machine name from identity broadcast (ASCII per protocol spec)
             let nameBytes = packet.data[16..<48]
-            if let name = String(data: Data(nameBytes), encoding: .utf8) {
+            if let name = String(data: Data(nameBytes), encoding: .ascii) {
                 connectedMachineName = name.trimmingCharacters(in: .whitespaces)
             }
 
@@ -462,9 +462,9 @@ actor NetworkManager {
             break
 
         case .heartbeatExL2, .heartbeatExL3:
-            // Extended heartbeat levels - handle machine name updates
+            // Extended heartbeat levels - handle machine name updates (ASCII per protocol spec)
             let nameBytes = packet.data[16..<48]
-            if let name = String(data: Data(nameBytes), encoding: .utf8) {
+            if let name = String(data: Data(nameBytes), encoding: .ascii) {
                 connectedMachineName = name.trimmingCharacters(in: .whitespaces)
             }
 

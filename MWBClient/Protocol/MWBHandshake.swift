@@ -60,7 +60,7 @@ struct HandshakeHandler {
 
         // Copy machine name into data bytes 16-47 (space-padded to 32 bytes)
         var nameData = Data(count: 32)
-        let nameBytes = Array(localMachineName.prefix(32).utf8)
+        let nameBytes = Array(localMachineName.prefix(32).ascii ?? localMachineName.prefix(32).utf8)
         for i in 0..<nameBytes.count {
             nameData[i] = nameBytes[i]
         }
@@ -107,7 +107,7 @@ struct HandshakeHandler {
         packet.setDataUInt16(screenHeight, at: 2)
 
         var nameData = Data(count: 32)
-        let nameBytes = Array(machineName.prefix(32).utf8)
+        let nameBytes = Array(machineName.prefix(32).ascii ?? machineName.prefix(32).utf8)
         for i in 0..<nameBytes.count {
             nameData[i] = nameBytes[i]
         }
