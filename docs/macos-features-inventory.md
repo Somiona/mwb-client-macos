@@ -86,7 +86,7 @@
 |----------------------------------|-------------|-----------------------------|----------------------------------------------------------|
 | Machine1-4 at offsets 16-28      | PARTIAL     | `MWBHandshake.swift:51-58`  | Handshake flips offsets 0,4,8,12 within data field (which starts at packet offset 16). This is correct for the data-field-relative layout. |
 | MachineName at data bytes 16-47  | IMPLEMENTED | `MWBHandshake.swift:62-70`  | 32 ASCII chars, space-padded                              |
-| KEYBDDATA union                  | WRONG       | `MWBKeyboardData.swift:31-34` | Reads `vkCode` at data offset **8** (packet offset 24) and `flags` at data offset **12** (packet offset 28). Protocol spec places `wVk` at data offset 0 (packet offset 16) and `dwFlags` at data offset 4 (packet offset 20). Offsets are shifted by 8 bytes. |
+| KEYBDDATA union                  | IMPLEMENTED | `MWBKeyboardData.swift:28-31` | wVk as UInt32 at data offset 0, dwFlags as UInt32 at data offset 4. Matches protocol spec. |
 | MOUSEDATA union                  | IMPLEMENTED | `MWBMouseData.swift:34-39`   | Reads X at data offset 0, Y at 4, WheelDelta at 8, dwFlags at 12. Matches spec. |
 
 ---
@@ -372,16 +372,16 @@
 
 | Category              | Count |
 |-----------------------|-------|
-| IMPLEMENTED           | 80    |
+| IMPLEMENTED           | 81    |
 | PARTIAL               | 20    |
-| WRONG                 | 5     |
+| WRONG                 | 4     |
 | MISSING               | 48    |
 | N/A                   | 1     |
 | **Total features**    | **154**|
 
 ### Critical Issues (WRONG)
 
-1. **KeyboardData field offsets** -- `MWBKeyboardData.swift:31-34`: `dataOffset = 8` causes `wVk` to be read at data offset 8 instead of 0, and `dwFlags` at offset 12 instead of 4. This means keyboard events received from Windows will read garbage values. Sending is also wrong -- the write method uses the same shifted offsets.
+1. ~~**KeyboardData field offsets**~~ -- FIXED in commit f4230a7. wVk and dwFlags now at correct data offsets 0 and 4.
 
 2. **Encryption salt encoding** -- `MWBCrypto.swift:17`: Salt is encoded as UTF-16LE (`"18446744073709551615".data(using: .utf16LittleEndian)`), but the C# reference uses ASCII bytes. UTF-16LE doubles the byte length and changes the PBKDF2 derivation output, making the encryption key incompatible with Windows.
 

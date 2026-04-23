@@ -22,8 +22,6 @@ struct MouseData {
         WMMouseMessage(rawValue: dwFlags)
     }
 
-    static let dataOffset = 0
-
     init(x: Int32 = 0, y: Int32 = 0, wheelDelta: Int32 = 0, dwFlags: UInt32 = 0) {
         self.x = x
         self.y = y
