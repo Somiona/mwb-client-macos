@@ -15,6 +15,7 @@ private enum SettingsKey {
     static let showInMenuBar = "settings.showInMenuBar"
     static let crossingEdge = "settings.crossingEdge"
     static let machineName = "settings.machineName"
+    static let hideDockIcon = "settings.hideDockIcon"
 }
 
 // MARK: - Defaults
@@ -32,6 +33,7 @@ private enum SettingsDefault {
     static var machineName: String {
         Host.current().localizedName ?? "Mac"
     }
+    static let hideDockIcon = true
 }
 
 // MARK: - SettingsStore
@@ -109,6 +111,11 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(machineName, forKey: SettingsKey.machineName) }
     }
 
+    /// Whether to hide the dock icon (runs as an accessory app).
+    var hideDockIcon: Bool {
+        didSet { UserDefaults.standard.set(hideDockIcon, forKey: SettingsKey.hideDockIcon) }
+    }
+
     // MARK: - Init
 
     /// Creates a settings store, loading persisted values from UserDefaults
@@ -134,6 +141,7 @@ final class SettingsStore {
         }
 
         self.machineName = defaults.string(forKey: SettingsKey.machineName) ?? SettingsDefault.machineName
+        self.hideDockIcon = defaults.object(forKey: SettingsKey.hideDockIcon) as? Bool ?? SettingsDefault.hideDockIcon
     }
 
     // MARK: - Helpers
@@ -151,5 +159,6 @@ final class SettingsStore {
         showInMenuBar = SettingsDefault.showInMenuBar
         crossingEdge = SettingsDefault.crossingEdge
         machineName = SettingsDefault.machineName
+        hideDockIcon = SettingsDefault.hideDockIcon
     }
 }

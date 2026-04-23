@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Shared References
@@ -33,6 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let coordinator = Self.sharedCoordinator, let settings = Self.sharedSettings {
             trayMenu = TrayMenu(coordinator: coordinator)
 
+            // Apply initial activation policy based on dock icon setting
+            applyActivationPolicy(hideDockIcon: settings.hideDockIcon, windowOpen: false)
+
             if !settings.windowsIP.isEmpty && !settings.securityKey.isEmpty {
                 coordinator.connect()
             }
@@ -50,11 +54,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func windowDidBecomeKey(_ notification: Notification) {
         guard isSettingsWindow(notification.object as? NSWindow) else { return }
+        guard let settings = Self.sharedSettings, !settings.hideDockIcon else { return }
         NSApp.setActivationPolicy(.regular)
     }
 
     @objc private func windowWillClose(_ notification: Notification) {
         guard isSettingsWindow(notification.object as? NSWindow) else { return }
+        guard let settings = Self.sharedSettings, !settings.hideDockIcon else { return }
         NSApp.setActivationPolicy(.accessory)
     }
 
@@ -70,7 +76,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         }
+        guard let settings = Self.sharedSettings, !settings.hideDockIcon else { return }
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // MARK: - Activation Policy
+
+    /// Sets the app's activation policy based on the dock icon preference.
+    ///
+    /// - When `hideDockIcon` is `true`, the app always runs as `.accessory` (no dock icon).
+    /// - When `hideDockIcon` is `false` and a window is open, the app runs as `.regular` (dock icon visible).
+    /// - When `hideDockIcon` is `false` and no window is open, the app runs as `.accessory` to keep the dock clean.
+    @MainActor
+    private func applyActivationPolicy(hideDockIcon: Bool, windowOpen: Bool) {
+        if hideDockIcon {
+            NSApp.setActivationPolicy(.accessory)
+        } else if windowOpen {
+            NSApp.setActivationPolicy(.regular)
+        } else {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 }

@@ -31,6 +31,10 @@ struct GeneralView: View {
             Section("Menu Bar") {
                 Toggle("Show in menu bar", isOn: $settings.showInMenuBar)
             }
+
+            Section("Dock") {
+                Toggle("Hide dock icon", isOn: $settings.hideDockIcon)
+            }
         }
         .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
