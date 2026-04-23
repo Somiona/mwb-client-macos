@@ -548,7 +548,7 @@ actor ClipboardManager {
         }
     }
 
-    private let maxClipboardDataSize = 10 * 1024 * 1024 // 10 MB
+    private let maxClipboardDataSize = 1 * 1024 * 1024 // 1 MB (matches PowerToys inline threshold)
 
     private func checkAndSendClipboard() {
         let pasteboard = NSPasteboard.general
