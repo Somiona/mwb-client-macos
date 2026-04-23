@@ -65,6 +65,7 @@ actor NetworkManager {
     private var receiveTask: Task<Void, Never>?
     private var reconnectTask: Task<Void, Never>?
     private var intentionalDisconnect = false
+    private var dedup = PackageDeduplicator()
 
     // MARK: Callbacks
 
@@ -138,6 +139,7 @@ actor NetworkManager {
         receiveTask = nil
         connection?.cancel()
         connection = nil
+        dedup.reset()
         state = .disconnected
     }
 
@@ -432,6 +434,15 @@ actor NetworkManager {
 
     private func dispatchPacket(_ packet: MWBPacket) {
         guard let type = packet.packageType else { return }
+
+        // Skip dedup for certain packet types (per PowerToys Receiver.cs)
+        let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
+        if !exemptFromDedup.contains(type) {
+            if dedup.isDuplicate(packet.id) {
+                Logger.network.debug("Dedup: dropping duplicate packet id=\(packet.id)")
+                return
+            }
+        }
 
         switch type {
         case .mouse:

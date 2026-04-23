@@ -25,6 +25,7 @@ actor ServerListener {
 
     private var listener: NWListener?
     private var connectionTasks: Set<Task<Void, Never>> = []
+    private var dedup = PackageDeduplicator()
 
     // MARK: Callbacks
 
@@ -443,6 +444,15 @@ actor ServerListener {
     /// Dispatch regular (non-special) packets to registered callbacks.
     private func dispatchPacket(_ packet: MWBPacket) {
         guard let type = packet.packageType else { return }
+
+        // Skip dedup for certain packet types (per PowerToys Receiver.cs)
+        let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
+        if !exemptFromDedup.contains(type) {
+            if dedup.isDuplicate(packet.id) {
+                Logger.network.debug("ServerListener dedup: dropping duplicate packet id=\(packet.id)")
+                return
+            }
+        }
 
         switch type {
         case .mouse:

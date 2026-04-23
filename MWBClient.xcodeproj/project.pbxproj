@@ -74,6 +74,8 @@
 		CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */; };
 		E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B03D6DF490960A2425D804 /* SettingsWindow.swift */; };
 		FE988D34BABCD3A73AD97BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C99E0500DC51D1376645C1E2 /* Assets.xcassets */; };
+			AA11B2C3D4E5F6A7B8C9D0E2F /* PackageDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11B2C3D4E5F6A7B8C9D0E1F /* PackageDeduplicator.swift */; };
+			AA11B2C3D4E5F6A7B8C9D0E3F /* PackageDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11B2C3D4E5F6A7B8C9D0E1F /* PackageDeduplicator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -138,6 +140,7 @@
 		F1E0D1C2B3A4958677A8B9C0 /* ProtocolCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolCompatibilityTests.swift; sourceTree = "<group>"; };
 		FB048089A977A0BC32B0369B /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMapper.swift; sourceTree = "<group>"; };
+			AA11B2C3D4E5F6A7B8C9D0E1F /* PackageDeduplicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackageDeduplicator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -268,6 +271,7 @@
 				5929D4D7603B549A3D3E214C /* HeartbeatService.swift */,
 				7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */,
 				C2F38E9FDB3A364CEC11978A /* NetworkManager.swift */,
+				AA11B2C3D4E5F6A7B8C9D0E1F /* PackageDeduplicator.swift */,
 				82F62EBF6436F652A1861C1D /* ServerListener.swift */,
 			);
 			path = Network;
@@ -494,6 +498,7 @@
 				188C72432675028FAD914BDC /* MWBPacket.swift in Sources */,
 				1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */,
 				86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */,
+				AA11B2C3D4E5F6A7B8C9D0E2F /* PackageDeduplicator.swift in Sources */,
 				76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */,
 				1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */,
 				42C9BE9B6E1423F876CB6C9E /* Logger.swift in Sources */,
@@ -533,6 +538,7 @@
 				1DA7B7C32F97D44900368C65 /* MWBPacket.swift in Sources */,
 				1DA7B7C42F97D44900368C65 /* NetworkCallbacks.swift in Sources */,
 				1DA7B7C52F97D44900368C65 /* NetworkManager.swift in Sources */,
+				AA11B2C3D4E5F6A7B8C9D0E3F /* PackageDeduplicator.swift in Sources */,
 				1DA7B7C62F97D44900368C65 /* PermissionsView.swift in Sources */,
 				1DA7B7C72F97D44900368C65 /* ScreenInfo.swift in Sources */,
 				1DA7B7C82F97D44900368C65 /* Logger.swift in Sources */,
