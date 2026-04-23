@@ -31,11 +31,17 @@ enum ConnectionFailureReason: Sendable, Equatable {
 
 actor NetworkManager {
 
+    /// Toggle to enable verbose logging of every connection step.
+    /// Set to true for debugging, false for release.
+    static let debugConnectionSteps = false
+
     // MARK: Public State
 
     private(set) var state: ConnectionState = .disconnected {
         didSet {
-            Logger.network.info("Connection state: \(String(describing: oldValue)) -> \(String(describing: self.state))")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Connection state: \(String(describing: oldValue)) -> \(String(describing: self.state))")
+            }
         }
     }
     private(set) var machineID: UInt32 = 0
@@ -136,7 +142,9 @@ actor NetworkManager {
         guard state == .disconnected || state == .reconnecting else { return }
 
         intentionalDisconnect = false
-        Logger.network.info("Connecting to \(self.host):\(self.port)")
+        if Self.debugConnectionSteps {
+            Logger.network.info("Connecting to \(self.host):\(self.port)")
+        }
         failureReason = .none
         updateState(.connecting)
 
@@ -153,7 +161,9 @@ actor NetworkManager {
     }
 
     func disconnect() {
-        Logger.network.info("Disconnecting")
+        if Self.debugConnectionSteps {
+            Logger.network.info("Disconnecting")
+        }
         intentionalDisconnect = true
         failureReason = .none
         reconnectTask?.cancel()
@@ -208,7 +218,9 @@ actor NetworkManager {
             scheduleReconnect(reason: classifyNWError(error))
             return
         } catch is NetworkError {
-            Logger.network.info("Connection cancelled during wait")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Connection cancelled during wait")
+            }
             updateState(.disconnected)
             return
         } catch {
@@ -259,7 +271,9 @@ actor NetworkManager {
         failureReason = .none
         lastHeartbeatReceived = .now
         updateState(.connected)
-        Logger.network.info("Connected successfully")
+        if Self.debugConnectionSteps {
+            Logger.network.info("Connected successfully")
+        }
         startHeartbeatMonitor()
 
         if handshakeHandler.adoptedMachineID != 0 {
@@ -315,7 +329,9 @@ actor NetworkManager {
     private func performHandshake(_ conn: NWConnection) async throws {
         // Receive and respond to 10 challenges from the server
         for i in 0..<MWBConstants.handshakeIterationCount {
-            Logger.network.debug("Handshake iteration \(i): waiting for challenge")
+            if Self.debugConnectionSteps {
+                Logger.network.debug("Handshake iteration \(i): waiting for challenge")
+            }
 
             // Read first 32 bytes (encrypted)
             let rawFirst = try await conn.receive(
@@ -362,7 +378,9 @@ actor NetworkManager {
 
             // Encrypt and send ACK
             let ackEncrypted = crypto.encrypt(padToBlock(ackPacket.transmittedData))
-            Logger.network.debug("ACK \(i): type=\(ackPacket.type) m0=\(ackPacket.rawBytes[2]) m1=\(ackPacket.rawBytes[3]) cksum=\(ackPacket.rawBytes[1]) M1=\(ackPacket.dataUInt32(at: 0))")
+            if Self.debugConnectionSteps {
+                Logger.network.debug("ACK \(i): type=\(ackPacket.type) m0=\(ackPacket.rawBytes[2]) m1=\(ackPacket.rawBytes[3]) cksum=\(ackPacket.rawBytes[1]) M1=\(ackPacket.dataUInt32(at: 0))")
+            }
             try await conn.send(content: ackEncrypted)
         }
 
@@ -401,7 +419,9 @@ actor NetworkManager {
                 )
 
                 guard let firstData = firstChunk, firstData.count == MWBConstants.smallPacketSize else {
-                    Logger.network.info("Receive pump: connection closed (no data)")
+                    if Self.debugConnectionSteps {
+                        Logger.network.info("Receive pump: connection closed (no data)")
+                    }
                     break // Connection closed or error
                 }
 
@@ -442,7 +462,9 @@ actor NetworkManager {
                 }
 
                 dispatchPacket(packet)
-                Logger.network.debug("Receive pump: got packet type=\(packet.type) src=\(packet.src) des=\(packet.des)")
+                if Self.debugConnectionSteps {
+                    Logger.network.debug("Receive pump: got packet type=\(packet.type) src=\(packet.src) des=\(packet.des)")
+                }
 
             } catch {
                 Logger.network.error("Receive pump error: \(error.localizedDescription)")
@@ -452,7 +474,9 @@ actor NetworkManager {
 
         // If we exit the pump while still "connected", schedule reconnect
         if state == .connected {
-            Logger.network.info("Receive pump exited while connected, scheduling reconnect")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Receive pump exited while connected, scheduling reconnect")
+            }
             scheduleReconnect(reason: .unknown("Connection lost"))
         }
     }
@@ -466,7 +490,9 @@ actor NetworkManager {
         let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
         if !exemptFromDedup.contains(type) {
             if dedup.isDuplicate(packet.id) {
-                Logger.network.debug("Dedup: dropping duplicate packet id=\(packet.id)")
+                if Self.debugConnectionSteps {
+                    Logger.network.debug("Dedup: dropping duplicate packet id=\(packet.id)")
+                }
                 return
             }
         }
@@ -496,7 +522,9 @@ actor NetworkManager {
             if let name = String(data: Data(nameBytes), encoding: .ascii) {
                 connectedMachineName = name.trimmingCharacters(in: .whitespaces)
             }
-            Logger.network.info("Received Heartbeat_ex from remote, sending Heartbeat_ex_l2")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Received Heartbeat_ex from remote, sending Heartbeat_ex_l2")
+            }
             var l2 = MWBPacket()
             l2.type = PackageType.heartbeatExL2.rawValue
             l2.id = packet.id
@@ -517,7 +545,9 @@ actor NetworkManager {
 
         case .heartbeatExL2:
             // Remote acknowledged our key generation - send confirmation with Heartbeat_ex_l3
-            Logger.network.info("Received Heartbeat_ex_l2 from remote, sending Heartbeat_ex_l3")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Received Heartbeat_ex_l2 from remote, sending Heartbeat_ex_l3")
+            }
             var l3 = MWBPacket()
             l3.type = PackageType.heartbeatExL3.rawValue
             l3.id = packet.id
@@ -530,14 +560,20 @@ actor NetworkManager {
 
         case .heartbeatExL3:
             // Key agreement complete
-            Logger.network.info("Key agreement complete with remote machine")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Key agreement complete with remote machine")
+            }
 
         case .byeBye:
-            Logger.network.info("Received ByeBye packet from remote, disconnecting")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Received ByeBye packet from remote, disconnecting")
+            }
             updateState(.disconnected)
 
         case .hi:
-            Logger.network.info("Received Hi packet from remote")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Received Hi packet from remote")
+            }
 
         default:
             break
@@ -609,12 +645,16 @@ actor NetworkManager {
         connection?.cancel()
         connection = nil
         stopHeartbeatMonitor()
-        Logger.network.info("Disconnected due to error: \(String(describing: reason)), manual reconnect required")
+        if Self.debugConnectionSteps {
+            Logger.network.info("Disconnected due to error: \(String(describing: reason)), manual reconnect required")
+        }
     }
 
     private func scheduleReconnect(reason: ConnectionFailureReason = .unknown("Unknown")) {
         guard !intentionalDisconnect else {
-            Logger.network.info("Skipping reconnect: intentional disconnect")
+            if Self.debugConnectionSteps {
+                Logger.network.info("Skipping reconnect: intentional disconnect")
+            }
             updateState(.disconnected)
             return
         }
@@ -623,7 +663,9 @@ actor NetworkManager {
         crypto.reset()
         handshakeHandler.reset()
         stopHeartbeatMonitor()
-        Logger.network.info("Scheduling reconnect in \(MWBConstants.reconnectDelay)s, reason: \(String(describing: reason))")
+        if Self.debugConnectionSteps {
+            Logger.network.info("Scheduling reconnect in \(MWBConstants.reconnectDelay)s, reason: \(String(describing: reason))")
+        }
 
         connection?.cancel()
         connection = nil
