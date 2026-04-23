@@ -21,6 +21,10 @@ final class InputInjection {
     /// rather than posting a relative delta.
     private var needsWarp = true
 
+    /// PowerToys MOVE_MOUSE_RELATIVE threshold. When |X| and |Y| both
+    /// exceed this value, coordinates represent a relative pixel offset.
+    private static let moveMouseRelative: Int32 = 100_000
+
     // MARK: - Coordinate mapping
 
     /// Returns the main display bounds in Quartz (top-left origin) coordinates.
@@ -64,6 +68,15 @@ final class InputInjection {
     func injectMouse(_ data: MouseData) {
         guard let message = data.wmMessage else {
             Logger.input.warning("Inject mouse: unknown WM message")
+            return
+        }
+
+        // Detect relative mouse coordinates (PowerToys MoveMouseRelatively).
+        // When |X| and |Y| both exceed the threshold, extract pixel deltas.
+        if abs(data.x) >= Self.moveMouseRelative && abs(data.y) >= Self.moveMouseRelative {
+            let dx = data.x >= 0 ? data.x - Self.moveMouseRelative : data.x + Self.moveMouseRelative
+            let dy = data.y >= 0 ? data.y - Self.moveMouseRelative : data.y + Self.moveMouseRelative
+            handleRelativeMove(dx: CGFloat(dx), dy: CGFloat(dy))
             return
         }
 
@@ -111,6 +124,31 @@ final class InputInjection {
             mouseButton: .left
         ) else {
             Logger.input.error("Failed to create mouse move CGEvent")
+            return
+        }
+
+        event.setIntegerValueField(.mouseEventDeltaX, value: Int64(dx))
+        event.setIntegerValueField(.mouseEventDeltaY, value: Int64(dy))
+        event.post(tap: .cghidEventTap)
+
+        lastPosition = target
+    }
+
+    private func handleRelativeMove(dx: CGFloat, dy: CGFloat) {
+        // Get current cursor position for the event location
+        let current = NSEvent.mouseLocation
+        // Convert from AppKit (bottom-left) to Quartz (top-left) coordinates
+        let screen_height = mainScreenBounds.height
+        let location = CGPoint(x: current.x, y: screen_height - current.y)
+        let target = CGPoint(x: location.x + dx, y: location.y + dy)
+
+        guard let event = CGEvent(
+            mouseEventSource: nil,
+            mouseType: .mouseMoved,
+            mouseCursorPosition: target,
+            mouseButton: .left
+        ) else {
+            Logger.input.error("Failed to create relative mouse CGEvent")
             return
         }
 
