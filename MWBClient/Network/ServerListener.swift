@@ -390,8 +390,8 @@ actor ServerListener {
             return true
 
         case .heartbeat, .heartbeatEx, .heartbeatExL2, .heartbeatExL3:
-            // Echo heartbeat back
-            echoHeartbeat(packet, connection: connection, crypto: crypto, magicHash: magicHash)
+            // Key agreement protocol: respond with the appropriate next level
+            respondToHeartbeat(packet, connection: connection, crypto: crypto, magicHash: magicHash, machineID: handler.adoptedMachineID)
             return true
 
         default:
@@ -417,19 +417,41 @@ actor ServerListener {
         connection.send(content: encrypted, completion: .contentProcessed({ _ in }))
     }
 
-    // MARK: Heartbeat Echo
+    // MARK: Heartbeat Response
 
-    /// Respond to heartbeat types 51/52/53 by echoing a type 52 (heartbeatExL2) back.
-    private func echoHeartbeat(
+    /// Respond to heartbeat types according to the key agreement protocol:
+    /// - heartbeat (20): echo as heartbeatExL2 (52) for compatibility
+    /// - heartbeatEx (51): respond with heartbeatExL2 (52)
+    /// - heartbeatExL2 (52): respond with heartbeatExL3 (53)
+    /// - heartbeatExL3 (53): key agreement complete, no response needed
+    private func respondToHeartbeat(
         _ packet: MWBPacket,
         connection: NWConnection,
         crypto: MWBCrypto,
-        magicHash: UInt32
+        magicHash: UInt32,
+        machineID: UInt32
     ) {
+        guard let type = packet.packageType else { return }
+
+        let responseType: PackageType
+        switch type {
+        case .heartbeat, .heartbeatEx:
+            responseType = .heartbeatExL2
+            Logger.network.info("ServerListener: received heartbeat type \(type.rawValue), sending heartbeatExL2")
+        case .heartbeatExL2:
+            responseType = .heartbeatExL3
+            Logger.network.info("ServerListener: received heartbeatExL2, sending heartbeatExL3")
+        case .heartbeatExL3:
+            Logger.network.info("ServerListener: received heartbeatExL3, key agreement complete")
+            return
+        default:
+            return
+        }
+
         var response = MWBPacket()
-        response.type = PackageType.heartbeatExL2.rawValue
+        response.type = responseType.rawValue
         response.id = packet.id
-        response.src = packet.des
+        response.src = machineID
         response.des = packet.src
         response.data = packet.data
         response.setMagic(magicHash)

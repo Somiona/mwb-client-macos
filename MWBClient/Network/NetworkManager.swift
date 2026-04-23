@@ -458,11 +458,21 @@ actor NetworkManager {
             handleRehandshake(packet)
 
         case .heartbeatEx:
-            // Extract machine name from identity broadcast (ASCII per protocol spec)
+            // Remote generated a new key - acknowledge with Heartbeat_ex_l2
             let nameBytes = packet.data[16..<48]
             if let name = String(data: Data(nameBytes), encoding: .ascii) {
                 connectedMachineName = name.trimmingCharacters(in: .whitespaces)
             }
+            Logger.network.info("Received Heartbeat_ex from remote, sending Heartbeat_ex_l2")
+            var l2 = MWBPacket()
+            l2.type = PackageType.heartbeatExL2.rawValue
+            l2.id = packet.id
+            l2.src = machineID
+            l2.des = packet.src
+            l2.data = packet.data
+            l2.setMagic(magicHash)
+            _ = l2.computeChecksum()
+            sendPacket(l2)
 
         case .clipboard, .clipboardText, .clipboardImage, .clipboardDataEnd,
              .clipboardAsk, .clipboardPush, .clipboardDragDrop, .clipboardDragDropEnd:
@@ -472,12 +482,22 @@ actor NetworkManager {
             // Echo heartbeat if needed (no-op for now, HeartbeatService handles outgoing)
             break
 
-        case .heartbeatExL2, .heartbeatExL3:
-            // Extended heartbeat levels - handle machine name updates (ASCII per protocol spec)
-            let nameBytes = packet.data[16..<48]
-            if let name = String(data: Data(nameBytes), encoding: .ascii) {
-                connectedMachineName = name.trimmingCharacters(in: .whitespaces)
-            }
+        case .heartbeatExL2:
+            // Remote acknowledged our key generation - send confirmation with Heartbeat_ex_l3
+            Logger.network.info("Received Heartbeat_ex_l2 from remote, sending Heartbeat_ex_l3")
+            var l3 = MWBPacket()
+            l3.type = PackageType.heartbeatExL3.rawValue
+            l3.id = packet.id
+            l3.src = machineID
+            l3.des = packet.src
+            l3.data = packet.data
+            l3.setMagic(magicHash)
+            _ = l3.computeChecksum()
+            sendPacket(l3)
+
+        case .heartbeatExL3:
+            // Key agreement complete
+            Logger.network.info("Key agreement complete with remote machine")
 
         case .byeBye:
             Logger.network.info("Received ByeBye packet from remote, disconnecting")
