@@ -368,6 +368,220 @@ struct PacketLayoutTests {
         #expect(readKb.isExtended == false)
     }
 
+    // MARK: 10b. Keyboard serialization with flags=0 (keydown)
+
+    @Test("Keyboard serialization: vkCode=0x41, flags=0 writes exact bytes and roundtrips")
+    func testKeyboardSerializationKeyDown() {
+        var packet = MWBPacket()
+        packet.type = PackageType.keyboard.rawValue
+
+        let kbData = KeyboardData(vkCode: 0x41, flags: 0)
+        kbData.write(to: &packet)
+
+        let raw = packet.rawBytes
+
+        // data[0..3] = wVk as UInt32 LE at raw bytes 16-19
+        #expect(raw[16] == 0x41, "vk LSB")
+        #expect(raw[17] == 0x00)
+        #expect(raw[18] == 0x00)
+        #expect(raw[19] == 0x00, "vk MSB")
+
+        // data[4..7] = dwFlags as UInt32 LE at raw bytes 20-23
+        #expect(raw[20] == 0x00, "flags byte 0")
+        #expect(raw[21] == 0x00, "flags byte 1")
+        #expect(raw[22] == 0x00, "flags byte 2")
+        #expect(raw[23] == 0x00, "flags byte 3")
+
+        // Roundtrip
+        let readKb = KeyboardData(from: packet)
+        #expect(readKb.vkCode == 0x41)
+        #expect(readKb.flags == 0)
+        #expect(readKb.isKeyUp == false)
+        #expect(readKb.isExtended == false)
+    }
+
+    // MARK: 10c. Keyboard round-trip for multiple VK codes and flag combinations
+
+    @Test("Keyboard round-trip: multiple VK codes and flag combinations")
+    func testKeyboardRoundTripMultiple() {
+        let cases: [(vkCode: UInt16, flags: UInt32, expectKeyUp: Bool, expectExtended: Bool)] = [
+            (0x41, 0x00, false, false),            // A keydown
+            (0x41, 0x80, true, false),             // A keyup
+            (0x0D, 0x00, false, false),            // Enter keydown
+            (0x0D, 0x80, true, false),             // Enter keyup
+            (0x10, 0x00, false, false),            // Shift keydown
+            (0x10, 0x80, true, false),             // Shift keyup
+            (0x11, 0x20, false, false),            // Ctrl keydown with altDown
+            (0x12, 0x30, false, false),            // Alt keydown with injected + altDown
+            (0x5B, 0x81, true, true),              // Left Win keyup with extended
+            (0x5D, 0x01, false, true),             // Right Win keydown with extended
+            (0xFF, 0x90, true, false),             // Unknown high vkCode with injected + UP
+            (0x00, 0x80, true, false),             // Null vkCode with keyup flag
+        ]
+
+        for (i, tc) in cases.enumerated() {
+            var packet = MWBPacket()
+            packet.type = PackageType.keyboard.rawValue
+
+            let original = KeyboardData(vkCode: tc.vkCode, flags: tc.flags)
+            original.write(to: &packet)
+
+            let readBack = KeyboardData(from: packet)
+            #expect(readBack.vkCode == tc.vkCode, "Case \(i): vkCode mismatch")
+            #expect(readBack.flags == tc.flags, "Case \(i): flags mismatch")
+            #expect(readBack.isKeyUp == tc.expectKeyUp, "Case \(i): isKeyUp")
+            #expect(readBack.isExtended == tc.expectExtended, "Case \(i): isExtended")
+        }
+    }
+
+    // MARK: 10d. LLKHF.UP flag (0x80) specifically
+
+    @Test("LLKHF.UP flag 0x80 sets isKeyUp and roundtrips correctly")
+    func testLLKHFUpFlag() {
+        // Keyup for 'Z' (0x5A) with only the UP flag
+        var packet = MWBPacket()
+        packet.type = PackageType.keyboard.rawValue
+
+        let keyUp = KeyboardData(vkCode: 0x5A, flags: LLKHFFlag.up.rawValue)
+        keyUp.write(to: &packet)
+
+        let raw = packet.rawBytes
+        let flags = UInt32(raw[20]) | UInt32(raw[21]) << 8
+            | UInt32(raw[22]) << 16 | UInt32(raw[23]) << 24
+        #expect(flags == 0x80, "Only LLKHF.UP bit should be set")
+
+        let readBack = KeyboardData(from: packet)
+        #expect(readBack.vkCode == 0x5A)
+        #expect(readBack.flags == 0x80)
+        #expect(readBack.isKeyUp == true)
+        #expect(readBack.isExtended == false)
+
+        // Combined flags: UP + EXTENDED + INJECTED (0x80 | 0x01 | 0x10 = 0x91)
+        var packet2 = MWBPacket()
+        packet2.type = PackageType.keyboard.rawValue
+
+        let combined = KeyboardData(vkCode: 0x5A, flags: 0x91)
+        combined.write(to: &packet2)
+
+        let readBack2 = KeyboardData(from: packet2)
+        #expect(readBack2.flags == 0x91)
+        #expect(readBack2.isKeyUp == true)
+        #expect(readBack2.isExtended == true)
+
+        // UP + ALT_DOWN (0x80 | 0x20 = 0xA0)
+        var packet3 = MWBPacket()
+        packet3.type = PackageType.keyboard.rawValue
+
+        let altUp = KeyboardData(vkCode: 0x12, flags: 0xA0)
+        altUp.write(to: &packet3)
+
+        let readBack3 = KeyboardData(from: packet3)
+        #expect(readBack3.flags == 0xA0)
+        #expect(readBack3.isKeyUp == true)
+        #expect(readBack3.isExtended == false)
+    }
+
+    // MARK: 10e. Bidirectional: Windows sends raw bytes, macOS parses correctly
+
+    @Test("Bidirectional: raw packet bytes as Windows would send, macOS parses correctly")
+    func testBidirectionalWindowsToMacOS() {
+        // Simulate Windows constructing raw packet bytes for a keyboard event.
+        // Windows KEYBDDATA layout in the 32-byte small packet:
+        //   bytes[0] = type (122 = keyboard)
+        //   bytes[1] = checksum
+        //   bytes[2..3] = magic
+        //   bytes[4..7] = id (LE)
+        //   bytes[8..11] = src (LE)
+        //   bytes[12..15] = des (LE)
+        //   bytes[16..19] = wVk as int32 LE
+        //   bytes[20..23] = dwFlags as int32 LE
+        //   bytes[24..31] = remaining data (zeroed)
+
+        // Case 1: Windows sends 'B' keydown (vk=0x42, flags=0x00)
+        var windowsBytes = [UInt8](repeating: 0, count: 32)
+        windowsBytes[0] = 122  // PackageType.keyboard
+        windowsBytes[1] = 0x00 // checksum placeholder
+        windowsBytes[2] = 0x00
+        windowsBytes[3] = 0x00
+        // id = 42
+        windowsBytes[4] = 42
+        windowsBytes[5] = 0
+        windowsBytes[6] = 0
+        windowsBytes[7] = 0
+        // src = 2, des = 1
+        windowsBytes[8] = 2
+        windowsBytes[9] = 0
+        windowsBytes[10] = 0
+        windowsBytes[11] = 0
+        windowsBytes[12] = 1
+        windowsBytes[13] = 0
+        windowsBytes[14] = 0
+        windowsBytes[15] = 0
+        // wVk = 0x42 (LE UInt32)
+        windowsBytes[16] = 0x42
+        windowsBytes[17] = 0x00
+        windowsBytes[18] = 0x00
+        windowsBytes[19] = 0x00
+        // dwFlags = 0x00 (keydown)
+        windowsBytes[20] = 0x00
+        windowsBytes[21] = 0x00
+        windowsBytes[22] = 0x00
+        windowsBytes[23] = 0x00
+
+        let packet = MWBPacket(rawData: Data(windowsBytes))
+        let parsed1 = KeyboardData(from: packet)
+        #expect(parsed1.vkCode == 0x42, "Bidirectional: 'B' keydown vkCode")
+        #expect(parsed1.flags == 0x00, "Bidirectional: 'B' keydown flags")
+        #expect(parsed1.isKeyUp == false, "Bidirectional: 'B' should be keydown")
+
+        // Case 2: Windows sends 'B' keyup (vk=0x42, flags=0x80)
+        windowsBytes[20] = 0x80
+        windowsBytes[21] = 0x00
+        windowsBytes[22] = 0x00
+        windowsBytes[23] = 0x00
+
+        let packet2 = MWBPacket(rawData: Data(windowsBytes))
+        let parsed2 = KeyboardData(from: packet2)
+        #expect(parsed2.vkCode == 0x42, "Bidirectional: 'B' keyup vkCode")
+        #expect(parsed2.flags == 0x80, "Bidirectional: 'B' keyup flags")
+        #expect(parsed2.isKeyUp == true, "Bidirectional: 'B' should be keyup")
+
+        // Case 3: Windows sends extended key (vk=0x5B LWin, flags=0x81 = UP|EXTENDED)
+        windowsBytes[16] = 0x5B
+        windowsBytes[17] = 0x00
+        windowsBytes[18] = 0x00
+        windowsBytes[19] = 0x00
+        windowsBytes[20] = 0x81
+        windowsBytes[21] = 0x00
+        windowsBytes[22] = 0x00
+        windowsBytes[23] = 0x00
+
+        let packet3 = MWBPacket(rawData: Data(windowsBytes))
+        let parsed3 = KeyboardData(from: packet3)
+        #expect(parsed3.vkCode == 0x5B, "Bidirectional: LWin vkCode")
+        #expect(parsed3.flags == 0x81, "Bidirectional: LWin flags")
+        #expect(parsed3.isKeyUp == true, "Bidirectional: LWin isKeyUp")
+        #expect(parsed3.isExtended == true, "Bidirectional: LWin isExtended")
+
+        // Case 4: Full bidirectional roundtrip -- macOS writes, parse as raw bytes, verify offsets
+        var macPacket = MWBPacket()
+        macPacket.type = PackageType.keyboard.rawValue
+        macPacket.id = 99
+        macPacket.src = 3
+        macPacket.des = 7
+
+        let macKb = KeyboardData(vkCode: 0x0D, flags: 0x00) // Enter keydown
+        macKb.write(to: &macPacket)
+
+        let macRaw = macPacket.rawBytes
+        // Reconstruct from raw bytes only (stripping header context)
+        let vkFromRaw = UInt16(macRaw[16]) | UInt16(macRaw[17]) << 8
+        let flagsFromRaw = UInt32(macRaw[20]) | UInt32(macRaw[21]) << 8
+            | UInt32(macRaw[22]) << 16 | UInt32(macRaw[23]) << 24
+        #expect(vkFromRaw == 0x0D, "Bidirectional roundtrip: Enter vk")
+        #expect(flagsFromRaw == 0x00, "Bidirectional roundtrip: Enter flags")
+    }
+
     // MARK: 11. isBig packet classification
 
     @Test("isBig packet classification matches PowerToys DATA.cs IsBigPackage logic")
