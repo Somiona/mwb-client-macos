@@ -493,6 +493,9 @@ actor ServerListener {
             Logger.network.info("Received ByeBye packet, disconnecting")
             // ServerListener doesn't maintain state, just log it
 
+        case .hi:
+            Logger.network.info("Received Hi packet")
+
         default:
             break
         }

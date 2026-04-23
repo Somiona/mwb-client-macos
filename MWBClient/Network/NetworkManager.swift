@@ -536,6 +536,9 @@ actor NetworkManager {
             Logger.network.info("Received ByeBye packet from remote, disconnecting")
             updateState(.disconnected)
 
+        case .hi:
+            Logger.network.info("Received Hi packet from remote")
+
         default:
             break
         }
