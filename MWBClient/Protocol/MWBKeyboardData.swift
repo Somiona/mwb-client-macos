@@ -9,7 +9,6 @@ enum LLKHFFlag: UInt32 {
 
 struct KeyboardData {
     var vkCode: UInt16
-    var scanCode: UInt16
     var flags: UInt32
 
     var isKeyUp: Bool {
@@ -20,23 +19,21 @@ struct KeyboardData {
         (flags & LLKHFFlag.extended.rawValue) != 0
     }
 
-    static let dataOffset = 8
-
-    init(vkCode: UInt16 = 0, scanCode: UInt16 = 0, flags: UInt32 = 0) {
+    init(vkCode: UInt16 = 0, flags: UInt32 = 0) {
         self.vkCode = vkCode
-        self.scanCode = scanCode
         self.flags = flags
     }
 
     init(from packet: MWBPacket) {
-        self.vkCode = packet.dataUInt16(at: 8)
-        self.scanCode = packet.dataUInt16(at: 10)
-        self.flags = packet.dataUInt32(at: 12)
+        // Protocol KEYBDDATA: wVk (int/UInt32) at data[0..3], dwFlags (int/UInt32) at data[4..7]
+        let rawVk = packet.dataUInt32(at: 0)
+        self.vkCode = UInt16(truncatingIfNeeded: rawVk)
+        self.flags = packet.dataUInt32(at: 4)
     }
 
     func write(to packet: inout MWBPacket) {
-        packet.setDataUInt16(vkCode, at: 8)
-        packet.setDataUInt16(scanCode, at: 10)
-        packet.setDataUInt32(flags, at: 12)
+        // Protocol KEYBDDATA: wVk (int/UInt32) at data[0..3], dwFlags (int/UInt32) at data[4..7]
+        packet.setDataUInt32(UInt32(vkCode), at: 0)
+        packet.setDataUInt32(flags, at: 4)
     }
 }

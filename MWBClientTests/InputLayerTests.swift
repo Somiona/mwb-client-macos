@@ -317,7 +317,7 @@ struct InputInjectionStateTests {
     @Test("Unmapped VK codes are silently ignored")
     func testUnmappedVkCodeIgnored() {
         let injection = InputInjection()
-        let data = KeyboardData(vkCode: 0xFF, scanCode: 0, flags: 0)
+        let data = KeyboardData(vkCode: 0xFF, flags: 0)
         injection.injectKeyboard(data)
     }
 }

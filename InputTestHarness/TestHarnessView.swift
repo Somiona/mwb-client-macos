@@ -170,10 +170,10 @@ struct InjectionTestTab: View {
 
             GroupBox("Keyboard") {
                 HStack {
-                    Button("Press A") { injection.injectKeyboard(KeyboardData(vkCode: 0x41, scanCode: 0, flags: 0)) }
-                    Button("Release A") { injection.injectKeyboard(KeyboardData(vkCode: 0x41, scanCode: 0, flags: 0x80)) }
-                    Button("Press Space") { injection.injectKeyboard(KeyboardData(vkCode: 0x20, scanCode: 0, flags: 0)) }
-                    Button("Release Space") { injection.injectKeyboard(KeyboardData(vkCode: 0x20, scanCode: 0, flags: 0x80)) }
+                    Button("Press A") { injection.injectKeyboard(KeyboardData(vkCode: 0x41, flags: 0)) }
+                    Button("Release A") { injection.injectKeyboard(KeyboardData(vkCode: 0x41, flags: 0x80)) }
+                    Button("Press Space") { injection.injectKeyboard(KeyboardData(vkCode: 0x20, flags: 0)) }
+                    Button("Release Space") { injection.injectKeyboard(KeyboardData(vkCode: 0x20, flags: 0x80)) }
                 }
             }
 

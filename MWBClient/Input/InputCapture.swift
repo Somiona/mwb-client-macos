@@ -346,10 +346,7 @@ final class InputCapture {
             break
         }
 
-        // Build scan code from macOS keycode (they are already scancode-like on macOS).
-        let scanCode = macKeycode
-
-        let keyboardData = KeyboardData(vkCode: vkCode, scanCode: scanCode, flags: flags)
+        let keyboardData = KeyboardData(vkCode: vkCode, flags: flags)
 
         // Forward to callback regardless of suppression state.
         onKeyboardEvent?(keyboardData)

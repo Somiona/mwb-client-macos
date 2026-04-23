@@ -332,31 +332,27 @@ struct PacketLayoutTests {
 
     // MARK: 10. Keyboard data layout
 
-    @Test("Keyboard data layout: vkCode at data[8..9], flags at data[12..15]")
+    @Test("Keyboard data layout: wVk (UInt32) at data[0..3], dwFlags (UInt32) at data[4..7]")
     func testKeyboardDataLayout() {
         var packet = MWBPacket()
         packet.type = PackageType.keyboard.rawValue
 
         let kbData = KeyboardData(
             vkCode: 0x41,  // 'A' key
-            scanCode: 0x1E,
             flags: LLKHFFlag.up.rawValue  // 0x80
         )
         kbData.write(to: &packet)
 
-        // vkCode at data[8..9], little-endian (offset 8 in data field, byte 24 in packet)
+        // wVk at data[0..3] (raw bytes 16-19), little-endian UInt32
         let raw = packet.rawBytes
-        let vkCode = UInt16(raw[24]) | UInt16(raw[25]) << 8
-        #expect(vkCode == 0x41)
+        let vkRaw = UInt32(raw[16]) | UInt32(raw[17]) << 8
+            | UInt32(raw[18]) << 16 | UInt32(raw[19]) << 24
+        #expect(vkRaw == 0x41, "wVk should be UInt32 0x41 at data[0..3] (raw bytes 16-19)")
 
-        // scanCode at data[10..11]
-        let scanCode = UInt16(raw[26]) | UInt16(raw[27]) << 8
-        #expect(scanCode == 0x1E)
-
-        // flags at data[12..15], little-endian
-        let flags = UInt32(raw[28]) | UInt32(raw[29]) << 8
-            | UInt32(raw[30]) << 16 | UInt32(raw[31]) << 24
-        #expect(flags == 0x80)
+        // dwFlags at data[4..7] (raw bytes 20-23), little-endian UInt32
+        let flags = UInt32(raw[20]) | UInt32(raw[21]) << 8
+            | UInt32(raw[22]) << 16 | UInt32(raw[23]) << 24
+        #expect(flags == 0x80, "dwFlags should be UInt32 0x80 at data[4..7] (raw bytes 20-23)")
 
         // Verify LLKHF.UP = 0x80 (matches PowerToys WM.cs)
         #expect(LLKHFFlag.up.rawValue == 0x80)
@@ -367,7 +363,6 @@ struct PacketLayoutTests {
         // Roundtrip
         let readKb = KeyboardData(from: packet)
         #expect(readKb.vkCode == 0x41)
-        #expect(readKb.scanCode == 0x1E)
         #expect(readKb.flags == 0x80)
         #expect(readKb.isKeyUp == true)
         #expect(readKb.isExtended == false)
