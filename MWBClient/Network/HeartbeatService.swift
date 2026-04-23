@@ -12,8 +12,8 @@ actor HeartbeatService {
 
     // MARK: - State
 
-    private var magicHash: UInt32 = 0
-    private var machineID: UInt32 = 0
+    private let magicHash: UInt32
+    private let machineID: UInt32
     private var heartbeatTask: Task<Void, Never>?
 
     // MARK: - Init
@@ -21,26 +21,22 @@ actor HeartbeatService {
     init(
         machineName: String,
         screenWidth: UInt16,
-        screenHeight: UInt16
+        screenHeight: UInt16,
+        magicHash: UInt32,
+        machineID: UInt32
     ) {
         self.machineName = machineName
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
+        self.magicHash = magicHash
+        self.machineID = machineID
     }
 
     deinit {
         heartbeatTask?.cancel()
     }
 
-    // MARK: - Configuration
-
-    /// Update the magic hash and machine ID after successful handshake.
-    /// Must be called before starting the heartbeat.
-    func configure(magicHash: UInt32, machineID: UInt32) {
-        self.magicHash = magicHash
-        self.machineID = machineID
-    }
-
+  
     /// Bind to the NetworkManager used for sending packets.
     func bind(networkManager: NetworkManager) {
         self.networkManager = networkManager

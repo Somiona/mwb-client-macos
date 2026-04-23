@@ -94,12 +94,6 @@ final class AppCoordinator {
             screenHeight: screenSize.height
         )
 
-        let hb = HeartbeatService(
-            machineName: machineName,
-            screenWidth: screenSize.width,
-            screenHeight: screenSize.height
-        )
-
         let cm = ClipboardManager(
             host: host,
             port: clipboardPort,
@@ -121,7 +115,6 @@ final class AppCoordinator {
         )
 
         networkManager = nm
-        heartbeatService = hb
         clipboardManager = cm
         serverListener = sl
 
@@ -150,9 +143,6 @@ final class AppCoordinator {
                 onClipboard: nil
             )
 
-            // Bind HeartbeatService to NetworkManager
-            await hb.bind(networkManager: nm)
-
             // Wire ServerListener callbacks
             await sl.setCallbacks(
                 onMouse: { [weak self] mouseData in
@@ -172,7 +162,7 @@ final class AppCoordinator {
             await nm.connect()
 
             // Once connected, start remaining services
-            await self.startServicesAfterConnection(nm: nm, hb: hb, cm: cm, sl: sl)
+            await self.startServicesAfterConnection(nm: nm, cm: cm, sl: sl)
         }
 
         // Start state polling to observe NetworkManager state changes
@@ -244,7 +234,6 @@ final class AppCoordinator {
 
     private func startServicesAfterConnection(
         nm: NetworkManager,
-        hb: HeartbeatService,
         cm: ClipboardManager,
         sl: ServerListener
     ) async {
@@ -273,8 +262,18 @@ final class AppCoordinator {
         localMachineID = machineID
         windowsMachineName = connectedName
 
-        // Configure and start heartbeat
-        await hb.configure(magicHash: magicHash, machineID: machineID)
+        // Create HeartbeatService with proper parameters
+        let hb = HeartbeatService(
+            machineName: settings.machineName,
+            screenWidth: ScreenInfo.mainScreenSizeUInt16.width,
+            screenHeight: ScreenInfo.mainScreenSizeUInt16.height,
+            magicHash: magicHash,
+            machineID: machineID
+        )
+        await hb.bind(networkManager: nm)
+        heartbeatService = hb
+
+        // Start heartbeat
         await hb.start()
 
         // Start clipboard manager
