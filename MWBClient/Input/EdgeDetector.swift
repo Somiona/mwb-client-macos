@@ -54,6 +54,11 @@ final class EdgeDetector {
     /// edge touches. PowerToys uses 100ms (SKIP_PIXELS debounce).
     var debounceInterval: TimeInterval = 0.10
 
+    /// Margin in points from screen corners where edge crossing is blocked.
+    /// PowerToys uses 100px. Prevents accidental crossings when cursor
+    /// approaches corners.
+    var cornerBlockMargin: CGFloat = 100.0
+
     // MARK: - State
 
     /// Whether a crossing is currently in progress. When true, edge detection
@@ -101,6 +106,12 @@ final class EdgeDetector {
 
         // Refresh display bounds on each update (handles display changes).
         displayBounds = CGDisplayBounds(CGMainDisplayID())
+
+        // Skip edge detection if cursor is in a corner zone (PowerToys behavior)
+        if isInCornerZone(screenPoint) {
+            cancelDebounce()
+            return
+        }
 
         if isAtEdge(screenPoint) {
             // Cursor is at the edge. Start or keep the debounce timer.
@@ -182,6 +193,23 @@ final class EdgeDetector {
             screenPosition: screenPoint
         )
         crossingStart?(info)
+    }
+
+    // MARK: - Corner blocking
+
+    /// Returns true if the cursor is within cornerBlockMargin of any screen corner.
+    private func isInCornerZone(_ point: CGPoint) -> Bool {
+        let bounds = displayBounds
+        let margin = cornerBlockMargin
+
+        let nearLeft = point.x - bounds.minX < margin
+        let nearRight = bounds.maxX - point.x < margin
+        let nearTop = point.y - bounds.minY < margin
+        let nearBottom = bounds.maxY - point.y < margin
+
+        // Block if near two perpendicular edges simultaneously (i.e., in a corner)
+        return (nearLeft && nearTop) || (nearLeft && nearBottom)
+            || (nearRight && nearTop) || (nearRight && nearBottom)
     }
 
     // MARK: - Helpers
