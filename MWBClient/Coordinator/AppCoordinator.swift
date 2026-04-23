@@ -54,6 +54,14 @@ final class AppCoordinator {
     /// The machine ID assigned by the Windows machine during handshake.
     private var localMachineID: UInt32 = 0
 
+    // MARK: - Reconnection Tracking
+
+    /// Tracks whether we have completed the first connection and subsystem startup.
+    /// The state observer skips `restartSubsystems()` while this is true, because
+    /// `startServicesAfterConnection()` already handles the initial startup.
+    /// Set to false after the first `.connected` emission is processed.
+    private var isInitialConnection = true
+
     // MARK: - State Observation
 
     private var statePollTask: Task<Void, Never>?
@@ -210,6 +218,7 @@ final class AppCoordinator {
         isSharingEnabled = false
         connectionState = .disconnected
         windowsMachineName = ""
+        isInitialConnection = true
     }
 
     // MARK: - Settings Observation
@@ -288,6 +297,62 @@ final class AppCoordinator {
         Logger.coordinator.info("All services started, connected to \(connectedName)")
     }
 
+    // MARK: - Subsystem Lifecycle (ReopenSockets Pattern)
+
+    /// Stops all subsystems (HeartbeatService, ClipboardManager, ServerListener).
+    /// Called when NetworkManager enters .reconnecting or .disconnected state.
+    private func stopSubsystems() {
+        Logger.coordinator.info("Stopping subsystems (ReopenSockets)")
+        let hb = heartbeatService
+        let cm = clipboardManager
+        let sl = serverListener
+
+        Task {
+            await hb?.stop()
+            await cm?.stop()
+            await sl?.stop()
+        }
+    }
+
+    /// Restarts all subsystems after NetworkManager has reconnected.
+    /// Only called for subsequent connections (not the initial one).
+    /// Recreates HeartbeatService with fresh handshake params from the new connection.
+    private func restartSubsystems(nm: NetworkManager) async {
+        // Only restart if we have valid connection info from the new handshake
+        let machineID = await nm.machineID
+        let magicHash = await nm.magicHash
+        let connectedName = await nm.connectedMachineName
+        guard machineID != 0 else {
+            Logger.coordinator.warning("Skipping subsystem restart: machineID is 0 (handshake may not be complete)")
+            return
+        }
+
+        localMachineID = machineID
+        windowsMachineName = connectedName
+
+        // Recreate HeartbeatService with fresh params from the new connection
+        let hb = HeartbeatService(
+            machineName: settings.machineName,
+            screenWidth: ScreenInfo.mainScreenSizeUInt16.width,
+            screenHeight: ScreenInfo.mainScreenSizeUInt16.height,
+            magicHash: magicHash,
+            machineID: machineID,
+            generatedKey: false
+        )
+        await hb.bind(networkManager: nm)
+        heartbeatService = hb
+        await hb.start()
+
+        // Restart clipboard manager (it will reconnect internally)
+        await clipboardManager?.start()
+
+        // Restart server listener
+        await serverListener?.start()
+
+        errorMessage = nil
+        Logger.coordinator.info("All services restarted after reconnection to \(connectedName)")
+    }
+
     // MARK: - State Observation
 
     private func startObservingState(nm: NetworkManager) {
@@ -321,6 +386,25 @@ final class AppCoordinator {
                         self.errorMessage = self.describeFailureReason(reason)
                     } else if case .connected = state {
                         self.errorMessage = nil
+                    }
+
+                    // ReopenSockets pattern: stop all subsystems on disconnect/reconnecting
+                    if state == .reconnecting || state == .disconnected {
+                        self.stopSubsystems()
+                    }
+
+                    // Restart subsystems when connection is restored (reconnection only)
+                    if state == .connected && !self.isInitialConnection {
+                        Task {
+                            await self.restartSubsystems(nm: nm)
+                        }
+                    }
+
+                    // After the first .connected is emitted by the state observer,
+                    // mark initial connection as complete so future .connected events
+                    // trigger the reconnection path.
+                    if state == .connected && self.isInitialConnection {
+                        self.isInitialConnection = false
                     }
                 }
             }
