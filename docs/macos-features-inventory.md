@@ -57,8 +57,8 @@
 | CBC mode                         | IMPLEMENTED | `MWBCrypto.swift:49`        | `CCOptions()` (no ECB, no PKCS7)                         |
 | Zero padding                     | IMPLEMENTED | `NetworkManager.swift:319-322`, `ClipboardManager.swift:268-271`, `ServerListener.swift:180-183` | `padToBlock` pads with zero bytes in all encryption code  |
 | PBKDF2 key derivation            | IMPLEMENTED | `MWBCrypto.swift:20-31`     | SHA-512, 50,000 iterations, 32-byte output                |
-| Salt = "18446744073709551615"     | WRONG       | `MWBCrypto.swift:17`        | Uses `.utf16LittleEndian` encoding; spec says ASCII bytes. This produces different bytes than the C# reference. |
-| Initial IV                       | WRONG       | `MWBCrypto.swift:22,34`     | `ivString = "1844674407370955"` (19 chars) -- spec says full `"18446744073709551615"` padded/truncated to 16 bytes. Current value is the wrong string and wrong length (19 vs 20 chars, then truncated to 16). |
+| Salt = "18446744073709551615"     | IMPLEMENTED | `MWBCrypto.swift:17`        | Verified correct: UTF-16LE encoding matches PowerToys `Common.GetBytesU()` which uses `ASCIIEncoding.Unicode`. |
+| Initial IV                       | IMPLEMENTED | `MWBCrypto.swift:22,34`     | Verified correct: first 16 chars of "18446744073709551615" = "1844674407370955", ASCII encoded. Matches PowerToys `GenLegalIV()`. |
 | SHA-512 hash rounds              | PARTIAL     | `MWBCrypto.swift:107`       | Does 50,000 iterations; spec says "x 50,000 iterations" for the repeat, but `sha512Rounds` constant (50,001) is unused |
 | 24-bit magic hash                | IMPLEMENTED | `MWBCrypto.swift:98-116`    | `(hash[0] << 23) + (hash[1] << 16) + (hash[63] << 8) + hash[2]` matches spec formula |
 | Random initial block exchange    | IMPLEMENTED | `NetworkManager.swift:267-282` | 16 random bytes sent and received via encrypted channel |
@@ -216,7 +216,7 @@
 |----------------------------------|-------------|----------------------------------|----------------------------------------------------------|
 | Inline path (small <= 1MB)       | IMPLEMENTED | `ClipboardCodec.swift:22-26`     | Text is Deflate-compressed and chunked                   |
 | TCP stream path (large > 1MB)    | MISSING     | --                               | `ClipboardManager.swift:456-460` has a TODO comment       |
-| 1MB inline threshold             | WRONG       | `ClipboardManager.swift:551`     | Uses 10MB (`maxClipboardDataSize = 10 * 1024 * 1024`), not 1MB |
+| 1MB inline threshold             | IMPLEMENTED | `ClipboardManager.swift:551`     | 1MB threshold matches PowerToys spec |
 | File size limit (100MB)          | MISSING     | --                               | No file size enforcement                                 |
 | Network stream buffer (1MB)      | MISSING     | --                               | --                                                       |
 
@@ -372,9 +372,9 @@
 
 | Category              | Count |
 |-----------------------|-------|
-| IMPLEMENTED           | 81    |
+| IMPLEMENTED           | 83    |
 | PARTIAL               | 20    |
-| WRONG                 | 4     |
+| WRONG                 | 1     |
 | MISSING               | 48    |
 | N/A                   | 1     |
 | **Total features**    | **154**|
@@ -383,13 +383,13 @@
 
 1. ~~**KeyboardData field offsets**~~ -- FIXED in commit f4230a7. wVk and dwFlags now at correct data offsets 0 and 4.
 
-2. **Encryption salt encoding** -- `MWBCrypto.swift:17`: Salt is encoded as UTF-16LE (`"18446744073709551615".data(using: .utf16LittleEndian)`), but the C# reference uses ASCII bytes. UTF-16LE doubles the byte length and changes the PBKDF2 derivation output, making the encryption key incompatible with Windows.
+2. ~~**Encryption salt encoding**~~ -- VERIFIED CORRECT. UTF-16LE encoding matches PowerToys `Common.GetBytesU()` which uses `ASCIIEncoding.Unicode.GetBytes()`. The protocol spec doc incorrectly stated "ASCII bytes".
 
-3. **Initial IV string** -- `MWBCrypto.swift:22`: Uses `"1844674407370955"` (truncated, 19 chars) instead of the full `"18446744073709551615"` (20 chars, the string representation of `ulong.MaxValue`). Then takes first 16 bytes. The C# code uses the full 20-char string padded/truncated to 16 bytes, producing a different IV.
+3. ~~**Initial IV string**~~ -- VERIFIED CORRECT. First 16 chars of "18446744073709551615" = "1844674407370955". Matches PowerToys `GenLegalIV()` which truncates to IV length.
 
-4. **Edge detection debounce** -- `EdgeDetector.swift:55`: Uses 50ms debounce instead of the protocol spec's 100ms, which may cause false-positive edge crossings.
+4. ~~**Edge detection debounce**~~ -- FIXED in commit 342c479. Now uses 100ms to match PowerToys.
 
-5. **1MB clipboard inline threshold** -- `ClipboardManager.swift:551`: Uses 10MB (`maxClipboardDataSize = 10 * 1024 * 1024`), not the spec's 1MB threshold. This is already listed as WRONG in the feature table but missing from the critical issues summary.
+5. ~~**1MB clipboard inline threshold**~~ -- FIXED in commit a5afe18. Changed from 10MB to 1MB.
 
 ### High-Impact Missing Features
 

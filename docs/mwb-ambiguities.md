@@ -19,7 +19,7 @@ severity and whether it has been resolved.
 | 9 | No heartbeat timeout | Medium | Fixed |
 | 10 | No key agreement L2/L3 | High | Fixed |
 | 11 | Edge debounce too short | Medium | Fixed |
-| 12 | No corner blocking | Low | Open |
+| 12 | No corner blocking | Low | Fixed |
 | 13 | No fullscreen detection | Low | Open |
 | 14 | Clipboard multi-format text | Low | Open |
 | 15 | HEARTBEAT_TIMEOUT | Medium | Fixed |
@@ -27,12 +27,12 @@ severity and whether it has been resolved.
 | 17 | Machine ID 0 fallback | Medium | Open |
 | 18 | Display hotplug | Low | Open |
 | 19 | Connection state model | High | Fixed |
-| 20 | IV string truncation assumption | High | Open |
+| 20 | IV string truncation assumption | High | Verified Correct |
 | 21 | Scroll wheel conversion factor | Low | Open |
 | 22 | Noise exchange encryption | Medium | Open |
-| 23 | Encryption salt encoding | Critical | Open |
-| 24 | Initial IV string (19 vs 20 chars) | High | Open |
-| 25 | 1MB clipboard inline threshold | Low | Open |
+| 23 | Encryption salt encoding | Critical | Verified Correct |
+| 24 | Initial IV string (19 vs 20 chars) | High | Verified Correct |
+| 25 | 1MB clipboard inline threshold | Low | Fixed |
 
 ---
 
@@ -171,18 +171,10 @@ restarted in the correct order.
 
 ## Open Items
 
-### 12. No corner blocking (Low)
+### 12. No corner blocking (Low) — FIXED
 
-**Issue:** PowerToys prevents the cursor from switching machines when it is within
-100 pixels of any screen corner. This prevents accidental machine switches when
-the user is reaching for UI elements in corners (close buttons, menu bars, etc.).
-
-**Impact:** Users may experience unexpected machine switches when moving the cursor
-into screen corners. Minor usability annoyance.
-
-**Suggested approach:** Before triggering a switch, check if the cursor position is
-within a 100px exclusion zone from any corner of the current screen. If so, suppress
-the switch event.
+**Status:** Fixed. Added `cornerBlockMargin = 100.0` to EdgeDetector. When cursor
+is within 100pt of any screen corner, edge crossing is blocked. Matches PowerToys behavior.
 
 ---
 
@@ -267,20 +259,14 @@ mappings when the notification fires.
 
 ---
 
-### 20. IV string truncation assumption (High)
+### 20. IV string truncation assumption (High) — VERIFIED CORRECT
 
-**Issue:** The encryption initialization vector (IV) is derived from a salt string.
-The code assumes the salt is always at least 16 characters. The current salt is
-`"1844674407370955"` (19 characters), which is a truncated form of the full
-`UInt64.max` string `"18446744073709551615"` (20 characters). See also item #24.
+**Status:** Not a bug. Verified against PowerToys source (`Encryption.cs GenLegalIV()`).
 
-**Impact:** If the salt format changes or the truncation assumption is violated,
-the IV derivation could produce a too-short IV, causing encryption to fail or
-produce incorrect ciphertext.
-
-**Suggested approach:** Use the full `UInt64.max` string (20 characters) as the salt.
-Add explicit validation that the salt length is >= 16 characters before deriving
-the IV. See item #24 for the encoding issue that compounds this problem.
+The IV derivation truncates the full string `"18446744073709551615"` to the first 16
+characters: `"1844674407370955"`. This is exactly what PowerToys does:
+`st = st[..ivLength]` where `ivLength = 16`. The macOS code uses
+`Array(MWBConstants.ivString.utf8.prefix(16))` which produces the same result.
 
 ---
 
@@ -319,50 +305,30 @@ padding mode and IV handling.
 
 ---
 
-### 23. Encryption salt encoding (Critical)
+### 23. Encryption salt encoding (Critical) — VERIFIED CORRECT
 
-**Issue:** The salt used for PBKDF2 key derivation is encoded as UTF-16LE on macOS
-but should be ASCII. UTF-16LE encoding of the string `"18446744073709551615"` produces
-40 bytes (2 bytes per character), while ASCII encoding produces 20 bytes. The Windows
-implementation uses ASCII encoding, so the derived keys will differ between peers.
+**Status:** Not a bug. Verified against PowerToys source (`Encryption.cs GenLegalKey()`).
 
-**Impact:** **Encryption keys will not match between macOS and Windows.** This means
-the encrypted channel will fail -- the Windows peer cannot decrypt packets from macOS
-and vice versa. This is a blocking issue for any encrypted communication.
+The macOS client uses UTF-16LE encoding for the PBKDF2 salt. This is correct.
+PowerToys uses `Common.GetBytesU(InitialIV)` which calls `ASCIIEncoding.Unicode.GetBytes()`
+(= UTF-16LE in .NET). The original protocol spec doc incorrectly described this as
+"ASCII bytes" — that was a documentation error, not an implementation error.
 
-**Suggested approach:** Change the salt encoding from UTF-16LE to ASCII (or UTF-8, which
-is identical for ASCII-range characters). This is the highest-priority open item and
-should be fixed before any further encryption-related work.
+UTF-16LE encoding of `"18446744073709551615"` = 40 bytes, matching what both implementations use.
 
 ---
 
-### 24. Initial IV string -- 19 vs 20 characters (High)
+### 24. Initial IV string -- 19 vs 20 characters (High) — VERIFIED CORRECT
 
-**Issue:** The IV derivation uses the string `"1844674407370955"` (19 characters), which
-is `UInt64.max` truncated. The full string should be `"18446744073709551615"` (20
-characters). Combined with item #23 (wrong encoding), this produces a completely
-wrong IV even after the encoding fix.
-
-**Impact:** Even after fixing the encoding (item #23), the IV will be wrong because the
-salt string itself is truncated. Both issues must be fixed together.
-
-**Suggested approach:** Use `String(UInt64.max)` to get the correct 20-character string.
-Fix in conjunction with item #23. After both fixes, verify key derivation produces
-the same result as the Windows implementation.
+**Status:** Not a bug. The `ivString` constant stores the first 16 characters of the
+full `UInt64.max` string, which is what gets used for the AES IV. This is not the
+same as the salt (item #23). The IV uses `Common.GetBytes()` (= ASCII) via
+`GenLegalIV()`, and the first 16 ASCII bytes of `"18446744073709551615"` are
+`"1844674407370955"` — exactly what the macOS code stores in `MWBConstants.ivString`.
 
 ---
 
-### 25. 1MB clipboard inline threshold (Low)
+### 25. 1MB clipboard inline threshold (Low) — FIXED
 
-**Issue:** The MWB protocol spec defines a 1MB threshold for inline clipboard data vs.
-out-of-band file transfer. The macOS client uses 10MB instead. This means clipboard
-content between 1MB and 10MB will be sent inline when it should trigger a file-based
-transfer.
-
-**Impact:** Large clipboard payloads (large images, long text) may be sent inline,
-increasing latency and memory usage. In extreme cases, this could cause timeouts or
-packet fragmentation issues.
-
-**Suggested approach:** Change the threshold from 10MB to 1MB to match the protocol
-specification. Ensure the file-based clipboard transfer path is implemented and tested
-for payloads exceeding the threshold.
+**Status:** Fixed. Changed `maxClipboardDataSize` from 10MB to 1MB to match PowerToys spec.
+Note: TCP stream-based large file transfer is not yet implemented. See Known Issues in README.
