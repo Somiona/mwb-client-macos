@@ -64,8 +64,13 @@ actor NetworkManager {
     private var connection: NWConnection?
     private var receiveTask: Task<Void, Never>?
     private var reconnectTask: Task<Void, Never>?
+    private var heartbeatMonitorTask: Task<Void, Never>?
     private var intentionalDisconnect = false
     private var dedup = PackageDeduplicator()
+
+    // MARK: Heartbeat Timeout Tracking
+
+    private var lastHeartbeatReceived: ContinuousClock.Instant = .now
 
     // MARK: State Stream
 
@@ -153,6 +158,8 @@ actor NetworkManager {
         failureReason = .none
         reconnectTask?.cancel()
         reconnectTask = nil
+        heartbeatMonitorTask?.cancel()
+        heartbeatMonitorTask = nil
         receiveTask?.cancel()
         receiveTask = nil
         connection?.cancel()
@@ -250,8 +257,10 @@ actor NetworkManager {
 
         // Phase 4: Connected - enter receive pump
         failureReason = .none
+        lastHeartbeatReceived = .now
         updateState(.connected)
         Logger.network.info("Connected successfully")
+        startHeartbeatMonitor()
 
         if handshakeHandler.adoptedMachineID != 0 {
             machineID = handshakeHandler.adoptedMachineID
@@ -462,6 +471,12 @@ actor NetworkManager {
             }
         }
 
+        // Track heartbeat timestamp for timeout monitoring
+        let heartbeatTypes: Set<PackageType> = [.heartbeat, .heartbeatEx, .heartbeatExL2, .heartbeatExL3]
+        if heartbeatTypes.contains(type) {
+            lastHeartbeatReceived = .now
+        }
+
         switch type {
         case .mouse:
             let mouseData = MouseData(from: packet)
@@ -526,6 +541,41 @@ actor NetworkManager {
         }
     }
 
+    // MARK: Heartbeat Timeout Monitor
+
+    private func startHeartbeatMonitor() {
+        heartbeatMonitorTask?.cancel()
+        heartbeatMonitorTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: MWBConstants.heartbeatCheckInterval)
+                } catch {
+                    return // Cancelled
+                }
+                guard !Task.isCancelled, let self else { return }
+                let timeout = await self.checkHeartbeatTimeout()
+                if timeout {
+                    return
+                }
+            }
+        }
+    }
+
+    private func checkHeartbeatTimeout() -> Bool {
+        let elapsed = ContinuousClock.Instant.now - lastHeartbeatReceived
+        if elapsed > .seconds(MWBConstants.heartbeatTimeout) {
+            Logger.network.warning("Heartbeat timeout: no heartbeat received for >\(MWBConstants.heartbeatTimeout)s, disconnecting")
+            scheduleReconnect(reason: .timeout)
+            return true
+        }
+        return false
+    }
+
+    private func stopHeartbeatMonitor() {
+        heartbeatMonitorTask?.cancel()
+        heartbeatMonitorTask = nil
+    }
+
     // MARK: Re-handshake
 
     private func handleRehandshake(_ packet: MWBPacket) {
@@ -555,6 +605,7 @@ actor NetworkManager {
         handshakeHandler.reset()
         connection?.cancel()
         connection = nil
+        stopHeartbeatMonitor()
         Logger.network.info("Disconnected due to error: \(String(describing: reason)), manual reconnect required")
     }
 
@@ -568,6 +619,7 @@ actor NetworkManager {
         failureReason = reason
         crypto.reset()
         handshakeHandler.reset()
+        stopHeartbeatMonitor()
         Logger.network.info("Scheduling reconnect in \(MWBConstants.reconnectDelay)s, reason: \(String(describing: reason))")
 
         connection?.cancel()

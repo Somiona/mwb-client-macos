@@ -10,6 +10,8 @@ enum MWBConstants {
 
     static let reconnectDelay: TimeInterval = 5.0
     static let heartbeatInterval: TimeInterval = 2.0
+    static let heartbeatTimeout: TimeInterval = 1500.0 // 25 minutes (1,500,000 ms)
+    static let heartbeatCheckInterval: UInt64 = 60_000_000_000 // 60 seconds in nanoseconds
     static let clipboardPollInterval: TimeInterval = 0.5
 
     static let handshakeIterationCount = 10
