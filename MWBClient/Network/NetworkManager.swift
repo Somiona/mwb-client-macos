@@ -67,6 +67,17 @@ actor NetworkManager {
     private var intentionalDisconnect = false
     private var dedup = PackageDeduplicator()
 
+    // MARK: State Stream
+
+    private var stateContinuation: AsyncStream<ConnectionState>.Continuation?
+
+    /// Stream of connection state changes. Consumers can iterate with `for await`.
+    private let _stateStream = AsyncStream<ConnectionState>.makeStream()
+
+    var stateStream: AsyncStream<ConnectionState> {
+        _stateStream.stream
+    }
+
     // MARK: Callbacks
 
     var onMouse: MouseCallback?
@@ -102,6 +113,13 @@ actor NetworkManager {
         self.screenHeight = screenHeight
         self.crypto = MWBCrypto(securityKey: securityKey)
         self.magicHash = crypto.get24BitHash()
+        self.stateContinuation = _stateStream.continuation
+    }
+
+    /// Updates the connection state and yields the new state to all stream consumers.
+    private func updateState(_ newState: ConnectionState) {
+        state = newState
+        stateContinuation?.yield(newState)
     }
 
     // Note: deinit cannot call actor-isolated methods.
@@ -115,7 +133,7 @@ actor NetworkManager {
         intentionalDisconnect = false
         Logger.network.info("Connecting to \(self.host):\(self.port)")
         failureReason = .none
-        state = .connecting
+        updateState(.connecting)
 
         let endpointHost = NWEndpoint.Host(host)
         guard let endpointPort = NWEndpoint.Port(rawValue: port) else { return }
@@ -140,7 +158,7 @@ actor NetworkManager {
         connection?.cancel()
         connection = nil
         dedup.reset()
-        state = .disconnected
+        updateState(.disconnected)
     }
 
     // MARK: Send
@@ -171,7 +189,7 @@ actor NetworkManager {
     private func runConnectionSequence() async {
         guard let conn = connection else {
             Logger.network.error("No connection available")
-            state = .disconnected
+            updateState(.disconnected)
             return
         }
 
@@ -184,7 +202,7 @@ actor NetworkManager {
             return
         } catch is NetworkError {
             Logger.network.info("Connection cancelled during wait")
-            state = .disconnected
+            updateState(.disconnected)
             return
         } catch {
             Logger.network.error("Connection wait failed: \(error.localizedDescription)")
@@ -193,7 +211,7 @@ actor NetworkManager {
         }
 
         // Phase 1: Noise exchange
-        state = .connecting
+        updateState(.connecting)
         do {
             try await exchangeNoise(conn)
         } catch {
@@ -203,7 +221,7 @@ actor NetworkManager {
         }
 
         // Phase 2: Handshake
-        state = .handshaking
+        updateState(.handshaking)
         handshakeHandler.start()
         do {
             try await performHandshake(conn)
@@ -232,7 +250,7 @@ actor NetworkManager {
 
         // Phase 4: Connected - enter receive pump
         failureReason = .none
-        state = .connected
+        updateState(.connected)
         Logger.network.info("Connected successfully")
 
         if handshakeHandler.adoptedMachineID != 0 {
@@ -501,7 +519,7 @@ actor NetworkManager {
 
         case .byeBye:
             Logger.network.info("Received ByeBye packet from remote, disconnecting")
-            state = .disconnected
+            updateState(.disconnected)
 
         default:
             break
@@ -531,7 +549,7 @@ actor NetworkManager {
 
     private func disconnectDueToError(_ reason: ConnectionFailureReason) {
         guard !intentionalDisconnect else { return }
-        state = .disconnected
+        updateState(.disconnected)
         failureReason = reason
         crypto.reset()
         handshakeHandler.reset()
@@ -543,10 +561,10 @@ actor NetworkManager {
     private func scheduleReconnect(reason: ConnectionFailureReason = .unknown("Unknown")) {
         guard !intentionalDisconnect else {
             Logger.network.info("Skipping reconnect: intentional disconnect")
-            state = .disconnected
+            updateState(.disconnected)
             return
         }
-        state = .reconnecting
+        updateState(.reconnecting)
         failureReason = reason
         crypto.reset()
         handshakeHandler.reset()

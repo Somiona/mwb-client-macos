@@ -54,7 +54,7 @@ final class AppCoordinator {
     /// The machine ID assigned by the Windows machine during handshake.
     private var localMachineID: UInt32 = 0
 
-    // MARK: - State Polling
+    // MARK: - State Observation
 
     private var statePollTask: Task<Void, Never>?
     private var connectTask: Task<Void, Never>?
@@ -165,8 +165,8 @@ final class AppCoordinator {
             await self.startServicesAfterConnection(nm: nm, cm: cm, sl: sl)
         }
 
-        // Start state polling to observe NetworkManager state changes
-        startStatePolling(nm: nm)
+        // Start observing state changes via AsyncStream
+        startObservingState(nm: nm)
 
         connectionState = .connecting
         isSharingEnabled = captureStarted
@@ -288,20 +288,13 @@ final class AppCoordinator {
         Logger.coordinator.info("All services started, connected to \(connectedName)")
     }
 
-    // MARK: - State Polling
+    // MARK: - State Observation
 
-    private func startStatePolling(nm: NetworkManager) {
+    private func startObservingState(nm: NetworkManager) {
         statePollTask?.cancel()
         statePollTask = Task { [weak self] in
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(nanoseconds: 250_000_000) // 250ms
-                } catch {
-                    break
-                }
+            for await state in await nm.stateStream {
                 guard !Task.isCancelled else { break }
-
-                let state = await nm.state
                 let name = await nm.connectedMachineName
                 let reason = await nm.failureReason
 
