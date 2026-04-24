@@ -33,7 +33,7 @@ actor NetworkManager {
 
     /// Toggle to enable verbose logging of every connection step.
     /// Set to true for debugging, false for release.
-    static let debugConnectionSteps = false
+    static let debugConnectionSteps = true
 
     // MARK: Public State
 
@@ -94,16 +94,19 @@ actor NetworkManager {
     var onMouse: MouseCallback?
     var onKeyboard: KeyboardCallback?
     var onClipboard: ClipboardCallback?
+    var onNextMachine: (@Sendable (UInt32, Int32, Int32) -> Void)?
 
-    /// Sets all three callbacks in a single actor-isolated call.
+    /// Sets all four callbacks in a single actor-isolated call.
     func setCallbacks(
         onMouse: MouseCallback?,
         onKeyboard: KeyboardCallback?,
-        onClipboard: ClipboardCallback?
+        onClipboard: ClipboardCallback?,
+        onNextMachine: (@Sendable (UInt32, Int32, Int32) -> Void)? = nil
     ) {
         self.onMouse = onMouse
         self.onKeyboard = onKeyboard
         self.onClipboard = onClipboard
+        self.onNextMachine = onNextMachine
     }
 
     // MARK: Init
@@ -212,6 +215,7 @@ actor NetworkManager {
 
         // Wait for TCP connection to establish
         do {
+            Logger.network.info("Waiting for connection establish")
             try await waitForConnection(conn)
         } catch let error as NWError {
             classifyAndLogConnectionError(error)
@@ -229,7 +233,7 @@ actor NetworkManager {
             return
         }
 
-        // Phase 1: Noise exchange
+        // Phase 1: Noise exchange (matches Windows SendOrReceiveARandomDataBlockPerInitialIV)
         updateState(.connecting)
         do {
             try await exchangeNoise(conn)
@@ -258,7 +262,7 @@ actor NetworkManager {
             return
         }
 
-        // Phase 3: Send identity
+        // Phase 2: Send identity
         do {
             try await sendIdentity(conn)
         } catch {
@@ -267,7 +271,7 @@ actor NetworkManager {
             return
         }
 
-        // Phase 4: Connected - enter receive pump
+        // Phase 3: Connected - enter receive pump
         failureReason = .none
         lastHeartbeatReceived = .now
         updateState(.connected)
@@ -507,6 +511,14 @@ actor NetworkManager {
         case .mouse:
             let mouseData = MouseData(from: packet)
             onMouse?(mouseData)
+
+        case .nextMachine:
+            let mouseData = MouseData(from: packet)
+            let targetMachineID = UInt32(bitPattern: mouseData.wheelDelta)
+            if Self.debugConnectionSteps {
+                Logger.network.info("Received NextMachine: target=\(targetMachineID), pos=(\(mouseData.x),\(mouseData.y))")
+            }
+            onNextMachine?(targetMachineID, mouseData.x, mouseData.y)
 
         case .keyboard:
             let keyData = KeyboardData(from: packet)

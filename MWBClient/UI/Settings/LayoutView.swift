@@ -12,7 +12,7 @@ struct LayoutView: View {
                 VStack(spacing: 24) {
                     screenDiagram
 
-                    Text("Select the screen edge that leads to the Windows machine.")
+                    Text("Where is your Windows machine relative to this Mac?")
                         .foregroundStyle(.secondary)
                         .font(.subheadline)
                         .multilineTextAlignment(.center)

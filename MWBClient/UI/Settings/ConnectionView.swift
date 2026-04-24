@@ -23,26 +23,6 @@ struct ConnectionView: View {
                     .textContentType(.password)
             }
 
-            Section("Ports") {
-                HStack {
-                    TextField("Input Port", value: $settings.port, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 120)
-                    Text("Mouse and keyboard forwarding")
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
-
-                HStack {
-                    TextField("Clipboard Port", value: $settings.clipboardPort, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 120)
-                    Text("Clipboard synchronization")
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
-            }
-
             Section {
                 HStack {
                     connectionStatusText

@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 
 enum HandshakeState {
     case idle
@@ -15,6 +16,22 @@ struct HandshakeHandler {
     private(set) var receivedChallengeCount = 0
     private(set) var sentAckCount = 0
     private(set) var adoptedMachineID: UInt32 = 0
+
+    /// Encodes a machine name to 32 bytes using ASCII-compatible encoding,
+    /// matching Windows `ASCIIEncoding.ASCII.GetBytes()` behavior.
+    /// Non-ASCII characters are replaced with `?` (0x3F).
+    /// The result is space-padded (0x20) to exactly 32 bytes.
+    static func encodeMachineName(_ name: String) -> Data {
+        var bytes = Data(count: 32)
+        for i in 0..<32 { bytes[i] = 0x20 }
+        var idx = 0
+        for scalar in name.unicodeScalars {
+            guard idx < 32 else { break }
+            bytes[idx] = scalar.value < 128 ? UInt8(scalar.value) : 0x3F
+            idx += 1
+        }
+        return bytes
+    }
 
     mutating func start() {
         state = .exchangingNoise
@@ -58,15 +75,8 @@ struct HandshakeHandler {
             }
         }
 
-        // Copy machine name into data bytes 16-47 (space-padded to 32 bytes)
-        var nameData = Data(count: 32)
-        let nameBytes = Array(localMachineName.prefix(32).utf8)
-        for i in 0..<nameBytes.count {
-            nameData[i] = nameBytes[i]
-        }
-        for i in nameBytes.count..<32 {
-            nameData[i] = 0x20
-        }
+        // Copy machine name into data bytes 16-47 (ASCII-encoded, space-padded to 32 bytes)
+        let nameData = Self.encodeMachineName(localMachineName)
         responseData.replaceSubrange(16..<48, with: nameData)
 
         ack.data = responseData
@@ -106,13 +116,10 @@ struct HandshakeHandler {
         packet.setDataUInt16(screenWidth, at: 0)
         packet.setDataUInt16(screenHeight, at: 2)
 
-        var nameData = Data(count: 32)
-        let nameBytes = Array(machineName.prefix(32).utf8)
-        for i in 0..<nameBytes.count {
-            nameData[i] = nameBytes[i]
-        }
-        for i in nameBytes.count..<32 {
-            nameData[i] = 0x20 // space padding
+        let nameData = Self.encodeMachineName(machineName)
+        if NetworkManager.debugConnectionSteps {
+            let nameStr = String(data: nameData, encoding: .ascii) ?? "(non-ascii)"
+            Logger.network.debug("Identity packet: name=\"\(nameStr.trimmingCharacters(in: .whitespaces))\" id=\(machineID) screen=\(screenWidth)x\(screenHeight)")
         }
         var fullData = packet.data
         fullData.replaceSubrange(16..<48, with: nameData)

@@ -81,13 +81,12 @@ final class AppCoordinator {
         guard connectionState == .disconnected else { return }
 
         let logIP = settings.windowsIP
-        let logPort = settings.port
-        Logger.coordinator.info("Connecting to Windows machine at \(logIP):\(logPort)")
+        Logger.coordinator.info("Connecting to Windows machine at \(logIP):\(MWBConstants.inputPort)")
 
-        let host = settings.windowsIP
+        let host = settings.windowsIP.trimmingCharacters(in: .whitespacesAndNewlines)
         let securityKey = settings.securityKey
-        let port = UInt16(settings.port)
-        let clipboardPort = UInt16(settings.clipboardPort)
+        let port = MWBConstants.inputPort
+        let clipboardPort = MWBConstants.clipboardPort
         let machineName = settings.machineName
         let screenSize = ScreenInfo.mainScreenSizeUInt16
 
@@ -148,7 +147,12 @@ final class AppCoordinator {
                         self?.handleRemoteKeyboard(keyData)
                     }
                 },
-                onClipboard: nil
+                onClipboard: nil,
+                onNextMachine: { [weak self] machineID, x, y in
+                    Task { @MainActor [weak self] in
+                        self?.handleNextMachine(machineID: machineID, x: x, y: y)
+                    }
+                }
             )
 
             // Wire ServerListener callbacks
@@ -487,7 +491,31 @@ final class AppCoordinator {
         isCrossingActive = true
         inputCapture.crossingActive = true
         inputInjection.reset()
+
+        // Send NextMachine packet so Windows knows to hand off control
+        sendNextMachine(
+            targetMachineID: MWBConstants.broadcastDestination,
+            x: info.virtualPosition.x,
+            y: info.virtualPosition.y
+        )
     }
+
+    /// Windows detected cursor reaching its edge toward the Mac — accept control.
+    private func handleNextMachine(machineID: UInt32, x: Int32, y: Int32) {
+        guard connectionState == .connected else { return }
+        guard !isCrossingActive else { return }
+
+        Logger.coordinator.info("Received NextMachine from machine \(machineID) at (\(x), \(y))")
+        isCrossingActive = true
+        inputCapture.crossingActive = true
+        inputInjection.reset()
+
+        // Warp cursor to the requested position (virtual coords -> screen coords)
+        let screenPoint = virtualToScreen(x: x, y: y)
+        CGWarpMouseCursorPosition(screenPoint)
+    }
+
+    // MARK: - Remote Input Handling
 
     private func handleRemoteMouse(_ data: MouseData) {
         guard connectionState == .connected else { return }
@@ -538,5 +566,38 @@ final class AppCoordinator {
         isCrossingActive = false
         inputCapture.crossingActive = false
         edgeDetector.crossingDidEnd()
+    }
+
+    // MARK: - NextMachine
+
+    private func sendNextMachine(targetMachineID: UInt32, x: Int32, y: Int32) {
+        guard let nm = networkManager else { return }
+
+        var packet = MWBPacket()
+        packet.type = PackageType.nextMachine.rawValue
+        packet.src = localMachineID
+        packet.des = targetMachineID
+
+        var mouseData = MouseData()
+        mouseData.x = x
+        mouseData.y = y
+        mouseData.wheelDelta = Int32(bitPattern: localMachineID)
+        mouseData.write(to: &packet)
+
+        Task {
+            await nm.sendPacket(packet)
+        }
+    }
+
+    /// Convert MWB virtual desktop coordinates (0-65535) to macOS screen coordinates.
+    private func virtualToScreen(x: Int32, y: Int32) -> CGPoint {
+        let screen = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let scaleX = CGFloat(x) / CGFloat(MWBConstants.virtualDesktopMax)
+        let scaleY = CGFloat(y) / CGFloat(MWBConstants.virtualDesktopMax)
+        // macOS has bottom-left origin, virtual coords have top-left origin
+        return CGPoint(
+            x: screen.minX + scaleX * screen.width,
+            y: screen.minY + (1.0 - scaleY) * screen.height
+        )
     }
 }

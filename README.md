@@ -8,7 +8,7 @@ A native macOS client that connects your Mac to a Windows machine running [Mouse
 
 ## Status
 
-This project is in active development. The core protocol is implemented and verified against the PowerToys source code. See [Known Issues](#known-issues) for current limitations.
+This project is in early development.  See [Known Issues](#known-issues) for current limitations.
 
 Contributions and bug reports are welcome. If you run into issues, please [open an issue](../../issues/new).
 
@@ -19,7 +19,7 @@ Contributions and bug reports are welcome. If you run into issues, please [open 
 - **Encrypted communication** — AES-256-CBC encryption on all packets with PBKDF2 key derivation (50,000 iterations)
 - **Full MWB protocol handshake** — 10-round challenge/response with noise exchange and identity verification
 - **Bi-directional input sharing** — Share your mouse and keyboard in both directions between macOS and Windows
-- **Edge crossing** — Move your cursor off the edge of one screen and it appears on the other, with configurable crossing edge and debounce
+- **Edge crossing** — Move your cursor off the edge of one screen and it appears on the other, with configurable screen position and debounce
 - **Clipboard synchronization** — Sync text and images across machines via a dedicated encrypted TCP channel
 - **Automatic reconnection** — Recovers from network interruptions with automatic reconnect
 - **Menu bar app** — Lives in your system tray with a minimal footprint; no dock icon clutter
@@ -87,7 +87,7 @@ Or open `MWBClient.xcodeproj` in Xcode directly and hit Cmd+R.
 1. Launch MWBClient — it will appear as an icon in your menu bar.
 2. Click the menu bar icon and select **Settings**.
 3. Go to the **Connection** page and enter your Windows machine's IP address and the security key from PowerToys.
-4. Choose your screen edge on the **Layout** page (this determines which edge your cursor crosses to the other machine).
+4. Choose your screen position on the **Layout** page (this tells the app where your Windows machine sits relative to your Mac).
 5. Grant **Accessibility** permissions when prompted (required for input capture and injection). You can check the status on the **Permissions** settings page.
 
 ### Connecting
@@ -107,13 +107,12 @@ Enable or disable text and image clipboard sync on the **Clipboard** settings pa
 1. Install [Microsoft PowerToys](https://github.com/microsoft/PowerToys) on your Windows machine.
 2. Open PowerToys Settings and enable **Mouse Without Borders**.
 3. On the **Mouse Without Borders** page, note the **Security Key** — you will need this on the Mac side.
-4. Ensure both machines are on the same local network and the Windows firewall allows inbound connections on ports **15100** and **15101**.
-5. Enter the Mac's IP in the Windows MWB setup if you want bi-directional connections.
 
 ---
 
 ## Known Issues
 
+- **Two devices only** -- Currently supports exactly one Mac and one Windows machine. Multi-machine matrix layouts (3+ devices) are not yet supported.
 - **Display hotplug** -- Screen bounds are cached when input capture starts and do not refresh when displays are added, removed, or rearranged. Restart the app after changing display configuration.
 - **Large file clipboard** -- Only inline clipboard transfer is supported (text and images up to 1MB). TCP stream-based large file clipboard transfer is not yet implemented.
 - **Fullscreen detection** -- Edge crossing is not blocked when a fullscreen application is active. This can cause accidental machine switches during presentations or games.

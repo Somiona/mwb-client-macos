@@ -186,7 +186,7 @@ actor ServerListener {
             return
         }
 
-        // Phase 4: Receive pump
+        // Phase 3: Receive pump
         Logger.network.info("ServerListener: inbound connection established, entering receive pump")
         await receivePump(connection, crypto: crypto, magicHash: magicHash, handler: &handshakeHandler)
     }

@@ -1,6 +1,10 @@
 import Foundation
 
 enum MWBConstants {
+    // Port layout (matching Windows MWB, TcpPort default = 15100):
+    //   TcpPort     (15100) = Clipboard server
+    //   TcpPort + 1 (15101) = Message/input server
+    //   Client connects to TcpPort + 1 for input, TcpPort for clipboard
     static let inputPort: UInt16 = 15101
     static let clipboardPort: UInt16 = 15100
 

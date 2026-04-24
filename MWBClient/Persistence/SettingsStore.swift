@@ -6,8 +6,6 @@ import Observation
 private enum SettingsKey {
     static let windowsIP = "settings.windowsIP"
     static let securityKey = "settings.securityKey"
-    static let port = "settings.port"
-    static let clipboardPort = "settings.clipboardPort"
     static let syncText = "settings.syncText"
     static let syncImages = "settings.syncImages"
     static let syncFiles = "settings.syncFiles"
@@ -21,8 +19,6 @@ private enum SettingsKey {
 // MARK: - Defaults
 
 private enum SettingsDefault {
-    static let port = 15101
-    static let clipboardPort = 15100
     static let syncText = true
     static let syncImages = true
     static let syncFiles = true
@@ -31,7 +27,16 @@ private enum SettingsDefault {
     static let crossingEdge: CrossingEdge = .right
 
     static var machineName: String {
-        Host.current().localizedName ?? "Mac"
+        let raw = Host.current().localizedName ?? "Mac"
+        return raw.unicodeScalars.map { scalar in
+            switch scalar.value {
+            case 0x2018, 0x2019: return "'"
+            case 0x201C, 0x201D: return "\""
+            case 0x2013, 0x2014: return "-"
+            default:
+                return scalar.value < 128 ? Character(scalar) : "?"
+            }
+        }.reduce(into: "") { $0.append($1) }
     }
     static let hideDockIcon = true
 }
@@ -51,22 +56,20 @@ final class SettingsStore {
 
     /// IPv4 address of the Windows machine running Mouse Without Borders.
     var windowsIP: String {
-        didSet { UserDefaults.standard.set(windowsIP, forKey: SettingsKey.windowsIP) }
+        didSet {
+            let trimmed = windowsIP.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed != windowsIP { windowsIP = trimmed }
+            else { UserDefaults.standard.set(windowsIP, forKey: SettingsKey.windowsIP) }
+        }
     }
 
     /// Shared secret used for AES-256-CBC encryption of the channel.
     var securityKey: String {
-        didSet { UserDefaults.standard.set(securityKey, forKey: SettingsKey.securityKey) }
-    }
-
-    /// TCP port for input forwarding (mouse/keyboard).
-    var port: Int {
-        didSet { UserDefaults.standard.set(port, forKey: SettingsKey.port) }
-    }
-
-    /// TCP port for clipboard synchronization.
-    var clipboardPort: Int {
-        didSet { UserDefaults.standard.set(clipboardPort, forKey: SettingsKey.clipboardPort) }
+        didSet {
+            let trimmed = securityKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed != securityKey { securityKey = trimmed }
+            else { UserDefaults.standard.set(securityKey, forKey: SettingsKey.securityKey) }
+        }
     }
 
     // MARK: - Clipboard Settings
@@ -125,8 +128,6 @@ final class SettingsStore {
 
         self.windowsIP = defaults.string(forKey: SettingsKey.windowsIP) ?? ""
         self.securityKey = defaults.string(forKey: SettingsKey.securityKey) ?? ""
-        self.port = defaults.object(forKey: SettingsKey.port) as? Int ?? SettingsDefault.port
-        self.clipboardPort = defaults.object(forKey: SettingsKey.clipboardPort) as? Int ?? SettingsDefault.clipboardPort
         self.syncText = defaults.object(forKey: SettingsKey.syncText) as? Bool ?? SettingsDefault.syncText
         self.syncImages = defaults.object(forKey: SettingsKey.syncImages) as? Bool ?? SettingsDefault.syncImages
         self.syncFiles = defaults.object(forKey: SettingsKey.syncFiles) as? Bool ?? SettingsDefault.syncFiles
@@ -150,8 +151,6 @@ final class SettingsStore {
     func resetToDefaults() {
         windowsIP = ""
         securityKey = ""
-        port = SettingsDefault.port
-        clipboardPort = SettingsDefault.clipboardPort
         syncText = SettingsDefault.syncText
         syncImages = SettingsDefault.syncImages
         syncFiles = SettingsDefault.syncFiles
