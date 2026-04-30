@@ -332,3 +332,20 @@ final class MachinePoolTests: XCTestCase {
         XCTAssertFalse(pool.inMachineMatrix(""))
     }
 }
+
+extension MachinePoolTests {
+    func testMatrixUpdatesRequireFourPackets() {
+        let pool = MachinePool()
+        pool.updateMachineMatrix(packetType: 128, src: 1, machineName: "Win1")
+        pool.updateMachineMatrix(packetType: 128, src: 2, machineName: "Win2")
+        
+        // Should not commit yet
+        XCTAssertEqual(pool.machineMatrix[0], "")
+        
+        pool.updateMachineMatrix(packetType: 128, src: 3, machineName: "Mac")
+        pool.updateMachineMatrix(packetType: 128, src: 4, machineName: "None")
+        
+        // Should commit on the 4th packet
+        XCTAssertEqual(pool.machineMatrix[0], "Win1")
+    }
+}

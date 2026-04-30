@@ -10,8 +10,8 @@ crypto-test/
 Package.swift
 CLAUDE.md
 
-.worktree/
 .worktrees/
+temp/
 
 # Xcode
 build/

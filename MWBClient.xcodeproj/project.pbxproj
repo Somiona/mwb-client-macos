@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */; };
+		AABB0001FIXTURE0001AAAA /* Fixtures in Resources */ = {isa = PBXBuildFile; fileRef = AABB0002FIXTURE0002AAAA /* Fixtures */; };
 		1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */; };
 		188C72432675028FAD914BDC /* MWBPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */; };
 		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
@@ -24,6 +25,7 @@
 		564A59595DFAFCAB8F83C87A /* MWBMouseData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB222A87194D78042767C39F /* MWBMouseData.swift */; };
 		5D474965B74691874F7CD6EE /* MWBConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */; };
 		612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */; };
+		AABB0003PROTO0003AAAA /* ProtocolBinaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB0004PROTO0004AAAA /* ProtocolBinaryTests.swift */; };
 		641D0DCE57A302CCCE6DD70E /* MWBApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFA93B213339C595595EFE7 /* MWBApp.swift */; };
 		698F92E1224098F980B71FC2 /* CryptoCrossPlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */; };
 		6A0FF454F115902423D28831 /* InputLayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */; };
@@ -52,6 +54,8 @@
 		F1E03F704170F4EF03677607 /* ResumeOnce.swift in Sources */ = {isa = PBXBuildFile; fileRef = E46CD9FF1712D138D025FB2C /* ResumeOnce.swift */; };
 		FBA6854DA76B9C6D974561F2 /* MWBPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 491B710D380573EF0C358439 /* MWBPacketTests.swift */; };
 		FE988D34BABCD3A73AD97BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C99E0500DC51D1376645C1E2 /* Assets.xcassets */; };
+		AABB0007CONN0007AAAA /* ConnectionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB0006CONN0006AAAA /* ConnectionStateTests.swift */; };
+		AABB000AMOCKS000AAAAA /* MockByteStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB0009MOCKS0009AAAA /* MockByteStream.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +69,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AABB0002FIXTURE0002AAAA /* Fixtures */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fixtures; sourceTree = "<group>"; };
+		AABB0004PROTO0004AAAA /* ProtocolBinaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolBinaryTests.swift; sourceTree = "<group>"; };
 		085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputCapture.swift; sourceTree = "<group>"; };
 		0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolCompatibilityTests.swift; sourceTree = "<group>"; };
 		0FC5F135996CBF70C5BCB674 /* GeneralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralView.swift; sourceTree = "<group>"; };
@@ -114,6 +120,8 @@
 		F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCrypto.swift; sourceTree = "<group>"; };
 		FB048089A977A0BC32B0369B /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMapper.swift; sourceTree = "<group>"; };
+		AABB0006CONN0006AAAA /* ConnectionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStateTests.swift; sourceTree = "<group>"; };
+		AABB0009MOCKS0009AAAA /* MockByteStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockByteStream.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -152,16 +160,20 @@
 			isa = PBXGroup;
 			children = (
 				C58B88196F8629339DCDEF11 /* CoordinateMappingTests.swift */,
+				AABB0006CONN0006AAAA /* ConnectionStateTests.swift */,
 				46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */,
+				AABB0002FIXTURE0002AAAA /* Fixtures */,
 				53B665D45733F4493D7A0AAC /* EdgeDetectorTests.swift */,
 				AC10AB6D2D613EE34A724CD2 /* InputIntegrationTests.swift */,
 				5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */,
 				3636C262BEECE646EB78B8B5 /* MachinePoolTests.swift */,
+				AABB0008MOCKS0008AAAA /* Mocks */,
 				EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */,
 				3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */,
 				65687D9F830641CC72C98325 /* MWBHandshakeTests.swift */,
 				491B710D380573EF0C358439 /* MWBPacketTests.swift */,
 				ADB3C9DAEF8AA27C09D7C1F3 /* NetworkIntegrationTests.swift */,
+				AABB0004PROTO0004AAAA /* ProtocolBinaryTests.swift */,
 				0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */,
 			);
 			path = MWBClientTests;
@@ -308,6 +320,14 @@
 			path = UI;
 			sourceTree = "<group>";
 		};
+		AABB0008MOCKS0008AAAA /* Mocks */ = {
+			isa = PBXGroup;
+			children = (
+				AABB0009MOCKS0009AAAA /* MockByteStream.swift */,
+			);
+			path = Mocks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -316,6 +336,7 @@
 			buildConfigurationList = 8EF93BCA56FE8EBC51DEC376 /* Build configuration list for PBXNativeTarget "MWBClientTests" */;
 			buildPhases = (
 				885DC605F292BF48894C66F3 /* Sources */,
+				AABB0005RESRC0005AAAA /* Resources */,
 			);
 			buildRules = (
 			);
@@ -385,6 +406,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		AABB0005RESRC0005AAAA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AABB0001FIXTURE0001AAAA /* Fixtures in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		ABB9C017B21BA0802D878536 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -400,17 +429,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AABB0007CONN0007AAAA /* ConnectionStateTests.swift in Sources */,
 				6F1C90EEE9D40EEFD40BA4B5 /* CoordinateMappingTests.swift in Sources */,
 				698F92E1224098F980B71FC2 /* CryptoCrossPlatformTests.swift in Sources */,
 				CAE9E1C8EB97F8C0F5B3C8F4 /* EdgeDetectorTests.swift in Sources */,
 				844F805F5BB961501592ADA5 /* InputIntegrationTests.swift in Sources */,
 				6A0FF454F115902423D28831 /* InputLayerTests.swift in Sources */,
+				AABB000AMOCKS000AAAAA /* MockByteStream.swift in Sources */,
 				612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */,
 				54F3590BB03D7445434C3CDF /* MWBCryptoTests.swift in Sources */,
 				3DDA6444A468EF8013916DD9 /* MWBHandshakeTests.swift in Sources */,
 				FBA6854DA76B9C6D974561F2 /* MWBPacketTests.swift in Sources */,
 				24E50D5747BFF3E2A7239755 /* MachinePoolTests.swift in Sources */,
 				3105D04053C137A00417F915 /* NetworkIntegrationTests.swift in Sources */,
+				AABB0003PROTO0003AAAA /* ProtocolBinaryTests.swift in Sources */,
 				C73329BC2DD49CA44BAF2DBF /* ProtocolCompatibilityTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
