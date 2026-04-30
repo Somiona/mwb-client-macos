@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-enum HandshakeState {
+enum HandshakeState: Equatable {
     case idle
     case exchangingNoise
     case receivingChallenge
