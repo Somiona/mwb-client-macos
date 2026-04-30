@@ -4,7 +4,7 @@ import Foundation
 import os.log
 
 final class MWBCrypto {
-    private let key: [UInt8]
+    internal let key: [UInt8]
     private let securityKey: String
     private let initialIV: [UInt8]
     private var encryptIV: [UInt8]
