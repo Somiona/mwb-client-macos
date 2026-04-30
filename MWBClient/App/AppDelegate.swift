@@ -71,12 +71,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func handleSleep() {
         guard let coordinator = Self.sharedCoordinator else { return }
-        Task { await coordinator.networkManager.handleSleep() }
+        Task { await coordinator.handleSleep() }
     }
 
     @objc private func handleWake() {
         guard let coordinator = Self.sharedCoordinator else { return }
-        Task { await coordinator.networkManager.handleWake() }
+        Task { await coordinator.handleWake() }
     }
 
     // MARK: - Helpers

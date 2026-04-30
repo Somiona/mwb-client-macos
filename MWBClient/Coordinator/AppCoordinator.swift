@@ -533,6 +533,18 @@ final class AppCoordinator {
         inputInjection.injectKeyboard(data)
     }
 
+    // MARK: - Sleep / Wake
+
+    func handleSleep() async {
+        guard let nm = networkManager else { return }
+        await nm.handleSleep()
+    }
+
+    func handleWake() async {
+        guard let nm = networkManager else { return }
+        await nm.handleWake()
+    }
+
     // MARK: - Forwarding to Remote
 
     private func forwardMouseToRemote(_ data: MouseData) async {
