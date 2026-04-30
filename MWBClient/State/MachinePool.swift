@@ -40,8 +40,8 @@ struct MachineInfo: Equatable, Sendable {
 }
 
 enum MatrixFlags {
-    static let matrix: UInt8 = 128
-    static let swapFlag: UInt8 = 2
+    static let matrix: UInt8 = PackageType.matrix.rawValue
+    static let matrixSwapEnabled: UInt8 = 2
     static let twoRowFlag: UInt8 = 4
 }
 
@@ -50,10 +50,6 @@ final class MachinePool: @unchecked Sendable {
 
     private var machines: [MachineInfo] = []
     private let lock = NSLock()
-
-    init() {
-        self.machineMatrix = Array(repeating: "", count: Self.maxMachines)
-    }
 
     func initialize(names: [String]) {
         lock.lock()
@@ -96,7 +92,7 @@ final class MachinePool: @unchecked Sendable {
         }
 
         if machines.count >= Self.maxMachines {
-            guard let slot = machines.firstIndex(where: { !InMachineMatrix($0.name) }) else {
+            guard let slot = machines.firstIndex(where: { !inMachineMatrixInternal($0.name) }) else {
                 return false
             }
             machines.remove(at: slot)
@@ -178,24 +174,34 @@ final class MachinePool: @unchecked Sendable {
         self.machineMatrix = matrix
     }
 
+    convenience init() {
+        self.init(matrix: Array(repeating: "", count: MachinePool.maxMachines))
+    }
+
     func updateMachineMatrix(packetType: UInt8, src: UInt32, machineName: String) {
         let index = Int(src)
         guard index > 0 && index <= Self.maxMachines else { return }
+
+        lock.lock()
+        defer { lock.unlock() }
 
         let trimmed = machineName.trimmingCharacters(in: .whitespaces)
         machineMatrix[index - 1] = trimmed
 
         if index == Self.maxMachines {
-            matrixCircle = (packetType & MatrixFlags.swapFlag) == MatrixFlags.swapFlag
+            matrixCircle = (packetType & MatrixFlags.matrixSwapEnabled) == MatrixFlags.matrixSwapEnabled
             matrixOneRow = !((packetType & MatrixFlags.twoRowFlag) == MatrixFlags.twoRowFlag)
         }
     }
 
     func sendMachineMatrix() -> [(type: UInt8, src: UInt32, machineName: String)] {
+        lock.lock()
+        defer { lock.unlock() }
+
         var results: [(type: UInt8, src: UInt32, machineName: String)] = []
         for i in 0..<machineMatrix.count {
             let type = MatrixFlags.matrix
-                | (matrixCircle ? MatrixFlags.swapFlag : 0)
+                | (matrixCircle ? MatrixFlags.matrixSwapEnabled : 0)
                 | (matrixOneRow ? 0 : MatrixFlags.twoRowFlag)
             results.append((type: type, src: UInt32(i + 1), machineName: machineMatrix[i]))
         }
@@ -204,10 +210,16 @@ final class MachinePool: @unchecked Sendable {
 
     func inMachineMatrix(_ name: String) -> Bool {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
-        return machineMatrix.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame })
+        lock.lock()
+        defer { lock.unlock() }
+        return inMachineMatrixLocked(name)
     }
 
-    private func InMachineMatrix(_ name: String) -> Bool {
-        inMachineMatrix(name)
+    private func inMachineMatrixLocked(_ name: String) -> Bool {
+        machineMatrix.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame })
+    }
+
+    private func inMachineMatrixInternal(_ name: String) -> Bool {
+        inMachineMatrixLocked(name)
     }
 }

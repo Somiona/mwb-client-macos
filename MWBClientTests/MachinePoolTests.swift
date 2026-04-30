@@ -10,7 +10,7 @@ final class MachinePoolTests: XCTestCase {
     }
 
     func testMatrixSwapFlagValue() {
-        XCTAssertEqual(MatrixFlags.swapFlag, 2)
+        XCTAssertEqual(MatrixFlags.matrixSwapEnabled, 2)
     }
 
     func testMatrixTwoRowFlagValue() {
@@ -24,28 +24,28 @@ final class MachinePoolTests: XCTestCase {
     func testDecodeMatrixTypeOnly() {
         let type: UInt8 = MatrixFlags.matrix
         XCTAssertEqual(type, 128)
-        XCTAssertEqual(type & MatrixFlags.swapFlag, 0)
+        XCTAssertEqual(type & MatrixFlags.matrixSwapEnabled, 0)
         XCTAssertEqual(type & MatrixFlags.twoRowFlag, 0)
     }
 
     func testDecodeMatrixWithSwapFlag() {
-        let type: UInt8 = MatrixFlags.matrix | MatrixFlags.swapFlag
+        let type: UInt8 = MatrixFlags.matrix | MatrixFlags.matrixSwapEnabled
         XCTAssertEqual(type, 130)
-        XCTAssertTrue((type & MatrixFlags.swapFlag) == MatrixFlags.swapFlag)
+        XCTAssertTrue((type & MatrixFlags.matrixSwapEnabled) == MatrixFlags.matrixSwapEnabled)
         XCTAssertFalse((type & MatrixFlags.twoRowFlag) == MatrixFlags.twoRowFlag)
     }
 
     func testDecodeMatrixWithTwoRowFlag() {
         let type: UInt8 = MatrixFlags.matrix | MatrixFlags.twoRowFlag
         XCTAssertEqual(type, 132)
-        XCTAssertFalse((type & MatrixFlags.swapFlag) == MatrixFlags.swapFlag)
+        XCTAssertFalse((type & MatrixFlags.matrixSwapEnabled) == MatrixFlags.matrixSwapEnabled)
         XCTAssertTrue((type & MatrixFlags.twoRowFlag) == MatrixFlags.twoRowFlag)
     }
 
     func testDecodeMatrixWithBothFlags() {
-        let type: UInt8 = MatrixFlags.matrix | MatrixFlags.swapFlag | MatrixFlags.twoRowFlag
+        let type: UInt8 = MatrixFlags.matrix | MatrixFlags.matrixSwapEnabled | MatrixFlags.twoRowFlag
         XCTAssertEqual(type, 134)
-        XCTAssertTrue((type & MatrixFlags.swapFlag) == MatrixFlags.swapFlag)
+        XCTAssertTrue((type & MatrixFlags.matrixSwapEnabled) == MatrixFlags.matrixSwapEnabled)
         XCTAssertTrue((type & MatrixFlags.twoRowFlag) == MatrixFlags.twoRowFlag)
     }
 
@@ -65,7 +65,7 @@ final class MachinePoolTests: XCTestCase {
 
     func testMatrixFlagsSetOnLastPacket_SwapOnly() {
         let pool = MachinePool(matrix: ["", "", "", ""])
-        let type = MatrixFlags.matrix | MatrixFlags.swapFlag
+        let type = MatrixFlags.matrix | MatrixFlags.matrixSwapEnabled
 
         pool.updateMachineMatrix(packetType: type, src: 1, machineName: "A")
         XCTAssertFalse(pool.matrixCircle)
@@ -89,7 +89,7 @@ final class MachinePoolTests: XCTestCase {
 
     func testMatrixFlagsSetOnLastPacket_BothFlags() {
         let pool = MachinePool(matrix: ["", "", "", ""])
-        let type = MatrixFlags.matrix | MatrixFlags.swapFlag | MatrixFlags.twoRowFlag
+        let type = MatrixFlags.matrix | MatrixFlags.matrixSwapEnabled | MatrixFlags.twoRowFlag
 
         pool.updateMachineMatrix(packetType: type, src: 4, machineName: "D")
 
@@ -99,7 +99,7 @@ final class MachinePoolTests: XCTestCase {
 
     func testMatrixFlagsOnlyApplyOnFourthPacket() {
         let pool = MachinePool(matrix: ["", "", "", ""])
-        let type = MatrixFlags.matrix | MatrixFlags.swapFlag | MatrixFlags.twoRowFlag
+        let type = MatrixFlags.matrix | MatrixFlags.matrixSwapEnabled | MatrixFlags.twoRowFlag
 
         pool.updateMachineMatrix(packetType: type, src: 1, machineName: "A")
         pool.updateMachineMatrix(packetType: type, src: 2, machineName: "B")
@@ -146,7 +146,7 @@ final class MachinePoolTests: XCTestCase {
             XCTAssertEqual(pkt.src, UInt32(i + 1))
             XCTAssertEqual(pkt.machineName, pool.machineMatrix[i])
             XCTAssertTrue((pkt.type & MatrixFlags.matrix) == MatrixFlags.matrix)
-            XCTAssertTrue((pkt.type & MatrixFlags.swapFlag) == MatrixFlags.swapFlag)
+            XCTAssertTrue((pkt.type & MatrixFlags.matrixSwapEnabled) == MatrixFlags.matrixSwapEnabled)
             XCTAssertTrue((pkt.type & MatrixFlags.twoRowFlag) == MatrixFlags.twoRowFlag)
         }
     }
@@ -160,7 +160,7 @@ final class MachinePoolTests: XCTestCase {
         let type = packets[0].type
 
         XCTAssertEqual(type, MatrixFlags.matrix)
-        XCTAssertEqual(type & MatrixFlags.swapFlag, 0)
+        XCTAssertEqual(type & MatrixFlags.matrixSwapEnabled, 0)
         XCTAssertEqual(type & MatrixFlags.twoRowFlag, 0)
     }
 
