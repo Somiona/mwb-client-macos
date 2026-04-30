@@ -128,5 +128,56 @@ final class MWBPacketTests: XCTestCase {
         XCTAssertEqual(updatedBytes[25], 0xBB)
         XCTAssertEqual(updatedBytes[26], 0xCC)
         XCTAssertEqual(updatedBytes[27], 0xDD)
+        
+        // Test MouseData offsets
+        var mousePacket = MWBPacket()
+        mousePacket.packageType = .mouse
+        var mousePayload = MouseData()
+        mousePayload.x = 100
+        mousePayload.y = 200
+        mousePayload.wheelDelta = 120
+        mousePayload.dwFlags = 0x0200
+        mousePayload.write(to: &mousePacket)
+        
+        let mouseBytes = mousePacket.rawBytes
+        // x at 16-19
+        XCTAssertEqual(mouseBytes[16], 100)
+        XCTAssertEqual(mouseBytes[17], 0)
+        XCTAssertEqual(mouseBytes[18], 0)
+        XCTAssertEqual(mouseBytes[19], 0)
+        // y at 20-23
+        XCTAssertEqual(mouseBytes[20], 200)
+        XCTAssertEqual(mouseBytes[21], 0)
+        XCTAssertEqual(mouseBytes[22], 0)
+        XCTAssertEqual(mouseBytes[23], 0)
+        // wheelDelta at 24-27
+        XCTAssertEqual(mouseBytes[24], 120)
+        XCTAssertEqual(mouseBytes[25], 0)
+        XCTAssertEqual(mouseBytes[26], 0)
+        XCTAssertEqual(mouseBytes[27], 0)
+        // dwFlags at 28-31
+        XCTAssertEqual(mouseBytes[28], 0x00)
+        XCTAssertEqual(mouseBytes[29], 0x02)
+        XCTAssertEqual(mouseBytes[30], 0x00)
+        XCTAssertEqual(mouseBytes[31], 0x00)
+        
+        // Test MachineName offsets
+        let identityPacket = HandshakeHandler.makeIdentityPacket(
+            machineName: "TestMac", 
+            screenWidth: 1920, 
+            screenHeight: 1080, 
+            machineID: 1
+        )
+        let identityBytes = identityPacket.rawBytes
+        // MachineName starts at byte 32 (offset 16 in data)
+        XCTAssertEqual(identityBytes[32], 0x54) // 'T'
+        XCTAssertEqual(identityBytes[33], 0x65) // 'e'
+        XCTAssertEqual(identityBytes[34], 0x73) // 's'
+        XCTAssertEqual(identityBytes[35], 0x74) // 't'
+        XCTAssertEqual(identityBytes[36], 0x4D) // 'M'
+        XCTAssertEqual(identityBytes[37], 0x61) // 'a'
+        XCTAssertEqual(identityBytes[38], 0x63) // 'c'
+        XCTAssertEqual(identityBytes[39], 0x20) // ' ' (padded)
+        XCTAssertEqual(identityBytes[63], 0x20) // last byte of machine name
     }
 }
