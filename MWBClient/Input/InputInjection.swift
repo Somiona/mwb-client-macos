@@ -29,14 +29,16 @@ final class InputInjection {
 
     /// Returns the main display bounds in Quartz (top-left origin) coordinates.
     /// CGEvent uses Quartz coordinates, not NSScreen (bottom-left origin).
+    var screenBoundsProvider: () -> CGRect = { CGDisplayBounds(CGMainDisplayID()) }
+    
     private var mainScreenBounds: CGRect {
-        CGDisplayBounds(CGMainDisplayID())
+        screenBoundsProvider()
     }
 
     /// Maps an MWB virtual desktop coordinate (0-65535) to a Quartz screen point.
     ///
     /// Both MWB and Quartz use top-left origin, so no Y-flip is needed.
-    private func mapVirtualToScreen(x: Int32, y: Int32) -> CGPoint {
+    func mapVirtualToScreen(x: Int32, y: Int32) -> CGPoint {
         let bounds = mainScreenBounds
         let max = CGFloat(MWBConstants.virtualDesktopMax)
 

@@ -27,6 +27,7 @@
 		698F92E1224098F980B71FC2 /* CryptoCrossPlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */; };
 		6A0FF454F115902423D28831 /* InputLayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */; };
 		6C2B7A995DA6FBEFEBC26538 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BBC2304145EBEC609D6A75 /* AppDelegate.swift */; };
+		6F1C90EEE9D40EEFD40BA4B5 /* CoordinateMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C58B88196F8629339DCDEF11 /* CoordinateMappingTests.swift */; };
 		6FA563E0B55479657E09821E /* InputInjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26795837B7EC4F86C491C10 /* InputInjection.swift */; };
 		711217305E826FC8505F9940 /* InputCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */; };
 		742D77599C631DD05494E75A /* MWBCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */; };
@@ -43,6 +44,7 @@
 		ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC5F135996CBF70C5BCB674 /* GeneralView.swift */; };
 		C73329BC2DD49CA44BAF2DBF /* ProtocolCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */; };
 		C7A95CBA30FE515DF2F2278A /* ClipboardCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */; };
+		CAE9E1C8EB97F8C0F5B3C8F4 /* EdgeDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B665D45733F4493D7A0AAC /* EdgeDetectorTests.swift */; };
 		CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */; };
 		E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B03D6DF490960A2425D804 /* SettingsWindow.swift */; };
 		F1E03F704170F4EF03677607 /* ResumeOnce.swift in Sources */ = {isa = PBXBuildFile; fileRef = E46CD9FF1712D138D025FB2C /* ResumeOnce.swift */; };
@@ -74,6 +76,7 @@
 		491B710D380573EF0C358439 /* MWBPacketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBPacketTests.swift; sourceTree = "<group>"; };
 		4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCodec.swift; sourceTree = "<group>"; };
 		4DA5714D75003D2FD578D32A /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		53B665D45733F4493D7A0AAC /* EdgeDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetectorTests.swift; sourceTree = "<group>"; };
 		5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputLayerTests.swift; sourceTree = "<group>"; };
 		5929D4D7603B549A3D3E214C /* HeartbeatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartbeatService.swift; sourceTree = "<group>"; };
 		59334291F885148BC161FCE2 /* MWBKeyboardData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBKeyboardData.swift; sourceTree = "<group>"; };
@@ -96,6 +99,7 @@
 		B30AAC773F12E24AB0F72A82 /* TrayMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayMenu.swift; sourceTree = "<group>"; };
 		BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBPacket.swift; sourceTree = "<group>"; };
 		C2F38E9FDB3A364CEC11978A /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
+		C58B88196F8629339DCDEF11 /* CoordinateMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoordinateMappingTests.swift; sourceTree = "<group>"; };
 		C99E0500DC51D1376645C1E2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D4CDB2AFF1972828D0E8BE1C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D55DC62E228DC882B82162C7 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
@@ -143,7 +147,9 @@
 		3A9FC251097701A2BF3D282F /* MWBClientTests */ = {
 			isa = PBXGroup;
 			children = (
+				C58B88196F8629339DCDEF11 /* CoordinateMappingTests.swift */,
 				46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */,
+				53B665D45733F4493D7A0AAC /* EdgeDetectorTests.swift */,
 				AC10AB6D2D613EE34A724CD2 /* InputIntegrationTests.swift */,
 				5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */,
 				EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */,
@@ -380,7 +386,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6F1C90EEE9D40EEFD40BA4B5 /* CoordinateMappingTests.swift in Sources */,
 				698F92E1224098F980B71FC2 /* CryptoCrossPlatformTests.swift in Sources */,
+				CAE9E1C8EB97F8C0F5B3C8F4 /* EdgeDetectorTests.swift in Sources */,
 				844F805F5BB961501592ADA5 /* InputIntegrationTests.swift in Sources */,
 				6A0FF454F115902423D28831 /* InputLayerTests.swift in Sources */,
 				612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */,

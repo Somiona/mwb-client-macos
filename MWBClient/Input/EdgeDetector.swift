@@ -84,8 +84,11 @@ final class EdgeDetector {
 
     // MARK: - Screen info cache
 
-    /// Cached display bounds in Quartz (top-left origin) coordinates.
-    private var displayBounds: CGRect = CGDisplayBounds(CGMainDisplayID())
+    /// Provider for display bounds in Quartz (top-left origin) coordinates.
+    var screenBoundsProvider: () -> CGRect = { CGDisplayBounds(CGMainDisplayID()) }
+
+    /// Cached display bounds.
+    private var displayBounds: CGRect = .zero
 
     // MARK: - Public API
 
@@ -105,7 +108,7 @@ final class EdgeDetector {
         }
 
         // Refresh display bounds on each update (handles display changes).
-        displayBounds = CGDisplayBounds(CGMainDisplayID())
+        displayBounds = screenBoundsProvider()
 
         // Skip edge detection if cursor is in a corner zone (PowerToys behavior)
         if isInCornerZone(screenPoint) {
@@ -158,7 +161,7 @@ final class EdgeDetector {
 
     /// Returns true if the given screen point is within ``threshold`` of
     /// the configured ``crossingEdge``.
-    private func isAtEdge(_ point: CGPoint) -> Bool {
+    func isAtEdge(_ point: CGPoint) -> Bool {
         let bounds = displayBounds
         switch crossingEdge {
         case .left:
@@ -198,7 +201,7 @@ final class EdgeDetector {
     // MARK: - Corner blocking
 
     /// Returns true if the cursor is within cornerBlockMargin of any screen corner.
-    private func isInCornerZone(_ point: CGPoint) -> Bool {
+    func isInCornerZone(_ point: CGPoint) -> Bool {
         let bounds = displayBounds
         let margin = cornerBlockMargin
 
