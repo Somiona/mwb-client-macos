@@ -29,7 +29,7 @@ final class InputInjection {
 
     /// Returns the main display bounds in Quartz (top-left origin) coordinates.
     /// CGEvent uses Quartz coordinates, not NSScreen (bottom-left origin).
-    var screenBoundsProvider: () -> CGRect = { CGDisplayBounds(CGMainDisplayID()) }
+    var screenBoundsProvider: () -> CGRect = { NSScreen.fullDesktopBounds }
     
     private var mainScreenBounds: CGRect {
         screenBoundsProvider()

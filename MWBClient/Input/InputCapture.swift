@@ -54,7 +54,7 @@ final class InputCapture {
     private var runLoopSource: CFRunLoopSource?
 
     /// Screen bounds in Quartz (top-left origin) coordinates. Cached on start().
-    private var screenBounds: CGRect = CGDisplayBounds(CGMainDisplayID())
+    private var screenBounds: CGRect = NSScreen.fullDesktopBounds
 
     /// Timer for periodic accessibility permission checks.
     private var permissionCheckTimer: DispatchSourceTimer?
@@ -96,7 +96,7 @@ final class InputCapture {
         Logger.input.info("Starting input capture")
 
         // Cache the main display bounds for coordinate mapping.
-        screenBounds = CGDisplayBounds(CGMainDisplayID())
+        screenBounds = NSScreen.fullDesktopBounds
 
         // Store self in the global bridge so the C callback can reach it.
         inputCaptureBridge = self
@@ -449,5 +449,11 @@ private func eventTapCallback(
 
     default:
         return Unmanaged.passUnretained(event)
+    }
+}
+
+extension NSScreen {
+    static var fullDesktopBounds: CGRect {
+        ScreenInfo.virtualDesktopBounds
     }
 }
