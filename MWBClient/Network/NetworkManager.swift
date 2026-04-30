@@ -276,7 +276,8 @@ actor NetworkManager {
         lastHeartbeatReceived = .now
         updateState(.connected)
         if Self.debugConnectionSteps {
-            Logger.network.info("Connected successfully")
+            let now = MWBCrypto.stamp()
+            Logger.network.info("[\(now)] Connected successfully")
         }
         startHeartbeatMonitor()
 
@@ -317,7 +318,11 @@ actor NetworkManager {
         randomNoise.withUnsafeMutableBytes { ptr in
             _ = SecRandomCopyBytes(kSecRandomDefault, MWBConstants.noiseSize, ptr.baseAddress!)
         }
+        let now = MWBCrypto.stamp()
+        Logger.crypto.debug("[\(now)] [PHASE] noise-send: \(randomNoise.count) bytes plaintext")
         let encryptedNoise = crypto.encrypt(padToBlock(randomNoise))
+        let now2 = MWBCrypto.stamp()
+        Logger.crypto.debug("[\(now2)] [PHASE] noise-send: \(encryptedNoise.count) bytes ciphertext on wire")
         try await conn.send(content: encryptedNoise)
 
         // Receive 16 bytes of noise back
@@ -325,13 +330,18 @@ actor NetworkManager {
         guard let noiseData = receivedNoise, noiseData.count == MWBConstants.noiseSize else {
             throw NetworkError.invalidNoise
         }
+        let now3 = MWBCrypto.stamp()
+        Logger.crypto.debug("[\(now3)] [PHASE] noise-recv: \(noiseData.count) bytes ciphertext from wire")
         _ = crypto.decrypt(padToBlock(noiseData))
+        let now4 = MWBCrypto.stamp()
+        Logger.crypto.debug("[\(now4)] [PHASE] noise-recv: decrypted")
     }
 
     // MARK: Handshake
 
     private func performHandshake(_ conn: NWConnection) async throws {
         // Receive and respond to 10 challenges from the server
+        let now = MWBCrypto.stamp(); Logger.crypto.debug("[\(now)] [PHASE] handshake-start: expecting \(MWBConstants.handshakeIterationCount) challenges")
         for i in 0..<MWBConstants.handshakeIterationCount {
             if Self.debugConnectionSteps {
                 Logger.network.debug("Handshake iteration \(i): waiting for challenge")
@@ -406,7 +416,10 @@ actor NetworkManager {
         identityPacket.setMagic(magicHash)
         _ = identityPacket.computeChecksum()
 
-        let encrypted = crypto.encrypt(padToBlock(identityPacket.transmittedData))
+        let txData = identityPacket.transmittedData
+        let now = MWBCrypto.stamp(); Logger.crypto.debug("[\(now)] [PHASE] identity-send: \(txData.count) bytes plaintext, isBig=\(identityPacket.isBig), type=\(identityPacket.type)")
+        let encrypted = crypto.encrypt(padToBlock(txData))
+        let now2 = MWBCrypto.stamp(); Logger.crypto.debug("[\(now2)] [PHASE] identity-send: \(encrypted.count) bytes ciphertext on wire")
         try await conn.send(content: encrypted)
         handshakeHandler.completeIdentity()
     }
@@ -424,7 +437,8 @@ actor NetworkManager {
 
                 guard let firstData = firstChunk, firstData.count == MWBConstants.smallPacketSize else {
                     if Self.debugConnectionSteps {
-                        Logger.network.info("Receive pump: connection closed (no data)")
+                        let now = MWBCrypto.stamp()
+                        Logger.network.info("[\(now)] Receive pump: connection closed (no data)")
                     }
                     break // Connection closed or error
                 }

@@ -1,7 +1,16 @@
-docs/
+docs/*
+!docs/protocol/
+# Reference implementations (not part of the project)
+reference/
+
+# Local crypto test
+crypto-test/
+
 .claude/
 Package.swift
 CLAUDE.md
+
+.worktree/
 
 # Xcode
 build/
@@ -37,8 +46,6 @@ Package.pins
 Package.resolved
 *.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
 
-# Reference implementations (not part of the project)
-reference/
 
 ## User settings
 xcuserdata/
