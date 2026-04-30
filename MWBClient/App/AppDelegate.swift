@@ -30,6 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
 
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(handleSleep), name: NSWorkspace.willSleepNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(handleWake), name: NSWorkspace.didWakeNotification, object: nil)
+
         // Set up tray menu and auto-connect
         if let coordinator = Self.sharedCoordinator, let settings = Self.sharedSettings {
             trayMenu = TrayMenu(coordinator: coordinator)
@@ -62,6 +65,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard isSettingsWindow(notification.object as? NSWindow) else { return }
         guard let settings = Self.sharedSettings, !settings.hideDockIcon else { return }
         NSApp.setActivationPolicy(.accessory)
+    }
+
+    // MARK: - OS Sleep / Wake
+
+    @objc private func handleSleep() {
+        guard let coordinator = Self.sharedCoordinator else { return }
+        Task { await coordinator.networkManager.handleSleep() }
+    }
+
+    @objc private func handleWake() {
+        guard let coordinator = Self.sharedCoordinator else { return }
+        Task { await coordinator.networkManager.handleWake() }
     }
 
     // MARK: - Helpers

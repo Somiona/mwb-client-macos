@@ -764,6 +764,18 @@ actor NetworkManager {
         }
     }
 
+    // MARK: OS Sleep / Wake
+
+    func handleSleep() {
+        Logger.network.info("OS Sleep detected, tearing down sockets")
+        disconnect()
+    }
+
+    func handleWake() {
+        Logger.network.info("OS Wake detected, scheduling reconnect")
+        Task { await connect() }
+    }
+
     // MARK: Configuration Updates
 
     func updateHost(_ newHost: String) {
