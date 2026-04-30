@@ -3,7 +3,7 @@ import XCTest
 
 final class MWBHandshakeTests: XCTestCase {
 
-    func testHandshakeChallengeResponseFlipsBits() {
+    func testHandshakeChallengeResponseFlipsBits() throws {
         var handler = HandshakeHandler()
         handler.start()
 
@@ -16,12 +16,12 @@ final class MWBHandshakeTests: XCTestCase {
         }
 
         let ackPacket = handler.receiveChallenge(challengePacket, localMachineName: "Test")
-        XCTAssertNotNil(ackPacket)
+        let unwrappedAck = try XCTUnwrap(ackPacket)
         
         // Verify bitwise NOT
         for i in 0..<4 {
             let original = 0x11223344 + UInt32(i)
-            let flipped = ackPacket!.dataUInt32(at: i * 4)
+            let flipped = unwrappedAck.dataUInt32(at: i * 4)
             XCTAssertEqual(flipped, ~original)
         }
     }

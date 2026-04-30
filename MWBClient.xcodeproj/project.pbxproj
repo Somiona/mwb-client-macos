@@ -10,12 +10,13 @@
 		06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */; };
 		1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */; };
 		188C72432675028FAD914BDC /* MWBPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */; };
-		1A5C5498F11A9EB0FCF10318 /* MWBHandshakeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681E7780FE8C66A33431245E /* MWBHandshakeTests.swift */; };
 		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
 		1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5929D4D7603B549A3D3E214C /* HeartbeatService.swift */; };
 		2115B5C705F7B788A886C7AC /* PackageDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 301AE8381DA1536DC4A155D5 /* PackageDeduplicator.swift */; };
 		2A4B51C885C8AE958B57EEF3 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */; };
+		3105D04053C137A00417F915 /* NetworkIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADB3C9DAEF8AA27C09D7C1F3 /* NetworkIntegrationTests.swift */; };
 		34D5E78EA0EF050D71D06129 /* LayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44757A274942A16843F68B9E /* LayoutView.swift */; };
+		3DDA6444A468EF8013916DD9 /* MWBHandshakeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65687D9F830641CC72C98325 /* MWBHandshakeTests.swift */; };
 		48EB907090A3E8A126AB063A /* TrayMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30AAC773F12E24AB0F72A82 /* TrayMenu.swift */; };
 		49B80F2968571D548F8D1F7B /* ClipboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 641FE17D9AFE54ED91ED5FE1 /* ClipboardView.swift */; };
 		54F3590BB03D7445434C3CDF /* MWBCryptoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */; };
@@ -77,7 +78,7 @@
 		5929D4D7603B549A3D3E214C /* HeartbeatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartbeatService.swift; sourceTree = "<group>"; };
 		59334291F885148BC161FCE2 /* MWBKeyboardData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBKeyboardData.swift; sourceTree = "<group>"; };
 		641FE17D9AFE54ED91ED5FE1 /* ClipboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardView.swift; sourceTree = "<group>"; };
-		681E7780FE8C66A33431245E /* MWBHandshakeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MWBHandshakeTests.swift; sourceTree = "<group>"; };
+		65687D9F830641CC72C98325 /* MWBHandshakeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBHandshakeTests.swift; sourceTree = "<group>"; };
 		75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MWBClientTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkCallbacks.swift; sourceTree = "<group>"; };
 		82F62EBF6436F652A1861C1D /* ServerListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerListener.swift; sourceTree = "<group>"; };
@@ -87,6 +88,7 @@
 		A26795837B7EC4F86C491C10 /* InputInjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputInjection.swift; sourceTree = "<group>"; };
 		AB222A87194D78042767C39F /* MWBMouseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBMouseData.swift; sourceTree = "<group>"; };
 		AC10AB6D2D613EE34A724CD2 /* InputIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputIntegrationTests.swift; sourceTree = "<group>"; };
+		ADB3C9DAEF8AA27C09D7C1F3 /* NetworkIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkIntegrationTests.swift; sourceTree = "<group>"; };
 		AE09E447C777581836F67970 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenInfo.swift; sourceTree = "<group>"; };
 		B09568AF0CC3622C18EA8D74 /* MWBClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MWBClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -146,9 +148,10 @@
 				5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */,
 				EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */,
 				3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */,
+				65687D9F830641CC72C98325 /* MWBHandshakeTests.swift */,
 				491B710D380573EF0C358439 /* MWBPacketTests.swift */,
+				ADB3C9DAEF8AA27C09D7C1F3 /* NetworkIntegrationTests.swift */,
 				0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */,
-				681E7780FE8C66A33431245E /* MWBHandshakeTests.swift */,
 			);
 			path = MWBClientTests;
 			sourceTree = "<group>";
@@ -300,6 +303,8 @@
 				6B9919C739B447590A9BFE0D /* PBXTargetDependency */,
 			);
 			name = MWBClientTests;
+			packageProductDependencies = (
+			);
 			productName = MWBClientTests;
 			productReference = 75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -316,6 +321,8 @@
 			dependencies = (
 			);
 			name = MWBClient;
+			packageProductDependencies = (
+			);
 			productName = MWBClient;
 			productReference = B09568AF0CC3622C18EA8D74 /* MWBClient.app */;
 			productType = "com.apple.product-type.application";
@@ -378,9 +385,10 @@
 				6A0FF454F115902423D28831 /* InputLayerTests.swift in Sources */,
 				612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */,
 				54F3590BB03D7445434C3CDF /* MWBCryptoTests.swift in Sources */,
+				3DDA6444A468EF8013916DD9 /* MWBHandshakeTests.swift in Sources */,
 				FBA6854DA76B9C6D974561F2 /* MWBPacketTests.swift in Sources */,
+				3105D04053C137A00417F915 /* NetworkIntegrationTests.swift in Sources */,
 				C73329BC2DD49CA44BAF2DBF /* ProtocolCompatibilityTests.swift in Sources */,
-				1A5C5498F11A9EB0FCF10318 /* MWBHandshakeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -548,10 +556,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = MWBClient;
 				SDKROOT = macosx;
@@ -568,10 +573,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = MWBClient;
 				SDKROOT = macosx;

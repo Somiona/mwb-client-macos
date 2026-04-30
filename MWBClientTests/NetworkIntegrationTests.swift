@@ -14,9 +14,17 @@ final class NetworkIntegrationTests: XCTestCase {
         let port: UInt16 = 27016
         let securityKey = "TestIntegrationKey"
         
-        let listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: port)!)
+        let unwrappedPort = try XCTUnwrap(NWEndpoint.Port(rawValue: port))
+        let listener = try NWListener(using: .tcp, on: unwrappedPort)
         
         let serverExpectation = XCTestExpectation(description: "Server received valid ACK")
+        let listenerReadyExpectation = XCTestExpectation(description: "Listener ready")
+        
+        listener.stateUpdateHandler = { state in
+            if case .ready = state {
+                listenerReadyExpectation.fulfill()
+            }
+        }
         
         listener.newConnectionHandler = { conn in
             conn.start(queue: .global())
@@ -28,12 +36,15 @@ final class NetworkIntegrationTests: XCTestCase {
                     // 1. Receive noise from client
                     let clientNoise = try await conn.receive(minimumIncompleteLength: 16, maximumLength: 16)
                     XCTAssertEqual(clientNoise?.count, 16)
-                    _ = serverCrypto.decrypt(clientNoise!) // Shifts server IV
+                    let unwrappedNoise = try XCTUnwrap(clientNoise)
+                    _ = serverCrypto.decrypt(unwrappedNoise) // Shifts server IV
                     
                     // 2. Send noise to client
                     var serverNoise = Data(count: 16)
-                    serverNoise.withUnsafeMutableBytes { ptr in
-                        _ = SecRandomCopyBytes(kSecRandomDefault, 16, ptr.baseAddress!)
+                    try serverNoise.withUnsafeMutableBytes { ptr in
+                        let baseAddress = try XCTUnwrap(ptr.baseAddress)
+                        let result = SecRandomCopyBytes(kSecRandomDefault, 16, baseAddress)
+                        XCTAssertEqual(result, errSecSuccess)
                     }
                     let encServerNoise = serverCrypto.encrypt(serverNoise) // Shifts server IV
                     try await conn.send(content: encServerNoise)
@@ -48,7 +59,8 @@ final class NetworkIntegrationTests: XCTestCase {
                     
                     // 4. Expect Handshake ACK (type 127) back from client
                     let ackData = try await conn.receive(minimumIncompleteLength: 32, maximumLength: 32)
-                    let decAck = serverCrypto.decrypt(ackData!)
+                    let unwrappedAck = try XCTUnwrap(ackData)
+                    let decAck = serverCrypto.decrypt(unwrappedAck)
                     let ackPacket = MWBPacket(rawData: decAck)
                     
                     XCTAssertEqual(ackPacket.packageType, .handshakeAck, "Client must respond with ACK, proving it decrypted the challenge correctly")
@@ -60,9 +72,7 @@ final class NetworkIntegrationTests: XCTestCase {
         }
         
         listener.start(queue: .global())
-        
-        // Wait a brief moment for the listener to start
-        try await Task.sleep(nanoseconds: 100_000_000)
+        await fulfillment(of: [listenerReadyExpectation], timeout: 5.0)
         
         let client = NetworkManager(
             host: "127.0.0.1",
