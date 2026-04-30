@@ -10,6 +10,7 @@
 		06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */; };
 		1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */; };
 		188C72432675028FAD914BDC /* MWBPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */; };
+		1A5C5498F11A9EB0FCF10318 /* MWBHandshakeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681E7780FE8C66A33431245E /* MWBHandshakeTests.swift */; };
 		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
 		1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5929D4D7603B549A3D3E214C /* HeartbeatService.swift */; };
 		2115B5C705F7B788A886C7AC /* PackageDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 301AE8381DA1536DC4A155D5 /* PackageDeduplicator.swift */; };
@@ -44,6 +45,7 @@
 		CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */; };
 		E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B03D6DF490960A2425D804 /* SettingsWindow.swift */; };
 		F1E03F704170F4EF03677607 /* ResumeOnce.swift in Sources */ = {isa = PBXBuildFile; fileRef = E46CD9FF1712D138D025FB2C /* ResumeOnce.swift */; };
+		FBA6854DA76B9C6D974561F2 /* MWBPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 491B710D380573EF0C358439 /* MWBPacketTests.swift */; };
 		FE988D34BABCD3A73AD97BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C99E0500DC51D1376645C1E2 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -68,12 +70,14 @@
 		3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
 		44757A274942A16843F68B9E /* LayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutView.swift; sourceTree = "<group>"; };
 		46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoCrossPlatformTests.swift; sourceTree = "<group>"; };
+		491B710D380573EF0C358439 /* MWBPacketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBPacketTests.swift; sourceTree = "<group>"; };
 		4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCodec.swift; sourceTree = "<group>"; };
 		4DA5714D75003D2FD578D32A /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputLayerTests.swift; sourceTree = "<group>"; };
 		5929D4D7603B549A3D3E214C /* HeartbeatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartbeatService.swift; sourceTree = "<group>"; };
 		59334291F885148BC161FCE2 /* MWBKeyboardData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBKeyboardData.swift; sourceTree = "<group>"; };
 		641FE17D9AFE54ED91ED5FE1 /* ClipboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardView.swift; sourceTree = "<group>"; };
+		681E7780FE8C66A33431245E /* MWBHandshakeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MWBHandshakeTests.swift; sourceTree = "<group>"; };
 		75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MWBClientTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkCallbacks.swift; sourceTree = "<group>"; };
 		82F62EBF6436F652A1861C1D /* ServerListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerListener.swift; sourceTree = "<group>"; };
@@ -142,7 +146,9 @@
 				5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */,
 				EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */,
 				3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */,
+				491B710D380573EF0C358439 /* MWBPacketTests.swift */,
 				0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */,
+				681E7780FE8C66A33431245E /* MWBHandshakeTests.swift */,
 			);
 			path = MWBClientTests;
 			sourceTree = "<group>";
@@ -294,8 +300,6 @@
 				6B9919C739B447590A9BFE0D /* PBXTargetDependency */,
 			);
 			name = MWBClientTests;
-			packageProductDependencies = (
-			);
 			productName = MWBClientTests;
 			productReference = 75495B2DED788CF3D15C2360 /* MWBClientTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -312,8 +316,6 @@
 			dependencies = (
 			);
 			name = MWBClient;
-			packageProductDependencies = (
-			);
 			productName = MWBClient;
 			productReference = B09568AF0CC3622C18EA8D74 /* MWBClient.app */;
 			productType = "com.apple.product-type.application";
@@ -376,7 +378,9 @@
 				6A0FF454F115902423D28831 /* InputLayerTests.swift in Sources */,
 				612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */,
 				54F3590BB03D7445434C3CDF /* MWBCryptoTests.swift in Sources */,
+				FBA6854DA76B9C6D974561F2 /* MWBPacketTests.swift in Sources */,
 				C73329BC2DD49CA44BAF2DBF /* ProtocolCompatibilityTests.swift in Sources */,
+				1A5C5498F11A9EB0FCF10318 /* MWBHandshakeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,7 +548,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = MWBClient;
 				SDKROOT = macosx;
@@ -561,7 +568,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = MWBClient;
 				SDKROOT = macosx;
