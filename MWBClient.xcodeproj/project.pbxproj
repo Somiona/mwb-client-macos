@@ -13,6 +13,7 @@
 		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
 		1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5929D4D7603B549A3D3E214C /* HeartbeatService.swift */; };
 		2115B5C705F7B788A886C7AC /* PackageDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 301AE8381DA1536DC4A155D5 /* PackageDeduplicator.swift */; };
+		24E50D5747BFF3E2A7239755 /* MachinePoolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3636C262BEECE646EB78B8B5 /* MachinePoolTests.swift */; };
 		2A4B51C885C8AE958B57EEF3 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */; };
 		3105D04053C137A00417F915 /* NetworkIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADB3C9DAEF8AA27C09D7C1F3 /* NetworkIntegrationTests.swift */; };
 		34D5E78EA0EF050D71D06129 /* LayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44757A274942A16843F68B9E /* LayoutView.swift */; };
@@ -38,6 +39,7 @@
 		805EB3CA3399A58A45A7BC04 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55DC62E228DC882B82162C7 /* ConnectionView.swift */; };
 		844F805F5BB961501592ADA5 /* InputIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC10AB6D2D613EE34A724CD2 /* InputIntegrationTests.swift */; };
 		86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F38E9FDB3A364CEC11978A /* NetworkManager.swift */; };
+		89A653556334EAF0D63BA872 /* MachinePool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43716A77A3EC0A53CFE489A2 /* MachinePool.swift */; };
 		8A12B0E405E18FB930D91923 /* MWBHandshake.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F3D0296E0F76D9C47BD4AE /* MWBHandshake.swift */; };
 		93C6BFBF8C21BAD92CECFBA0 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB048089A977A0BC32B0369B /* AppCoordinator.swift */; };
 		A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59334291F885148BC161FCE2 /* MWBKeyboardData.swift */; };
@@ -69,8 +71,10 @@
 		2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetector.swift; sourceTree = "<group>"; };
 		2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBConstants.swift; sourceTree = "<group>"; };
 		301AE8381DA1536DC4A155D5 /* PackageDeduplicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackageDeduplicator.swift; sourceTree = "<group>"; };
+		3636C262BEECE646EB78B8B5 /* MachinePoolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachinePoolTests.swift; sourceTree = "<group>"; };
 		3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCryptoTests.swift; sourceTree = "<group>"; };
 		3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
+		43716A77A3EC0A53CFE489A2 /* MachinePool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachinePool.swift; sourceTree = "<group>"; };
 		44757A274942A16843F68B9E /* LayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutView.swift; sourceTree = "<group>"; };
 		46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoCrossPlatformTests.swift; sourceTree = "<group>"; };
 		491B710D380573EF0C358439 /* MWBPacketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBPacketTests.swift; sourceTree = "<group>"; };
@@ -152,6 +156,7 @@
 				53B665D45733F4493D7A0AAC /* EdgeDetectorTests.swift */,
 				AC10AB6D2D613EE34A724CD2 /* InputIntegrationTests.swift */,
 				5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */,
+				3636C262BEECE646EB78B8B5 /* MachinePoolTests.swift */,
 				EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */,
 				3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */,
 				65687D9F830641CC72C98325 /* MWBHandshakeTests.swift */,
@@ -242,6 +247,14 @@
 			path = Network;
 			sourceTree = "<group>";
 		};
+		8505BD75B7392D641E57B601 /* State */ = {
+			isa = PBXGroup;
+			children = (
+				43716A77A3EC0A53CFE489A2 /* MachinePool.swift */,
+			);
+			path = State;
+			sourceTree = "<group>";
+		};
 		C48C42558A090CF60D96DCD7 /* Crypto */ = {
 			isa = PBXGroup;
 			children = (
@@ -271,6 +284,7 @@
 				663D0DAC18CF1D7D5D0A6E78 /* Persistence */,
 				1AE39F3B38371A7B17E088FB /* Protocol */,
 				738DE99CA05426C984D8B5C8 /* Resources */,
+				8505BD75B7392D641E57B601 /* State */,
 				E333B6A56ED8A1DE77C67EF4 /* UI */,
 				1395016B28A86661D7529FBB /* Utils */,
 			);
@@ -395,6 +409,7 @@
 				54F3590BB03D7445434C3CDF /* MWBCryptoTests.swift in Sources */,
 				3DDA6444A468EF8013916DD9 /* MWBHandshakeTests.swift in Sources */,
 				FBA6854DA76B9C6D974561F2 /* MWBPacketTests.swift in Sources */,
+				24E50D5747BFF3E2A7239755 /* MachinePoolTests.swift in Sources */,
 				3105D04053C137A00417F915 /* NetworkIntegrationTests.swift in Sources */,
 				C73329BC2DD49CA44BAF2DBF /* ProtocolCompatibilityTests.swift in Sources */,
 			);
@@ -425,6 +440,7 @@
 				A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */,
 				564A59595DFAFCAB8F83C87A /* MWBMouseData.swift in Sources */,
 				188C72432675028FAD914BDC /* MWBPacket.swift in Sources */,
+				89A653556334EAF0D63BA872 /* MachinePool.swift in Sources */,
 				1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */,
 				86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */,
 				2115B5C705F7B788A886C7AC /* PackageDeduplicator.swift in Sources */,
