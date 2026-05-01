@@ -21,6 +21,13 @@ struct GeneralView: View {
                     .font(.caption)
             }
 
+            Section("Advanced Mouse Settings") {
+                Toggle("Move mouse relatively", isOn: $settings.moveMouseRelatively)
+                Toggle("Block mouse at screen corners", isOn: $settings.blockMouseAtCorners)
+                Toggle("Hide mouse at screen edge", isOn: $settings.hideMouseAtScreenEdge)
+                Toggle("Disable easy mouse in fullscreen", isOn: $settings.disableEasyMouseInFullscreen)
+            }
+
             Section("Startup") {
                 Toggle("Start at login", isOn: $settings.startAtLogin)
                     .onChange(of: settings.startAtLogin) { _, newValue in

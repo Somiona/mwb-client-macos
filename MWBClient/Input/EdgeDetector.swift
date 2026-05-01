@@ -140,6 +140,11 @@ final class EdgeDetector {
     func crossingDidEnd() {
         let warpTarget = insetPosition(crossingEntryPosition, for: crossingEdge, inset: threshold + 1)
         CGWarpMouseCursorPosition(warpTarget)
+        
+        if UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge") {
+            CGDisplayShowCursor(CGMainDisplayID())
+        }
+        
         Logger.input.info("Edge crossing ended, warped cursor to (\(warpTarget.x), \(warpTarget.y))")
 
         isCrossingActive = false
@@ -187,6 +192,11 @@ final class EdgeDetector {
 
         isCrossingActive = true
         crossingEntryPosition = screenPoint
+        
+        if UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge") {
+            CGDisplayHideCursor(CGMainDisplayID())
+        }
+        
         let edgeName = crossingEdge.rawValue
         Logger.input.info("Edge crossing triggered at \(edgeName) edge, screen: (\(screenPoint.x), \(screenPoint.y))")
 
@@ -202,6 +212,8 @@ final class EdgeDetector {
 
     /// Returns true if the cursor is within cornerBlockMargin of any screen corner.
     func isInCornerZone(_ point: CGPoint) -> Bool {
+        guard UserDefaults.standard.bool(forKey: "settings.blockMouseAtCorners") else { return false }
+        
         let bounds = displayBounds
         let margin = cornerBlockMargin
 

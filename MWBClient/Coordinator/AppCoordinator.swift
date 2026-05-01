@@ -269,9 +269,54 @@ final class AppCoordinator {
         }
     }
 
-    /// Call when the crossing edge setting changes.
-    func crossingEdgeDidChange() {
-        edgeDetector.crossingEdge = settings.crossingEdge
+    /// Call when the matrix layout changes to update the crossing edge.
+    func updateCrossingEdgeFromMatrix() {
+        let parts = settings.machineMatrixString.split(separator: ",", omittingEmptySubsequences: false).map { String($0).trimmingCharacters(in: .whitespaces) }
+        
+        let localName = localMachineName
+        let remoteName = windowsMachineName
+        
+        guard !localName.isEmpty && !remoteName.isEmpty else { return }
+        guard let localIdx = parts.firstIndex(of: localName),
+              let remoteIdx = parts.firstIndex(of: remoteName) else {
+            return
+        }
+        
+        let oneRow = settings.matrixOneRow
+        let isCircle = settings.matrixCircle
+        
+        if oneRow {
+            // 1x4 layout
+            if remoteIdx > localIdx {
+                edgeDetector.crossingEdge = .right
+            } else if remoteIdx < localIdx {
+                edgeDetector.crossingEdge = .left
+            }
+            
+            // Handle wrap-around
+            if isCircle {
+                if localIdx == 0 && remoteIdx == 3 {
+                    edgeDetector.crossingEdge = .left
+                } else if localIdx == 3 && remoteIdx == 0 {
+                    edgeDetector.crossingEdge = .right
+                }
+            }
+        } else {
+            // 2x2 layout
+            let localRow = localIdx / 2
+            let localCol = localIdx % 2
+            let remoteRow = remoteIdx / 2
+            let remoteCol = remoteIdx % 2
+            
+            if localRow == remoteRow {
+                edgeDetector.crossingEdge = remoteCol > localCol ? .right : .left
+            } else if localCol == remoteCol {
+                edgeDetector.crossingEdge = remoteRow > localRow ? .bottom : .top
+            }
+            
+            // 2x2 doesn't technically wrap the same way in Mouse Without Borders, 
+            // but we can just leave it as adjacent only.
+        }
     }
 
     // MARK: - Post-Connection Startup
@@ -305,6 +350,8 @@ final class AppCoordinator {
         let magicHash = await nm.magicHash
         localMachineID = machineID
         windowsMachineName = connectedName
+        
+        updateCrossingEdgeFromMatrix()
 
         // Update clipboard manager with the adopted machine ID
         await cm.updateMachineID(machineID)
@@ -367,6 +414,8 @@ final class AppCoordinator {
 
         localMachineID = machineID
         windowsMachineName = connectedName
+        
+        updateCrossingEdgeFromMatrix()
 
         // Update clipboard manager with the adopted machine ID
         await clipboardManager?.updateMachineID(machineID)

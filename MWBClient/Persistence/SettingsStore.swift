@@ -18,6 +18,10 @@ private enum SettingsKey {
     static let machineMatrixString = "settings.machineMatrixString"
     static let matrixOneRow = "settings.matrixOneRow"
     static let matrixCircle = "settings.matrixCircle"
+    static let moveMouseRelatively = "settings.moveMouseRelatively"
+    static let blockMouseAtCorners = "settings.blockMouseAtCorners"
+    static let hideMouseAtScreenEdge = "settings.hideMouseAtScreenEdge"
+    static let disableEasyMouseInFullscreen = "settings.disableEasyMouseInFullscreen"
 }
 
 // MARK: - Defaults
@@ -46,6 +50,10 @@ private enum SettingsDefault {
     static let machineMatrixString = ",,,"
     static let matrixOneRow = true
     static let matrixCircle = false
+    static let moveMouseRelatively = false
+    static let blockMouseAtCorners = false
+    static let hideMouseAtScreenEdge = true
+    static let disableEasyMouseInFullscreen = false
 }
 
 // MARK: - SettingsStore
@@ -148,6 +156,24 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(matrixCircle, forKey: SettingsKey.matrixCircle) }
     }
 
+    // MARK: - Advanced Mouse Settings
+
+    var moveMouseRelatively: Bool {
+        didSet { UserDefaults.standard.set(moveMouseRelatively, forKey: SettingsKey.moveMouseRelatively) }
+    }
+
+    var blockMouseAtCorners: Bool {
+        didSet { UserDefaults.standard.set(blockMouseAtCorners, forKey: SettingsKey.blockMouseAtCorners) }
+    }
+
+    var hideMouseAtScreenEdge: Bool {
+        didSet { UserDefaults.standard.set(hideMouseAtScreenEdge, forKey: SettingsKey.hideMouseAtScreenEdge) }
+    }
+
+    var disableEasyMouseInFullscreen: Bool {
+        didSet { UserDefaults.standard.set(disableEasyMouseInFullscreen, forKey: SettingsKey.disableEasyMouseInFullscreen) }
+    }
+
     // MARK: - Init
 
     /// Creates a settings store, loading persisted values from UserDefaults
@@ -177,6 +203,11 @@ final class SettingsStore {
         self.matrixOneRow = defaults.object(forKey: SettingsKey.matrixOneRow) as? Bool ?? SettingsDefault.matrixOneRow
         self.matrixCircle = defaults.object(forKey: SettingsKey.matrixCircle) as? Bool ?? SettingsDefault.matrixCircle
 
+        self.moveMouseRelatively = defaults.object(forKey: SettingsKey.moveMouseRelatively) as? Bool ?? SettingsDefault.moveMouseRelatively
+        self.blockMouseAtCorners = defaults.object(forKey: SettingsKey.blockMouseAtCorners) as? Bool ?? SettingsDefault.blockMouseAtCorners
+        self.hideMouseAtScreenEdge = defaults.object(forKey: SettingsKey.hideMouseAtScreenEdge) as? Bool ?? SettingsDefault.hideMouseAtScreenEdge
+        self.disableEasyMouseInFullscreen = defaults.object(forKey: SettingsKey.disableEasyMouseInFullscreen) as? Bool ?? SettingsDefault.disableEasyMouseInFullscreen
+
         if let storedID = defaults.object(forKey: SettingsKey.machineID) as? Int {
             self.machineID = UInt32(truncatingIfNeeded: storedID)
         } else {
@@ -203,5 +234,9 @@ final class SettingsStore {
         machineMatrixString = SettingsDefault.machineMatrixString
         matrixOneRow = SettingsDefault.matrixOneRow
         matrixCircle = SettingsDefault.matrixCircle
+        moveMouseRelatively = SettingsDefault.moveMouseRelatively
+        blockMouseAtCorners = SettingsDefault.blockMouseAtCorners
+        hideMouseAtScreenEdge = SettingsDefault.hideMouseAtScreenEdge
+        disableEasyMouseInFullscreen = SettingsDefault.disableEasyMouseInFullscreen
     }
 }

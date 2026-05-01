@@ -232,7 +232,13 @@ final class InputCapture {
         switch type {
         case .mouseMoved:
             wmMessage = .mouseMove
-            mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            if UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively") {
+                let dx = Int32(event.getIntegerValueField(.mouseEventDeltaX))
+                let dy = Int32(event.getIntegerValueField(.mouseEventDeltaY))
+                mouseData = MouseData(x: dx + 100000, y: dy + 100000, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            } else {
+                mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            }
 
         case .leftMouseDown:
             wmMessage = .lButtonDown
