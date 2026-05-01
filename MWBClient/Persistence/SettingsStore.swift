@@ -13,6 +13,7 @@ private enum SettingsKey {
     static let showInMenuBar = "settings.showInMenuBar"
     static let crossingEdge = "settings.crossingEdge"
     static let machineName = "settings.machineName"
+    static let machineID = "settings.machineID"
     static let hideDockIcon = "settings.hideDockIcon"
 }
 
@@ -114,6 +115,11 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(machineName, forKey: SettingsKey.machineName) }
     }
 
+    /// Unique 32-bit ID for this machine.
+    var machineID: UInt32 {
+        didSet { UserDefaults.standard.set(Int(machineID), forKey: SettingsKey.machineID) }
+    }
+
     /// Whether to hide the dock icon (runs as an accessory app).
     var hideDockIcon: Bool {
         didSet { UserDefaults.standard.set(hideDockIcon, forKey: SettingsKey.hideDockIcon) }
@@ -142,7 +148,16 @@ final class SettingsStore {
         }
 
         self.machineName = defaults.string(forKey: SettingsKey.machineName) ?? SettingsDefault.machineName
+        
         self.hideDockIcon = defaults.object(forKey: SettingsKey.hideDockIcon) as? Bool ?? SettingsDefault.hideDockIcon
+
+        if let storedID = defaults.object(forKey: SettingsKey.machineID) as? Int {
+            self.machineID = UInt32(truncatingIfNeeded: storedID)
+        } else {
+            let newID = UInt32.random(in: 1..<UInt32.max)
+            self.machineID = newID
+            defaults.set(Int(newID), forKey: SettingsKey.machineID)
+        }
     }
 
     // MARK: - Helpers

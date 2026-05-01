@@ -78,6 +78,7 @@ final class NetworkIntegrationTests: XCTestCase {
             host: "127.0.0.1",
             port: port,
             securityKey: securityKey,
+            machineID: 12345,
             machineName: "ClientMac",
             screenWidth: 1920,
             screenHeight: 1080

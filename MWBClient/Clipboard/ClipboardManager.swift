@@ -11,6 +11,8 @@ actor ClipboardManager {
     // MARK: Public State
 
     private(set) var isConnected = false
+    private(set) var connectedMachineName: String = ""
+    var machineID: UInt32 = 0
 
     // MARK: Configuration
 
@@ -33,7 +35,6 @@ actor ClipboardManager {
     // MARK: Crypto & Protocol State
 
     private var crypto: MWBCrypto
-    private var handshakeHandler = HandshakeHandler()
     private var magicHash: UInt32 = 0
 
     // MARK: Connection
@@ -61,6 +62,7 @@ actor ClipboardManager {
 
     /// The type of clipboard content currently being received.
     private var inboundContentType: PackageType?
+    private var nextPacketID: UInt32 = UInt32.random(in: 1..<0x7FFFFFFF)
 
     // MARK: Init
 
@@ -68,6 +70,7 @@ actor ClipboardManager {
         host: String,
         port: UInt16 = MWBConstants.clipboardPort,
         securityKey: String,
+        machineID: UInt32,
         machineName: String = Host.current().localizedName ?? "Mac",
         screenWidth: UInt16 = UInt16(NSScreen.main?.frame.width ?? 1920),
         screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080),
@@ -78,6 +81,7 @@ actor ClipboardManager {
         self.host = host
         self.port = port
         self.securityKey = securityKey
+        self.machineID = machineID
         self.localMachineName = machineName
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
@@ -115,6 +119,10 @@ actor ClipboardManager {
         if let syncText { self.syncText = syncText }
         if let syncImages { self.syncImages = syncImages }
         if let syncFiles { self.syncFiles = syncFiles }
+    }
+
+    func updateMachineID(_ newID: UInt32) {
+        self.machineID = newID
     }
 
     func updateHost(_ newHost: String) {
@@ -159,42 +167,15 @@ actor ClipboardManager {
             return
         }
 
-        // Phase 1: Noise exchange
+        // Phase 1: Clipboard ShakeHand (noise + ClipboardPush exchange)
         do {
-            try await exchangeNoise(conn)
+            try await clipboardShakeHand(conn)
         } catch is NetworkError {
-            Logger.clipboard.info("Clipboard noise exchange cancelled")
+            Logger.clipboard.info("Clipboard ShakeHand cancelled")
             isConnected = false
             return
         } catch {
-            Logger.clipboard.error("Clipboard noise exchange failed: \(error.localizedDescription)")
-            scheduleReconnect()
-            return
-        }
-
-        // Phase 2: Handshake
-        handshakeHandler.start()
-        do {
-            try await performHandshake(conn)
-        } catch is NetworkError {
-            Logger.clipboard.info("Clipboard handshake cancelled")
-            isConnected = false
-            return
-        } catch {
-            Logger.clipboard.error("Clipboard handshake failed: \(error.localizedDescription)")
-            scheduleReconnect()
-            return
-        }
-
-        // Phase 3: Send identity
-        do {
-            try await sendIdentity(conn)
-        } catch is NetworkError {
-            Logger.clipboard.info("Clipboard send identity cancelled")
-            isConnected = false
-            return
-        } catch {
-            Logger.clipboard.error("Clipboard send identity failed: \(error.localizedDescription)")
+            Logger.clipboard.error("Clipboard ShakeHand failed: \(error.localizedDescription)")
             scheduleReconnect()
             return
         }
@@ -236,10 +217,10 @@ actor ClipboardManager {
         }
     }
 
-    // MARK: Noise Exchange
+    // MARK: Clipboard ShakeHand
 
-    private func exchangeNoise(_ conn: NWConnection) async throws {
-        // Send 16 bytes of random encrypted data
+    private func clipboardShakeHand(_ conn: NWConnection) async throws {
+        // 1. Send 16 bytes of random encrypted data (CBC shift)
         var randomNoise = Data(count: MWBConstants.noiseSize)
         randomNoise.withUnsafeMutableBytes { ptr in
             _ = SecRandomCopyBytes(kSecRandomDefault, MWBConstants.noiseSize, ptr.baseAddress!)
@@ -247,7 +228,25 @@ actor ClipboardManager {
         let encryptedNoise = crypto.encrypt(padToBlock(randomNoise))
         try await conn.send(content: encryptedNoise)
 
-        // Receive 16 bytes of noise back
+        // 2. Send 64-byte ClipboardPush header
+        var headerPacket = MWBPacket()
+        headerPacket.type = PackageType.clipboardPush.rawValue
+        headerPacket.id = nextPacketID
+        nextPacketID &+= 1
+        
+        headerPacket.src = machineID
+        headerPacket.setMagic(magicHash)
+        _ = headerPacket.computeChecksum()
+
+        let nameData = HandshakeHandler.encodeMachineName(localMachineName)
+        var fullData = headerPacket.data
+        fullData.replaceSubrange(16..<48, with: nameData)
+        headerPacket.data = fullData
+
+        let encryptedHeader = crypto.encrypt(padToBlock(headerPacket.transmittedData))
+        try await conn.send(content: encryptedHeader)
+
+        // 3. Receive 16 bytes of noise (CBC shift)
         let receivedNoise = try await conn.receive(
             minimumIncompleteLength: MWBConstants.noiseSize,
             maximumLength: MWBConstants.noiseSize
@@ -256,79 +255,37 @@ actor ClipboardManager {
             throw NetworkError.invalidNoise
         }
         _ = crypto.decrypt(padToBlock(noiseData))
-    }
 
-    // MARK: Handshake
-
-    private func performHandshake(_ conn: NWConnection) async throws {
-        for _ in 0..<MWBConstants.handshakeIterationCount {
-            let rawFirst = try await conn.receive(
-                minimumIncompleteLength: MWBConstants.smallPacketSize,
-                maximumLength: MWBConstants.smallPacketSize
-            )
-            guard let firstEncrypted = rawFirst, firstEncrypted.count == MWBConstants.smallPacketSize else {
-                throw NetworkError.handshakeFailed("incomplete challenge packet")
-            }
-
-            let firstDecrypted = crypto.decrypt(firstEncrypted)
-
-            let packetType = firstDecrypted[0]
-            let isBig = PackageType(rawValue: packetType)?.isBig ?? ((packetType & 0x80) != 0)
-
-            let fullDecrypted: Data
-            if isBig {
-                let rawSecond = try await conn.receive(
-                    minimumIncompleteLength: MWBConstants.smallPacketSize,
-                    maximumLength: MWBConstants.smallPacketSize
-                )
-                guard let secondEncrypted = rawSecond, secondEncrypted.count == MWBConstants.smallPacketSize else {
-                    throw NetworkError.handshakeFailed("incomplete big packet second half")
-                }
-                let secondDecrypted = crypto.decrypt(secondEncrypted)
-                fullDecrypted = firstDecrypted + secondDecrypted
-            } else {
-                fullDecrypted = firstDecrypted
-            }
-
-            let challengePacket = MWBPacket(rawData: fullDecrypted)
-
-            guard challengePacket.packageType == .handshake else {
-                throw NetworkError.handshakeFailed("expected type 126, got \(challengePacket.type)")
-            }
-
-            guard var ackPacket = handshakeHandler.receiveChallenge(challengePacket, localMachineName: localMachineName) else {
-                throw NetworkError.handshakeFailed("handshake handler rejected challenge")
-            }
-            ackPacket.setMagic(magicHash)
-            _ = ackPacket.computeChecksum()
-
-            let ackEncrypted = crypto.encrypt(padToBlock(ackPacket.transmittedData))
-            try await conn.send(content: ackEncrypted)
-        }
-
-        guard handshakeHandler.completeIfReady() else {
-            throw NetworkError.handshakeFailed(
-                "handshake not complete after \(MWBConstants.handshakeIterationCount) iterations"
-            )
-        }
-    }
-
-    // MARK: Identity
-
-    private func sendIdentity(_ conn: NWConnection) async throws {
-        let id = handshakeHandler.adoptedMachineID != 0 ? handshakeHandler.adoptedMachineID : 0
-        var identityPacket = HandshakeHandler.makeIdentityPacket(
-            machineName: localMachineName,
-            screenWidth: screenWidth,
-            screenHeight: screenHeight,
-            machineID: id
+        // 4. Receive 64-byte peer header
+        let rawFirst = try await conn.receive(
+            minimumIncompleteLength: MWBConstants.smallPacketSize,
+            maximumLength: MWBConstants.smallPacketSize
         )
-        identityPacket.setMagic(magicHash)
-        _ = identityPacket.computeChecksum()
+        guard let firstEncrypted = rawFirst, firstEncrypted.count == MWBConstants.smallPacketSize else {
+            throw NetworkError.handshakeFailed("incomplete clipboard header first half")
+        }
+        let firstDecrypted = crypto.decrypt(firstEncrypted)
 
-        let encrypted = crypto.encrypt(padToBlock(identityPacket.transmittedData))
-        try await conn.send(content: encrypted)
-        handshakeHandler.completeIdentity()
+        let rawSecond = try await conn.receive(
+            minimumIncompleteLength: MWBConstants.smallPacketSize,
+            maximumLength: MWBConstants.smallPacketSize
+        )
+        guard let secondEncrypted = rawSecond, secondEncrypted.count == MWBConstants.smallPacketSize else {
+            throw NetworkError.handshakeFailed("incomplete clipboard header second half")
+        }
+        let secondDecrypted = crypto.decrypt(secondEncrypted)
+
+        let peerPacket = MWBPacket(rawData: firstDecrypted + secondDecrypted)
+
+        guard let peerType = peerPacket.packageType,
+              peerType == .clipboard || peerType == .clipboardPush else {
+            throw NetworkError.handshakeFailed("expected Clipboard/ClipboardPush, got type \(peerPacket.type)")
+        }
+
+        let peerNameData = Data(peerPacket.data[16..<48])
+        if let peerName = String(data: peerNameData, encoding: .ascii) {
+            connectedMachineName = peerName.trimmingCharacters(in: .whitespaces)
+        }
     }
 
     // MARK: Receive Pump
@@ -416,13 +373,8 @@ actor ClipboardManager {
             inboundContentType = .clipboard
             inboundPackets.append(packet)
 
-        case .handshake:
-            // Re-handshake during active session
-            handleRehandshake(packet)
-
         case .heartbeat, .heartbeatEx, .heartbeatExL2, .heartbeatExL3:
-            // Echo heartbeat back on clipboard channel
-            echoHeartbeat(packet)
+            break
 
         default:
             break
@@ -490,35 +442,6 @@ actor ClipboardManager {
         } else {
             Logger.clipboard.error("Failed to write image to pasteboard")
         }
-    }
-
-    // MARK: Re-handshake
-
-    private func handleRehandshake(_ packet: MWBPacket) {
-        guard var ack = handshakeHandler.receiveChallenge(packet, localMachineName: localMachineName) else { return }
-        ack.setMagic(magicHash)
-        _ = ack.computeChecksum()
-
-        guard let conn = connection else { return }
-        let encrypted = crypto.encrypt(padToBlock(ack.transmittedData))
-        conn.send(content: encrypted, completion: .contentProcessed({ _ in }))
-    }
-
-    // MARK: Heartbeat Echo
-
-    private func echoHeartbeat(_ packet: MWBPacket) {
-        var response = MWBPacket()
-        response.type = PackageType.heartbeatExL2.rawValue
-        response.id = packet.id
-        response.src = packet.des
-        response.des = packet.src
-        response.data = packet.data
-        response.setMagic(magicHash)
-        _ = response.computeChecksum()
-
-        guard let conn = connection else { return }
-        let encrypted = crypto.encrypt(padToBlock(response.transmittedData))
-        conn.send(content: encrypted, completion: .contentProcessed({ _ in }))
     }
 
     // MARK: Outbound Poll Loop
@@ -628,6 +551,9 @@ actor ClipboardManager {
         Logger.clipboard.debug("Sending text clipboard in \(packets.count) packets")
         for packet in packets {
             var mutablePacket = packet
+            mutablePacket.id = nextPacketID
+            nextPacketID &+= 1
+            
             mutablePacket.setMagic(magicHash)
             _ = mutablePacket.computeChecksum()
 
@@ -647,6 +573,9 @@ actor ClipboardManager {
         Logger.clipboard.debug("Sending image clipboard in \(packets.count) packets")
         for packet in packets {
             var mutablePacket = packet
+            mutablePacket.id = nextPacketID
+            nextPacketID &+= 1
+            
             mutablePacket.setMagic(magicHash)
             _ = mutablePacket.computeChecksum()
 

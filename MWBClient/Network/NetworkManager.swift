@@ -73,6 +73,7 @@ actor NetworkManager {
     private var heartbeatMonitorTask: Task<Void, Never>?
     private var intentionalDisconnect = false
     private var dedup = PackageDeduplicator()
+    private var nextPacketID: UInt32 = UInt32.random(in: 1..<0x7FFFFFFF)
 
     // MARK: Heartbeat Timeout Tracking
 
@@ -115,6 +116,7 @@ actor NetworkManager {
         host: String,
         port: UInt16 = MWBConstants.inputPort,
         securityKey: String,
+        machineID: UInt32,
         machineName: String = Host.current().localizedName ?? "Mac",
         screenWidth: UInt16 = UInt16(NSScreen.main?.frame.width ?? 1920),
         screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080)
@@ -122,6 +124,7 @@ actor NetworkManager {
         self.host = host
         self.port = port
         self.securityKey = securityKey
+        self.machineID = machineID
         self.localMachineName = machineName
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
@@ -186,7 +189,14 @@ actor NetworkManager {
     func sendPacket(_ packet: MWBPacket) {
         guard let conn = connection, state == .connected else { return }
 
-        let data = packet.transmittedData
+        var mutablePacket = packet
+        mutablePacket.id = nextPacketID
+        nextPacketID &+= 1
+        
+        mutablePacket.setMagic(magicHash)
+        _ = mutablePacket.computeChecksum()
+
+        let data = mutablePacket.transmittedData
         let encrypted = crypto.encrypt(padToBlock(data))
 
         conn.send(content: encrypted, completion: .contentProcessed { error in

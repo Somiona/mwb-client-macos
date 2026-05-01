@@ -12,6 +12,7 @@ actor ServerListener {
 
     private(set) var isListening = false
     private(set) var activeConnectionCount = 0
+    private(set) var remoteMachineID: UInt32 = 0
 
     // MARK: Configuration
 
@@ -21,11 +22,14 @@ actor ServerListener {
     private let screenWidth: UInt16
     private let screenHeight: UInt16
 
+    private let localMachineID: UInt32
+
     // MARK: Listener
 
     private var listener: NWListener?
     private var connectionTasks: Set<Task<Void, Never>> = []
     private var dedup = PackageDeduplicator()
+    private var nextPacketID: UInt32 = UInt32.random(in: 1..<0x7FFFFFFF)
 
     // MARK: Callbacks
 
@@ -49,12 +53,14 @@ actor ServerListener {
     init(
         port: UInt16 = MWBConstants.inputPort,
         securityKey: String,
+        machineID: UInt32,
         machineName: String = Host.current().localizedName ?? "Mac",
         screenWidth: UInt16 = UInt16(NSScreen.main?.frame.width ?? 1920),
         screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080)
     ) {
         self.port = port
         self.securityKey = securityKey
+        self.localMachineID = machineID
         self.localMachineName = machineName
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
@@ -161,33 +167,25 @@ actor ServerListener {
         let magicHash = crypto.get24BitHash()
         var handshakeHandler = HandshakeHandler()
 
-        // Phase 1: Noise exchange (inbound: receive first, then send)
+        // Phase 1: Noise exchange (send first, then receive — same order as outbound)
         do {
-            try await exchangeNoiseInbound(connection, crypto: crypto)
+            try await exchangeNoiseOutbound(connection, crypto: crypto)
         } catch {
-            Logger.network.error("ServerListener: inbound noise exchange failed: \(error.localizedDescription)")
+            Logger.network.error("ServerListener: outbound noise exchange failed: \(error.localizedDescription)")
             return
         }
 
-        // Phase 2: Handshake (receive type 126 challenges, respond with type 127)
+        // Phase 2: Send 10 handshake challenges (matching PowerToys MainTCPRoutine)
         handshakeHandler.start()
         do {
-            try await performHandshakeInbound(connection, crypto: crypto, magicHash: magicHash, handler: &handshakeHandler)
+            try await sendHandshakeChallenges(connection, crypto: crypto, magicHash: magicHash, handler: &handshakeHandler)
         } catch {
-            Logger.network.error("ServerListener: inbound handshake failed: \(error.localizedDescription)")
+            Logger.network.error("ServerListener: send challenges failed: \(error.localizedDescription)")
             return
         }
 
-        // Phase 3: Send identity (type 51)
-        do {
-            try await sendIdentityInbound(connection, crypto: crypto, magicHash: magicHash, handler: handshakeHandler)
-        } catch {
-            Logger.network.error("ServerListener: send identity failed: \(error.localizedDescription)")
-            return
-        }
-
-        // Phase 3: Receive pump
-        Logger.network.info("ServerListener: inbound connection established, entering receive pump")
+        // Phase 3: Receive pump (handles incoming HandshakeAck verification and all other packets)
+        Logger.network.info("ServerListener: entering receive pump")
         await receivePump(connection, crypto: crypto, magicHash: magicHash, handler: &handshakeHandler)
     }
 
@@ -196,12 +194,18 @@ actor ServerListener {
         connectionTasks = connectionTasks.filter { !$0.isCancelled }
     }
 
-    // MARK: Noise Exchange (Inbound)
+    // MARK: Noise Exchange (Outbound — same order as NetworkManager)
 
-    /// Inbound connection: receive noise first, then send noise.
-    /// This is the reverse order from outbound (NetworkManager).
-    private func exchangeNoiseInbound(_ conn: NWConnection, crypto: MWBCrypto) async throws {
-        // Receive 16 bytes of noise from the remote
+    private func exchangeNoiseOutbound(_ conn: NWConnection, crypto: MWBCrypto) async throws {
+        // Send 16 bytes of random encrypted data
+        var randomNoise = Data(count: MWBConstants.noiseSize)
+        randomNoise.withUnsafeMutableBytes { ptr in
+            _ = SecRandomCopyBytes(kSecRandomDefault, MWBConstants.noiseSize, ptr.baseAddress!)
+        }
+        let encryptedNoise = crypto.encrypt(padToBlock(randomNoise))
+        try await conn.send(content: encryptedNoise)
+
+        // Receive 16 bytes of noise
         let receivedNoise = try await conn.receive(
             minimumIncompleteLength: MWBConstants.noiseSize,
             maximumLength: MWBConstants.noiseSize
@@ -210,95 +214,44 @@ actor ServerListener {
             throw NetworkError.invalidNoise
         }
         _ = crypto.decrypt(padToBlock(noiseData))
-
-        // Send 16 bytes of random encrypted data back
-        var randomNoise = Data(count: MWBConstants.noiseSize)
-        randomNoise.withUnsafeMutableBytes { ptr in
-            _ = SecRandomCopyBytes(kSecRandomDefault, MWBConstants.noiseSize, ptr.baseAddress!)
-        }
-        let encryptedNoise = crypto.encrypt(padToBlock(randomNoise))
-        try await conn.send(content: encryptedNoise)
     }
 
-    // MARK: Handshake (Inbound)
+    // MARK: Send Handshake Challenges
 
-    /// Receive 10 type 126 challenges, respond with type 127 ACKs.
-    private func performHandshakeInbound(
+    private func sendHandshakeChallenges(
         _ conn: NWConnection,
         crypto: MWBCrypto,
         magicHash: UInt32,
         handler: inout HandshakeHandler
     ) async throws {
         for _ in 0..<MWBConstants.handshakeIterationCount {
-            let rawFirst = try await conn.receive(
-                minimumIncompleteLength: MWBConstants.smallPacketSize,
-                maximumLength: MWBConstants.smallPacketSize
-            )
-            guard let firstEncrypted = rawFirst, firstEncrypted.count == MWBConstants.smallPacketSize else {
-                throw NetworkError.handshakeFailed("incomplete challenge packet")
+            // Match PowerToys MainTCPRoutine: initialize entire 64-byte buffer with random data
+            var randomData = Data(count: MWBConstants.bigPacketSize)
+            randomData.withUnsafeMutableBytes { ptr in
+                _ = SecRandomCopyBytes(kSecRandomDefault, MWBConstants.bigPacketSize, ptr.baseAddress!)
+            }
+            
+            var challenge = MWBPacket(rawData: randomData)
+            challenge.type = PackageType.handshake.rawValue
+            challenge.id = nextPacketID
+            nextPacketID &+= 1
+
+            // src/des remain random unless adopted
+            if localMachineID != 0 {
+                challenge.src = localMachineID
             }
 
-            let firstDecrypted = crypto.decrypt(firstEncrypted)
+            let nameData = HandshakeHandler.encodeMachineName(localMachineName)
+            var fullData = challenge.data
+            fullData.replaceSubrange(16..<48, with: nameData)
+            challenge.data = fullData
 
-            let packetType = firstDecrypted[0]
-            let isBig = PackageType(rawValue: packetType)?.isBig ?? ((packetType & 0x80) != 0)
+            challenge.setMagic(magicHash)
+            _ = challenge.computeChecksum()
 
-            let fullDecrypted: Data
-            if isBig {
-                let rawSecond = try await conn.receive(
-                    minimumIncompleteLength: MWBConstants.smallPacketSize,
-                    maximumLength: MWBConstants.smallPacketSize
-                )
-                guard let secondEncrypted = rawSecond, secondEncrypted.count == MWBConstants.smallPacketSize else {
-                    throw NetworkError.handshakeFailed("incomplete big packet second half")
-                }
-                let secondDecrypted = crypto.decrypt(secondEncrypted)
-                fullDecrypted = firstDecrypted + secondDecrypted
-            } else {
-                fullDecrypted = firstDecrypted
-            }
-
-            let challengePacket = MWBPacket(rawData: fullDecrypted)
-
-            guard challengePacket.packageType == .handshake else {
-                throw NetworkError.handshakeFailed("expected type 126, got \(challengePacket.type)")
-            }
-
-            guard var ackPacket = handler.receiveChallenge(challengePacket, localMachineName: localMachineName) else {
-                throw NetworkError.handshakeFailed("handshake handler rejected challenge")
-            }
-            ackPacket.setMagic(magicHash)
-            _ = ackPacket.computeChecksum()
-
-            let ackEncrypted = crypto.encrypt(padToBlock(ackPacket.transmittedData))
-            try await conn.send(content: ackEncrypted)
+            let encrypted = crypto.encrypt(padToBlock(challenge.transmittedData))
+            try await conn.send(content: encrypted)
         }
-
-        guard handler.completeIfReady() else {
-            throw NetworkError.handshakeFailed("handshake not complete after \(MWBConstants.handshakeIterationCount) iterations")
-        }
-    }
-
-    // MARK: Identity (Inbound)
-
-    /// Send identity packet (type 51 / heartbeatEx) to the connecting machine.
-    private func sendIdentityInbound(
-        _ conn: NWConnection,
-        crypto: MWBCrypto,
-        magicHash: UInt32,
-        handler: HandshakeHandler
-    ) async throws {
-        var identityPacket = HandshakeHandler.makeIdentityPacket(
-            machineName: localMachineName,
-            screenWidth: screenWidth,
-            screenHeight: screenHeight,
-            machineID: handler.adoptedMachineID
-        )
-        identityPacket.setMagic(magicHash)
-        _ = identityPacket.computeChecksum()
-
-        let encrypted = crypto.encrypt(padToBlock(identityPacket.transmittedData))
-        try await conn.send(content: encrypted)
     }
 
     // MARK: Receive Pump
@@ -387,6 +340,12 @@ actor ServerListener {
         case .handshake:
             // Re-handshake during active session: respond with type 127
             handleRehandshake(packet, connection: connection, crypto: crypto, magicHash: magicHash, handler: &handler)
+            return true
+
+        case .handshakeAck:
+            // Received response to our challenge: mark as trusted and store remote ID
+            self.remoteMachineID = packet.src
+            Logger.network.info("ServerListener: received handshakeAck from machine \(packet.src), connection trusted")
             return true
 
         case .heartbeat, .heartbeatEx, .heartbeatExL2, .heartbeatExL3:

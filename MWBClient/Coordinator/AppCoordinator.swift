@@ -85,6 +85,7 @@ final class AppCoordinator {
 
         let host = settings.windowsIP.trimmingCharacters(in: .whitespacesAndNewlines)
         let securityKey = settings.securityKey
+        let machineID = settings.machineID
         let port = MWBConstants.inputPort
         let clipboardPort = MWBConstants.clipboardPort
         let machineName = settings.machineName
@@ -96,6 +97,7 @@ final class AppCoordinator {
             host: host,
             port: port,
             securityKey: securityKey,
+            machineID: machineID,
             machineName: machineName,
             screenWidth: screenSize.width,
             screenHeight: screenSize.height
@@ -105,6 +107,7 @@ final class AppCoordinator {
             host: host,
             port: clipboardPort,
             securityKey: securityKey,
+            machineID: machineID,
             machineName: machineName,
             screenWidth: screenSize.width,
             screenHeight: screenSize.height,
@@ -116,6 +119,7 @@ final class AppCoordinator {
         let sl = ServerListener(
             port: port,
             securityKey: securityKey,
+            machineID: machineID,
             machineName: machineName,
             screenWidth: screenSize.width,
             screenHeight: screenSize.height
@@ -275,6 +279,9 @@ final class AppCoordinator {
         localMachineID = machineID
         windowsMachineName = connectedName
 
+        // Update clipboard manager with the adopted machine ID
+        await cm.updateMachineID(machineID)
+
         // Create HeartbeatService with proper parameters
         let hb = HeartbeatService(
             machineName: settings.machineName,
@@ -333,6 +340,9 @@ final class AppCoordinator {
 
         localMachineID = machineID
         windowsMachineName = connectedName
+
+        // Update clipboard manager with the adopted machine ID
+        await clipboardManager?.updateMachineID(machineID)
 
         // Recreate HeartbeatService with fresh params from the new connection
         let hb = HeartbeatService(
