@@ -501,7 +501,7 @@ actor ServerListener {
 
         case .awake:
             // Prevent display sleep as requested by remote activity
-            PowerManager.shared.poke()
+            await PowerManager.shared.poke()
             // Respond as if it were a standard heartbeat for protocol flow
             respondToHeartbeat(packet, connection: connection, crypto: crypto, magicHash: magicHash, machineID: handler.adoptedMachineID)
             return true

@@ -8,10 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */; };
-		AA0000000000000000000006 /* DragDropManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000005 /* DragDropManager.swift */; };
-		AA0000000000000000000008 /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000007 /* PowerManager.swift */; };
-		AA0000000000000000000002 /* MachineID.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000001 /* MachineID.swift */; };
-		AA0000000000000000000004 /* MatrixFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000003 /* MatrixFlags.swift */; };
 		1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */; };
 		188C72432675028FAD914BDC /* MWBPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */; };
 		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
@@ -53,6 +49,10 @@
 		94CBC90F7D1E72C34D157BE6 /* MockEventSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E53853262A1E9DB43D733C1 /* MockEventSink.swift */; };
 		97D6854FF5FF9739321AF909 /* ProtocolExtractor.csproj in Resources */ = {isa = PBXBuildFile; fileRef = 4BFCFBA88F96723652ED7FC3 /* ProtocolExtractor.csproj */; };
 		A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59334291F885148BC161FCE2 /* MWBKeyboardData.swift */; };
+		AA0000000000000000000002 /* MachineID.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000001 /* MachineID.swift */; };
+		AA0000000000000000000004 /* MatrixFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000003 /* MatrixFlags.swift */; };
+		AA0000000000000000000006 /* DragDropManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000005 /* DragDropManager.swift */; };
+		AA0000000000000000000008 /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000007 /* PowerManager.swift */; };
 		ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC5F135996CBF70C5BCB674 /* GeneralView.swift */; };
 		B2929940AD3A62597ADCDFC6 /* ProtocolBinaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E98C9EA00CA537542EE9799 /* ProtocolBinaryTests.swift */; };
 		C73329BC2DD49CA44BAF2DBF /* ProtocolCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */; };
@@ -91,13 +91,13 @@
 		3636C262BEECE646EB78B8B5 /* MachinePoolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachinePoolTests.swift; sourceTree = "<group>"; };
 		3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCryptoTests.swift; sourceTree = "<group>"; };
 		3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
-		42AEE9538485AC16F64BFCE6 /* ProtocolExtractor.cs */ = {isa = PBXFileReference; path = ProtocolExtractor.cs; sourceTree = "<group>"; };
+		42AEE9538485AC16F64BFCE6 /* ProtocolExtractor.cs */ = {isa = PBXFileReference; lastKnownFileType = text; path = ProtocolExtractor.cs; sourceTree = "<group>"; };
 		43716A77A3EC0A53CFE489A2 /* MachinePool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachinePool.swift; sourceTree = "<group>"; };
 		44757A274942A16843F68B9E /* LayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutView.swift; sourceTree = "<group>"; };
 		46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoCrossPlatformTests.swift; sourceTree = "<group>"; };
 		491B710D380573EF0C358439 /* MWBPacketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBPacketTests.swift; sourceTree = "<group>"; };
 		4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCodec.swift; sourceTree = "<group>"; };
-		4BFCFBA88F96723652ED7FC3 /* ProtocolExtractor.csproj */ = {isa = PBXFileReference; path = ProtocolExtractor.csproj; sourceTree = "<group>"; };
+		4BFCFBA88F96723652ED7FC3 /* ProtocolExtractor.csproj */ = {isa = PBXFileReference; lastKnownFileType = text; path = ProtocolExtractor.csproj; sourceTree = "<group>"; };
 		4DA5714D75003D2FD578D32A /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		53B665D45733F4493D7A0AAC /* EdgeDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetectorTests.swift; sourceTree = "<group>"; };
 		5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputLayerTests.swift; sourceTree = "<group>"; };
@@ -119,6 +119,8 @@
 		A3CF15F6F4BF38FE160BAE62 /* generate_fixtures.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = generate_fixtures.sh; sourceTree = "<group>"; };
 		AA0000000000000000000001 /* MachineID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineID.swift; sourceTree = "<group>"; };
 		AA0000000000000000000003 /* MatrixFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatrixFlags.swift; sourceTree = "<group>"; };
+		AA0000000000000000000005 /* DragDropManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropManager.swift; sourceTree = "<group>"; };
+		AA0000000000000000000007 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 		AB222A87194D78042767C39F /* MWBMouseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBMouseData.swift; sourceTree = "<group>"; };
 		AC10AB6D2D613EE34A724CD2 /* InputIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputIntegrationTests.swift; sourceTree = "<group>"; };
 		ADB3C9DAEF8AA27C09D7C1F3 /* NetworkIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkIntegrationTests.swift; sourceTree = "<group>"; };
@@ -142,8 +144,6 @@
 		F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCrypto.swift; sourceTree = "<group>"; };
 		FB048089A977A0BC32B0369B /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMapper.swift; sourceTree = "<group>"; };
-		AA0000000000000000000005 /* DragDropManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropManager.swift; sourceTree = "<group>"; };
-		AA0000000000000000000007 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -416,7 +416,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					52DE2E9BACF025BE2D3E66E9 = {
 						ProvisioningStyle = Automatic;
@@ -553,6 +553,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -586,9 +587,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -612,6 +615,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -624,6 +628,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -642,6 +647,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -661,10 +667,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MWBClient/App/MWBClient.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = MWBClient;
 				SDKROOT = macosx;
@@ -678,10 +688,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MWBClient/App/MWBClient.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = MWBClient;
 				SDKROOT = macosx;
@@ -693,6 +707,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -726,9 +741,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -745,6 +762,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;

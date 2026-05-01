@@ -29,7 +29,7 @@ final class MWBCrypto {
 
         let salt = MWBConstants.saltString.data(using: .utf16LittleEndian)!
         var derivedKey = [UInt8](repeating: 0, count: MWBConstants.derivedKeyLength)
-        salt.withUnsafeBytes { saltPtr in
+        let kdfStatus = salt.withUnsafeBytes { saltPtr in
             CCKeyDerivationPBKDF(
                 CCPBKDFAlgorithm(kCCPBKDF2),
                 securityKey,
@@ -42,6 +42,7 @@ final class MWBCrypto {
                 MWBConstants.derivedKeyLength
             )
         }
+        assert(kdfStatus == kCCSuccess, "PBKDF2 key derivation failed with status \(kdfStatus)")
         key = derivedKey
 
         initialIV = Array(MWBConstants.ivString.utf8.prefix(MWBConstants.ivLength))

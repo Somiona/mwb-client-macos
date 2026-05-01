@@ -6,6 +6,7 @@ import os.log
 /// 
 /// This implementation uses a persistent invisible window on the shared edge
 /// to capture native macOS drag events.
+@MainActor
 final class DragDropManager: NSObject, NSDraggingDestination {
     static let shared = DragDropManager()
     
@@ -24,7 +25,9 @@ final class DragDropManager: NSObject, NSDraggingDestination {
     }
     
     private func setupDropWindow() {
-        // Create an invisible, always-on-top window
+        // Create an invisible, always-on-top window.
+        // All NSWindow initialisation and property mutations are main-actor isolated;
+        // the @MainActor annotation on this class satisfies that requirement.
         let window = NSWindow(
             contentRect: .zero,
             styleMask: [.borderless],
@@ -66,13 +69,11 @@ final class DragDropManager: NSObject, NSDraggingDestination {
         guard mouseDown else { return }
         
         // Show the invisible window under the cursor to catch the drag
-        DispatchQueue.main.async {
-            let mouseLocation = NSEvent.mouseLocation
-            self.dropWindow?.setFrame(NSRect(x: mouseLocation.x - 50, y: mouseLocation.y - 50, width: 100, height: 100), display: true)
-            self.dropWindow?.orderFrontRegardless()
-            
-            // The window will now receive draggingEntered if a drag is in progress
-        }
+        // Already on the main actor; no extra dispatch needed.
+        let mouseLocation = NSEvent.mouseLocation
+        self.dropWindow?.setFrame(NSRect(x: mouseLocation.x - 50, y: mouseLocation.y - 50, width: 100, height: 100), display: true)
+        self.dropWindow?.orderFrontRegardless()
+        // The window will now receive draggingEntered if a drag is in progress
     }
     
     // MARK: - NSDraggingDestination
