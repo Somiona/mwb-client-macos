@@ -15,6 +15,9 @@ private enum SettingsKey {
     static let machineName = "settings.machineName"
     static let machineID = "settings.machineID"
     static let hideDockIcon = "settings.hideDockIcon"
+    static let sameSubnetOnly = "settings.sameSubnetOnly"
+    static let validateRemoteIP = "settings.validateRemoteIP"
+    static let blockScreenSaver = "settings.blockScreenSaver"
     static let machineMatrixString = "settings.machineMatrixString"
     static let matrixOneRow = "settings.matrixOneRow"
     static let matrixCircle = "settings.matrixCircle"
@@ -47,6 +50,9 @@ private enum SettingsDefault {
         }.reduce(into: "") { $0.append($1) }
     }
     static let hideDockIcon = true
+    static let sameSubnetOnly = false
+    static let validateRemoteIP = false
+    static let blockScreenSaver = true
     static let machineMatrixString = ",,,"
     static let matrixOneRow = true
     static let matrixCircle = false
@@ -139,6 +145,21 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(hideDockIcon, forKey: SettingsKey.hideDockIcon) }
     }
 
+    /// Whether to only allow connections from the same subnet.
+    var sameSubnetOnly: Bool {
+        didSet { UserDefaults.standard.set(sameSubnetOnly, forKey: SettingsKey.sameSubnetOnly) }
+    }
+
+    /// Whether to perform reverse DNS validation on the remote IP.
+    var validateRemoteIP: Bool {
+        didSet { UserDefaults.standard.set(validateRemoteIP, forKey: SettingsKey.validateRemoteIP) }
+    }
+
+    /// Whether to send Awake packets to prevent the remote screen from sleeping.
+    var blockScreenSaver: Bool {
+        didSet { UserDefaults.standard.set(blockScreenSaver, forKey: SettingsKey.blockScreenSaver) }
+    }
+
     // MARK: - Machine Matrix Settings
 
     /// Comma-separated list of machine names in the matrix (max 4).
@@ -199,6 +220,10 @@ final class SettingsStore {
         self.machineName = defaults.string(forKey: SettingsKey.machineName) ?? SettingsDefault.machineName
         
         self.hideDockIcon = defaults.object(forKey: SettingsKey.hideDockIcon) as? Bool ?? SettingsDefault.hideDockIcon
+        self.sameSubnetOnly = defaults.object(forKey: SettingsKey.sameSubnetOnly) as? Bool ?? SettingsDefault.sameSubnetOnly
+        self.validateRemoteIP = defaults.object(forKey: SettingsKey.validateRemoteIP) as? Bool ?? SettingsDefault.validateRemoteIP
+        self.blockScreenSaver = defaults.object(forKey: SettingsKey.blockScreenSaver) as? Bool ?? SettingsDefault.blockScreenSaver
+        
         self.machineMatrixString = defaults.string(forKey: SettingsKey.machineMatrixString) ?? SettingsDefault.machineMatrixString
         self.matrixOneRow = defaults.object(forKey: SettingsKey.matrixOneRow) as? Bool ?? SettingsDefault.matrixOneRow
         self.matrixCircle = defaults.object(forKey: SettingsKey.matrixCircle) as? Bool ?? SettingsDefault.matrixCircle
@@ -231,6 +256,9 @@ final class SettingsStore {
         crossingEdge = SettingsDefault.crossingEdge
         machineName = SettingsDefault.machineName
         hideDockIcon = SettingsDefault.hideDockIcon
+        sameSubnetOnly = SettingsDefault.sameSubnetOnly
+        validateRemoteIP = SettingsDefault.validateRemoteIP
+        blockScreenSaver = SettingsDefault.blockScreenSaver
         machineMatrixString = SettingsDefault.machineMatrixString
         matrixOneRow = SettingsDefault.matrixOneRow
         matrixCircle = SettingsDefault.matrixCircle

@@ -2,6 +2,8 @@ import AppKit
 import SwiftUI
 
 struct PermissionsView: View {
+    @Environment(SettingsStore.self) private var settings
+
     private var accessibilityGranted: Bool {
         InputCapture.hasAccessibilityPermission()
     }
@@ -44,6 +46,25 @@ struct PermissionsView: View {
                 Text("MWB Client uses Accessibility permissions to monitor input events. This is required for cursor crossing and keyboard forwarding to work correctly. No input data is stored or transmitted outside your local network.")
                     .foregroundStyle(.secondary)
                     .font(.caption)
+            }
+
+            Section("Security & Power") {
+                @Bindable var settings = settings
+                
+                Toggle("Same Subnet Only", isOn: $settings.sameSubnetOnly)
+                Text("Only allow connections from machines on the same local subnet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Validate Remote IP (DNS)", isOn: $settings.validateRemoteIP)
+                Text("Perform reverse DNS lookup to verify the remote machine's hostname.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Block Remote Screen Saver", isOn: $settings.blockScreenSaver)
+                Text("Periodically send 'Awake' packets to prevent the remote screen from sleeping while you are active.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
