@@ -2,26 +2,33 @@
 
 # Default values
 FORCE=0
+GPG_SIGN_FLAG=""
 
 # Parse arguments
-while getopts "f" opt; do
-  case $opt in
-    f)
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    -f)
       FORCE=1
+      shift
       ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >&2
+    --no-gpg-sign)
+      GPG_SIGN_FLAG="--no-gpg-sign"
+      shift
+      ;;
+    -*)
+      echo "Invalid option: $1" >&2
       exit 1
+      ;;
+    *)
+      NEW_VERSION=$1
+      shift
       ;;
   esac
 done
 
-shift $((OPTIND-1))
-NEW_VERSION=$1
-
 if [ -z "$NEW_VERSION" ]; then
-    echo "Usage: ./bump_version.sh [-f] <new_version_string>"
-    echo "Example: ./bump_version.sh b1.0.1"
+    echo "Usage: ./bump_version.sh [-f] [--no-gpg-sign] <new_version_string>"
+    echo "Example: ./bump_version.sh --no-gpg-sign b1.0.1"
     exit 1
 fi
 
@@ -60,10 +67,11 @@ if [ -d "MWBClient.xcodeproj" ]; then
     git add MWBClient.xcodeproj
 fi
 
-git commit -m "Bump version to $NEW_VERSION"
+git commit $GPG_SIGN_FLAG -m "Bump version to $NEW_VERSION"
 
 # Create a git tag
-git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
+# Using --no-gpg-sign if the flag was passed, Meowster!
+git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION" $GPG_SIGN_FLAG
 
 echo "Version bumped to $NEW_VERSION"
 echo "Commit created and tagged. You can now run 'git push origin main' and 'git push --tags'."
