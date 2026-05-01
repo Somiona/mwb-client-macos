@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */; };
+		AA0000000000000000000006 /* DragDropManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000005 /* DragDropManager.swift */; };
+		AA0000000000000000000008 /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000007 /* PowerManager.swift */; };
 		AA0000000000000000000002 /* MachineID.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000001 /* MachineID.swift */; };
 		AA0000000000000000000004 /* MatrixFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000003 /* MatrixFlags.swift */; };
 		1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */; };
@@ -140,6 +142,8 @@
 		F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCrypto.swift; sourceTree = "<group>"; };
 		FB048089A977A0BC32B0369B /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeMapper.swift; sourceTree = "<group>"; };
+		AA0000000000000000000005 /* DragDropManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropManager.swift; sourceTree = "<group>"; };
+		AA0000000000000000000007 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -148,6 +152,7 @@
 			children = (
 				4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */,
 				3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */,
+				AA0000000000000000000005 /* DragDropManager.swift */,
 			);
 			path = Clipboard;
 			sourceTree = "<group>";
@@ -156,6 +161,7 @@
 			isa = PBXGroup;
 			children = (
 				AE09E447C777581836F67970 /* Logger.swift */,
+				AA0000000000000000000007 /* PowerManager.swift */,
 				E46CD9FF1712D138D025FB2C /* ResumeOnce.swift */,
 				AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */,
 			);
@@ -524,6 +530,8 @@
 				7F771834B9783E346FDA5EF1 /* ServerListener.swift in Sources */,
 				AA0000000000000000000002 /* MachineID.swift in Sources */,
 				AA0000000000000000000004 /* MatrixFlags.swift in Sources */,
+				AA0000000000000000000006 /* DragDropManager.swift in Sources */,
+				AA0000000000000000000008 /* PowerManager.swift in Sources */,
 				777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */,
 				E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */,
 				48EB907090A3E8A126AB063A /* TrayMenu.swift in Sources */,

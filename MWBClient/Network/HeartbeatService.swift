@@ -15,6 +15,7 @@ actor HeartbeatService {
     private let magicHash: UInt32
     private let machineID: MachineID
     private let generatedKey: Bool
+    private let settings: SettingsStore
     private var heartbeatTask: Task<Void, Never>?
     private var lastInputTimestamp: Date = .distantPast
 
@@ -26,7 +27,8 @@ actor HeartbeatService {
         screenHeight: UInt16,
         magicHash: UInt32,
         machineID: MachineID,
-        generatedKey: Bool
+        generatedKey: Bool,
+        settings: SettingsStore
     ) {
         self.machineName = machineName
         self.screenWidth = screenWidth
@@ -34,6 +36,7 @@ actor HeartbeatService {
         self.magicHash = magicHash
         self.machineID = machineID
         self.generatedKey = generatedKey
+        self.settings = settings
     }
 
     deinit {
@@ -115,10 +118,10 @@ actor HeartbeatService {
 
         if !generatedKey {
             // User-provided key: use plain Heartbeat (type 20) or Awake (type 21)
-            let settings = await MainActor.run { SettingsStore() }
+            let blockScreenSaver = await MainActor.run { settings.blockScreenSaver }
             let isActive = Date().timeIntervalSince(lastInputTimestamp) < 30.0
             
-            if settings.blockScreenSaver && isActive {
+            if blockScreenSaver && isActive {
                 packet.type = PackageType.awake.rawValue
             } else {
                 packet.type = PackageType.heartbeat.rawValue

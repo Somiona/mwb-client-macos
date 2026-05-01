@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Observation
 import os.log
 
 // MARK: - AppCoordinator
@@ -88,9 +89,9 @@ final class AppCoordinator {
             }
         }
         
-        NotificationCenter.default.addObserver(forName: .mwbTriggerClipboardPull, object: nil, queue: .main) { [weak self] _ in
+        NotificationCenter.default.addObserver(forName: .mwbTriggerClipboardPull, object: nil, queue: .main) { [weak self] (_: Notification) in
             Task { @MainActor [weak self] in
-                await self?.clipboardManager?.getRemoteClipboard(reason: "DragDrop")
+                await self?.clipboardManager?.pullLargeData()
             }
         }
     }
@@ -135,7 +136,8 @@ final class AppCoordinator {
             machineID: machineID,
             machineName: machineName,
             screenWidth: screenSize.width,
-            screenHeight: screenSize.height
+            screenHeight: screenSize.height,
+            settings: settings
         )
 
         networkManager = nm
@@ -394,7 +396,8 @@ final class AppCoordinator {
             screenHeight: ScreenInfo.mainScreenSizeUInt16.height,
             magicHash: magicHash,
             machineID: machineID,
-            generatedKey: false // User always provides key via settings
+            generatedKey: false, // User always provides key via settings
+            settings: settings
         )
         await hb.bind(networkManager: nm)
         heartbeatService = hb
@@ -458,7 +461,8 @@ final class AppCoordinator {
             screenHeight: ScreenInfo.mainScreenSizeUInt16.height,
             magicHash: magicHash,
             machineID: machineID,
-            generatedKey: false
+            generatedKey: false,
+            settings: settings
         )
         await hb.bind(networkManager: nm)
         heartbeatService = hb

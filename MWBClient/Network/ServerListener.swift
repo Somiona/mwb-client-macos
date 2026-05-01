@@ -23,6 +23,7 @@ actor ServerListener {
     private let localMachineName: String
     private let screenWidth: UInt16
     private let screenHeight: UInt16
+    private let settings: SettingsStore
 
     // MARK: Listener
 
@@ -58,7 +59,8 @@ actor ServerListener {
         machineID: MachineID,
         machineName: String = Host.current().localizedName ?? "Mac",
         screenWidth: UInt16 = UInt16(NSScreen.main?.frame.width ?? 1920),
-        screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080)
+        screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080),
+        settings: SettingsStore
     ) {
         self.port = port
         self.securityKey = securityKey
@@ -66,6 +68,7 @@ actor ServerListener {
         self.localMachineName = machineName
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
+        self.settings = settings
     }
 
     // MARK: Start / Stop
@@ -170,7 +173,7 @@ actor ServerListener {
     private func addConnection(_ connection: NWConnection, taskID: UInt32) {
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.handleConnection(connection, taskID: tempID)
+            await self.handleConnection(connection, taskID: taskID)
         }
         
         connectionTasks[taskID] = task
@@ -178,8 +181,9 @@ actor ServerListener {
     }
 
     private func validateEndpoint(_ endpoint: NWEndpoint) async -> Bool {
-        let settings = await MainActor.run { SettingsStore() }
-        guard settings.sameSubnetOnly || settings.validateRemoteIP else { return true }
+        let sameSubnetOnly = await MainActor.run { settings.sameSubnetOnly }
+        let validateIP = await MainActor.run { settings.validateRemoteIP }
+        guard sameSubnetOnly || validateIP else { return true }
 
         guard case let .hostPort(host, _) = endpoint else { return false }
         
@@ -191,14 +195,14 @@ actor ServerListener {
         @unknown default: return false
         }
 
-        if settings.sameSubnetOnly {
+        if sameSubnetOnly {
             if !isSameSubnet(remoteIPString) {
                 Logger.network.warning("ServerListener: Security rejection: \(remoteIPString) is not in the same subnet")
                 return false
             }
         }
 
-        if settings.validateRemoteIP {
+        if validateIP {
             // Reverse DNS check will be performed after handshake when we have the remote machine name
             // For now we just allow the connection to proceed to handshake
         }
@@ -227,7 +231,8 @@ actor ServerListener {
                 defer { freeaddrinfo(res) }
                 var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
                 if getnameinfo(res.pointee.ai_addr, res.pointee.ai_addrlen, &hostname, socklen_t(hostname.count), nil, 0, NI_NAMEREQD) == 0 {
-                    let reversedName = String(cString: hostname)
+                    let nullIdx = hostname.firstIndex(of: 0) ?? hostname.endIndex
+                    let reversedName = String(decoding: hostname[..<nullIdx].map { UInt8(bitPattern: $0) }, as: UTF8.self)
                     // Match case-insensitively and ignore domain if provided
                     let remoteBaseName = expectedName.split(separator: ".")[0].lowercased()
                     let reversedBaseName = reversedName.split(separator: ".")[0].lowercased()
@@ -262,7 +267,8 @@ actor ServerListener {
             if addr.sa_family == UInt8(AF_INET) && (flags & IFF_LOOPBACK) == 0 && (flags & IFF_UP) != 0 {
                 var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
                 getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len), &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
-                let localIP = String(cString: hostname)
+                let nullIdx = hostname.firstIndex(of: 0) ?? hostname.endIndex
+                let localIP = String(decoding: hostname[..<nullIdx].map { UInt8(bitPattern: $0) }, as: UTF8.self)
                 let localParts = localIP.split(separator: ".")
                 
                 if localParts.count == 4 {
@@ -440,7 +446,7 @@ actor ServerListener {
                 }
 
                 // Handle re-handshake and heartbeat echo inline; dispatch everything else
-                if handleSpecialPacket(packet, connection: conn, crypto: crypto, magicHash: magicHash, handler: &handler) {
+                if await handleSpecialPacket(packet, connection: conn, crypto: crypto, magicHash: magicHash, handler: &handler) {
                     continue
                 }
 
@@ -462,7 +468,7 @@ actor ServerListener {
         crypto: MWBCrypto,
         magicHash: UInt32,
         handler: inout HandshakeHandler
-    ) -> Bool {
+    ) async -> Bool {
         guard let type = packet.packageType else { return false }
 
         switch type {
@@ -474,9 +480,9 @@ actor ServerListener {
         case .handshakeAck:
             // Received response to our challenge: mark as trusted and store remote ID
             let remoteName = packet.machineName
-            let settings = await MainActor.run { SettingsStore() }
+            let validateIP = await MainActor.run { settings.validateRemoteIP }
             
-            if settings.validateRemoteIP {
+            if validateIP {
                 if await !validateReverseDNS(connection: connection, expectedName: remoteName) {
                     Logger.network.warning("ServerListener: Reverse DNS validation failed for \(remoteName)")
                     connection.cancel()
@@ -617,7 +623,6 @@ actor ServerListener {
                 
                 Task {
                     await MainActor.run {
-                        let settings = SettingsStore()
                         settings.machineMatrixString = newMatrixStr
                         settings.matrixCircle = matrixCircle
                         settings.matrixOneRow = matrixOneRow
