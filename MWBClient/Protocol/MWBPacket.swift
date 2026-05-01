@@ -94,14 +94,14 @@ struct MWBPacket {
         set { withUnsafeMutableBytes { $0.storeBytes(of: newValue.littleEndian, toByteOffset: 4, as: UInt32.self) } }
     }
 
-    var src: UInt32 {
-        get { bytes.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 8, as: UInt32.self).littleEndian } }
-        set { withUnsafeMutableBytes { $0.storeBytes(of: newValue.littleEndian, toByteOffset: 8, as: UInt32.self) } }
+    var src: MachineID {
+        get { MachineID(rawValue: bytes.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 8, as: UInt32.self).littleEndian }) }
+        set { withUnsafeMutableBytes { $0.storeBytes(of: newValue.rawValue.littleEndian, toByteOffset: 8, as: UInt32.self) } }
     }
 
-    var des: UInt32 {
-        get { bytes.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 12, as: UInt32.self).littleEndian } }
-        set { withUnsafeMutableBytes { $0.storeBytes(of: newValue.littleEndian, toByteOffset: 12, as: UInt32.self) } }
+    var des: MachineID {
+        get { MachineID(rawValue: bytes.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 12, as: UInt32.self).littleEndian }) }
+        set { withUnsafeMutableBytes { $0.storeBytes(of: newValue.rawValue.littleEndian, toByteOffset: 12, as: UInt32.self) } }
     }
 
     // MARK: - Data field (offset 16, 48 bytes)
@@ -111,6 +111,23 @@ struct MWBPacket {
         set {
             let clamped = newValue.prefix(MWBConstants.dataFieldSize)
             bytes.replaceSubrange(16..<(16 + clamped.count), with: clamped)
+        }
+    }
+
+    var machineName: String {
+        get {
+            let nameData = bytes[32..<64]
+            return String(data: nameData, encoding: .ascii)?
+                .trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "\0"))) ?? ""
+        }
+        set {
+            let nameData = HandshakeHandler.encodeMachineName(newValue)
+            withUnsafeMutableBytes { ptr in
+                let dest = ptr.baseAddress!.advanced(by: 32)
+                nameData.withUnsafeBytes { src in
+                    dest.copyMemory(from: src.baseAddress!, byteCount: 32)
+                }
+            }
         }
     }
 

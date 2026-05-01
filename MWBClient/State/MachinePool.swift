@@ -1,68 +1,158 @@
 import Foundation
 import os.log
+import Synchronization
 
-/// Tracks a remote machine's connection state in the pool
-struct MachineInfo: Sendable {
+struct MachineInfo: Sendable, Equatable {
     var name: String
-    var id: UInt32
-    var lastSeen: ContinuousClock.Instant
+    var id: MachineID
+    var lastHeartbeat: TimeInterval // ms timestamp to match Windows GetTick()
+    
+    static func isAlive(_ info: MachineInfo, now: TimeInterval, timeout: TimeInterval) -> Bool {
+        return info.id != .none && (now - info.lastHeartbeat <= timeout)
+    }
 }
 
-/// Global actor for managing the physical arrangement (matrix) of devices
-/// and the registry of known devices (pool).
-actor MachinePool {
+final class MachinePool: @unchecked Sendable {
     static let shared = MachinePool()
+    static let maxMachines = 4
+
+    private struct State {
+        var machineMatrix: [String] = ["", "", "", ""]
+        var matrixCircle = false
+        var matrixOneRow = true
+        var machines: [MachineInfo] = []
+    }
     
-    /// The matrix array: exactly 4 slots. Empty string means empty slot.
-    private(set) var matrix: [String] = ["", "", "", ""]
+    private let state: OSAllocatedUnfairLock<State>
     
-    /// The pool mapping MachineName to its dynamically assigned ID and last seen time.
-    private(set) var pool: [String: MachineInfo] = [:]
+    init(matrix: [String] = ["", "", "", ""]) {
+        self.state = OSAllocatedUnfairLock(initialState: State(machineMatrix: matrix))
+    }
     
-    private init() {}
-    
-    /// Loads the matrix from a comma-separated string (e.g. from SettingsStore)
-    func loadMatrix(from string: String) {
-        let parts = string.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
-        for i in 0..<min(4, parts.count) {
-            matrix[i] = parts[i].trimmingCharacters(in: .whitespaces)
+    var machineMatrix: [String] {
+        get { state.withLock { $0.machineMatrix } }
+        set { state.withLock { $0.machineMatrix = newValue } }
+    }
+    var matrixCircle: Bool { 
+        get { state.withLock { $0.matrixCircle } }
+        set { state.withLock { $0.matrixCircle = newValue } }
+    }
+    var matrixOneRow: Bool {
+        get { state.withLock { $0.matrixOneRow } }
+        set { state.withLock { $0.matrixOneRow = newValue } }
+    }
+
+    func updateMachineMatrix(packetType: UInt8, src: MachineID, machineName: String) {
+        state.withLock { state in
+            let index = Int(src.rawValue) - 1
+            guard index >= 0 && index < Self.maxMachines else { return }
+            
+            state.machineMatrix[index] = machineName
+            
+            // Flags only apply on the 4th packet (src 4)
+            if src.rawValue == 4 {
+                state.matrixCircle = (packetType & MatrixFlags.matrixSwapEnabled) != 0
+                state.matrixOneRow = (packetType & MatrixFlags.twoRowFlag) == 0
+            }
         }
-        Logger.network.info("MachinePool matrix loaded: \(self.matrix)")
     }
     
-    /// Generates a comma-separated string from the current matrix
-    func serializedMatrix() -> String {
-        return matrix.joined(separator: ",")
+    func sendMachineMatrix() -> [MWBPacket] {
+        state.withLock { state in
+            var packets: [MWBPacket] = []
+            for i in 0..<Self.maxMachines {
+                var pkt = MWBPacket()
+                var type = MatrixFlags.matrix
+                if state.matrixCircle { type |= MatrixFlags.matrixSwapEnabled }
+                if !state.matrixOneRow { type |= MatrixFlags.twoRowFlag }
+                pkt.type = type
+                pkt.src = MachineID(rawValue: UInt32(i + 1))
+                
+                let nameData = HandshakeHandler.encodeMachineName(state.machineMatrix[i])
+                var data = pkt.data
+                data.replaceSubrange(16..<48, with: nameData)
+                pkt.data = data
+                packets.append(pkt)
+            }
+            return packets
+        }
     }
     
-    /// Updates a specific slot in the matrix (1-indexed). Returns true if it was updated.
-    func updateMatrixSlot(_ index: Int, with name: String) -> Bool {
-        let arrayIndex = index - 1
-        guard arrayIndex >= 0 && arrayIndex < 4 else { return false }
-        
-        if matrix[arrayIndex] != name {
-            matrix[arrayIndex] = name
-            Logger.network.info("MachinePool slot \(index) updated to '\(name)'")
+    func learnMachine(_ name: String) -> Bool {
+        state.withLock { state in
+            let trimmed = name.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { return false }
+            if state.machines.contains(where: { $0.name.lowercased() == trimmed.lowercased() }) {
+                return false
+            }
+            if state.machines.count >= Self.maxMachines {
+                // Evict first non-matrix machine if possible, else fail
+                if let idx = state.machines.firstIndex(where: { m in !state.machineMatrix.contains(m.name) }) {
+                    state.machines.remove(at: idx)
+                } else {
+                    return false
+                }
+            }
+            state.machines.append(MachineInfo(name: trimmed, id: .none, lastHeartbeat: 0))
             return true
         }
-        return false
     }
     
-    /// Registers or updates a machine in the pool
-    func updatePool(name: String, id: UInt32) {
-        guard !name.isEmpty else { return }
-        pool[name] = MachineInfo(name: name, id: id, lastSeen: .now)
+    func tryUpdateMachineID(name: String, id: MachineID, updateTimestamp: Bool, now: TimeInterval = Date().timeIntervalSince1970 * 1000) -> Bool {
+        state.withLock { state in
+            var found = false
+            for i in 0..<state.machines.count {
+                if state.machines[i].name.lowercased() == name.lowercased() {
+                    state.machines[i].id = id
+                    if updateTimestamp { state.machines[i].lastHeartbeat = now }
+                    found = true
+                } else if state.machines[i].id == id {
+                    state.machines[i].id = .none
+                }
+            }
+            return found
+        }
+    }
+
+    func tryFindMachineByName(_ name: String) -> MachineInfo? {
+        state.withLock { state in
+            state.machines.first { $0.name.lowercased() == name.lowercased() }
+        }
     }
     
-    /// Checks if a given ID is considered "alive" based on a timeout
-    func isAlive(id: UInt32, timeoutSeconds: Int = 1500) -> Bool {
-        guard let info = pool.values.first(where: { $0.id == id }) else { return false }
-        let elapsed = ContinuousClock.Instant.now - info.lastSeen
-        return elapsed < .seconds(timeoutSeconds)
+    func listAllMachines() -> [MachineInfo] {
+        state.withLock { $0.machines }
     }
     
-    /// Resolves an ID to a MachineName if it exists in the pool
-    func name(for id: UInt32) -> String? {
-        return pool.values.first(where: { $0.id == id })?.name
+    func resolveID(_ name: String) -> MachineID {
+        state.withLock { state in
+            state.machines.first { $0.name.lowercased() == name.lowercased() }?.id ?? .none
+        }
+    }
+    
+    func inMachineMatrix(_ name: String) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return false }
+        return state.withLock { state in
+            state.machineMatrix.contains { $0.lowercased() == trimmed.lowercased() }
+        }
+    }
+    
+    func serializedAsString() -> String {
+        state.withLock { state in
+            state.machines.map { "\($0.name):\($0.id.rawValue)" }.joined(separator: ",")
+        }
+    }
+
+    func initialize(names: [String]) {
+        state.withLock { state in
+            state.machines.removeAll()
+            for name in names {
+                let trimmed = name.trimmingCharacters(in: .whitespaces)
+                if !trimmed.isEmpty && state.machines.count < Self.maxMachines {
+                    state.machines.append(MachineInfo(name: trimmed, id: .none, lastHeartbeat: 0))
+                }
+            }
+        }
     }
 }

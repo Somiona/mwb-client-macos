@@ -44,7 +44,7 @@ actor NetworkManager {
             }
         }
     }
-    private(set) var machineID: UInt32 = 0
+    private(set) var machineID: MachineID = .none
     private(set) var connectedMachineName: String = ""
     private(set) var magicHash: UInt32 = 0
 
@@ -95,14 +95,14 @@ actor NetworkManager {
     var onMouse: MouseCallback?
     var onKeyboard: KeyboardCallback?
     var onClipboard: ClipboardCallback?
-    var onNextMachine: (@Sendable (UInt32, Int32, Int32) -> Void)?
+    var onNextMachine: (@Sendable (MachineID, Int32, Int32) -> Void)?
 
     /// Sets all four callbacks in a single actor-isolated call.
     func setCallbacks(
         onMouse: MouseCallback?,
         onKeyboard: KeyboardCallback?,
         onClipboard: ClipboardCallback?,
-        onNextMachine: (@Sendable (UInt32, Int32, Int32) -> Void)? = nil
+        onNextMachine: (@Sendable (MachineID, Int32, Int32) -> Void)? = nil
     ) {
         self.onMouse = onMouse
         self.onKeyboard = onKeyboard
@@ -116,7 +116,7 @@ actor NetworkManager {
         host: String,
         port: UInt16 = MWBConstants.inputPort,
         securityKey: String,
-        machineID: UInt32,
+        machineID: MachineID,
         machineName: String = Host.current().localizedName ?? "Mac",
         screenWidth: UInt16 = UInt16(NSScreen.main?.frame.width ?? 1920),
         screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080)
@@ -450,7 +450,7 @@ actor NetworkManager {
     // MARK: Identity
 
     private func sendIdentity(_ conn: NWConnection) async throws {
-        let id = handshakeHandler.adoptedMachineID != 0 ? handshakeHandler.adoptedMachineID : machineID
+        let id = handshakeHandler.adoptedMachineID != .none ? handshakeHandler.adoptedMachineID : machineID
         var identityPacket = HandshakeHandler.makeIdentityPacket(
             machineName: localMachineName,
             screenWidth: screenWidth,
@@ -572,9 +572,9 @@ actor NetworkManager {
 
         case .nextMachine:
             let mouseData = MouseData(from: packet)
-            let targetMachineID = UInt32(bitPattern: mouseData.wheelDelta)
+            let targetMachineID = MachineID(rawValue: UInt32(bitPattern: mouseData.wheelDelta))
             if Self.debugConnectionSteps {
-                Logger.network.info("Received NextMachine: target=\(targetMachineID), pos=(\(mouseData.x),\(mouseData.y))")
+                Logger.network.info("Received NextMachine: target=\(targetMachineID.rawValue), pos=(\(mouseData.x),\(mouseData.y))")
             }
             onNextMachine?(targetMachineID, mouseData.x, mouseData.y)
 
@@ -608,27 +608,25 @@ actor NetworkManager {
         case .matrix:
             let nameBytes = packet.data[16..<48]
             guard let name = String(data: Data(nameBytes), encoding: .ascii)?.trimmingCharacters(in: .whitespaces) else { break }
-            let slotIndex = Int(packet.src) // 1, 2, 3, or 4
+            MachinePool.shared.updateMachineMatrix(packetType: packet.type, src: packet.src, machineName: name)
             
-            Task {
-                await MachinePool.shared.updateMatrixSlot(slotIndex, with: name)
+            if packet.src.rawValue == 4 {
+                // Packet 4 is the final packet. Flags were handled in updateMachineMatrix.
+                let newMatrixStr = MachinePool.shared.serializedAsString() // Actually we want comma separated matrix
+                let matrixCircle = MachinePool.shared.matrixCircle
+                let matrixOneRow = MachinePool.shared.matrixOneRow
                 
-                if slotIndex == 4 {
-                    // Packet 4 is the final packet. Read flags and save.
-                    let flags = packet.type
-                    let matrixCircle = (flags & 2) != 0
-                    let matrixOneRow = (flags & 4) == 0 // Note: flag 4 means TWO row, so OneRow is false if flag 4 is present.
-                    
-                    let newMatrixStr = await MachinePool.shared.serializedMatrix()
-                    
+                Task {
                     await MainActor.run {
                         let settings = SettingsStore()
-                        settings.machineMatrixString = newMatrixStr
+                        // Re-serialize matrix as comma separated names
+                        let matrixNames = MachinePool.shared.machineMatrix.joined(separator: ",")
+                        settings.machineMatrixString = matrixNames
                         settings.matrixCircle = matrixCircle
                         settings.matrixOneRow = matrixOneRow
                     }
                     if Self.debugConnectionSteps {
-                        Logger.network.info("Committed new matrix from remote: \(newMatrixStr)")
+                        Logger.network.info("Committed new matrix from remote: \(MachinePool.shared.machineMatrix)")
                     }
                 }
             }

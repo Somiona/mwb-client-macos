@@ -9,7 +9,7 @@ actor ClipboardManager {
     // MARK: Public State
 
     private(set) var isConnected = false
-    var machineID: UInt32 = 0
+    var machineID: MachineID = .none
 
     // MARK: Configuration
 
@@ -54,13 +54,13 @@ actor ClipboardManager {
     private var inboundContentType: PackageType?
 
     // MARK: File Transfer State
-    private(set) var pendingFileSenderID: UInt32?
+    private(set) var pendingFileSenderID: MachineID?
     private(set) var isFileReady: Bool = false
 
     // MARK: Init
 
     init(
-        machineID: UInt32,
+        machineID: MachineID,
         syncText: Bool = true,
         syncImages: Bool = true,
         syncFiles: Bool = true
@@ -97,7 +97,7 @@ actor ClipboardManager {
         if let syncFiles { self.syncFiles = syncFiles }
     }
 
-    func updateMachineID(_ newID: UInt32) {
+    func updateMachineID(_ newID: MachineID) {
         self.machineID = newID
     }
 
@@ -127,7 +127,7 @@ actor ClipboardManager {
             // Type 69: clipboard notification (used for file/big clipboard paths)
             pendingFileSenderID = packet.src
             isFileReady = true
-            Logger.clipboard.info("Received Type 69 Clipboard Notification from \(packet.src). Ready to pull large data.")
+            Logger.clipboard.info("Received Type 69 Clipboard Notification from \(packet.src.rawValue). Ready to pull large data.")
 
         default:
             break
@@ -167,7 +167,7 @@ actor ClipboardManager {
 
     func pullLargeData() async {
         guard let senderID = pendingFileSenderID else { return }
-        Logger.clipboard.info("Initiating large data pull from machine \(senderID)")
+        Logger.clipboard.info("Initiating large data pull from machine \(senderID.rawValue)")
         
         // Mark as processing
         isFileReady = false

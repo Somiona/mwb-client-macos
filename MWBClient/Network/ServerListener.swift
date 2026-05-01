@@ -12,13 +12,13 @@ actor ServerListener {
 
     private(set) var isListening = false
     private(set) var activeConnectionCount = 0
-    private(set) var remoteMachineID: UInt32 = 0
+    private(set) var remoteMachineID: MachineID = .none
 
     // MARK: Configuration
 
     private let port: UInt16
     private let securityKey: String
-    private let localMachineID: UInt32
+    private let localMachineID: MachineID
     private let localMachineName: String
     private let screenWidth: UInt16
     private let screenHeight: UInt16
@@ -54,7 +54,7 @@ actor ServerListener {
     init(
         port: UInt16 = MWBConstants.inputPort,
         securityKey: String,
-        machineID: UInt32,
+        machineID: MachineID,
         machineName: String = Host.current().localizedName ?? "Mac",
         screenWidth: UInt16 = UInt16(NSScreen.main?.frame.width ?? 1920),
         screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080)
@@ -251,7 +251,7 @@ actor ServerListener {
             nextPacketID &+= 1
 
             // src/des remain random unless adopted
-            if localMachineID != 0 {
+            if localMachineID != .none {
                 challenge.src = localMachineID
             }
 
@@ -402,7 +402,7 @@ actor ServerListener {
         connection: NWConnection,
         crypto: MWBCrypto,
         magicHash: UInt32,
-        machineID: UInt32
+        machineID: MachineID
     ) {
         guard let type = packet.packageType else { return }
 
@@ -461,19 +461,16 @@ actor ServerListener {
         case .matrix:
             let nameBytes = packet.data[16..<48]
             guard let name = String(data: Data(nameBytes), encoding: .ascii)?.trimmingCharacters(in: .whitespaces) else { break }
-            let slotIndex = Int(packet.src) // 1, 2, 3, or 4
             
-            Task {
-                await MachinePool.shared.updateMatrixSlot(slotIndex, with: name)
+            MachinePool.shared.updateMachineMatrix(packetType: packet.type, src: packet.src, machineName: name)
+            
+            if packet.src.rawValue == 4 {
+                // Packet 4 is the final packet. Flags were handled in updateMachineMatrix.
+                let matrixCircle = MachinePool.shared.matrixCircle
+                let matrixOneRow = MachinePool.shared.matrixOneRow
+                let newMatrixStr = MachinePool.shared.machineMatrix.joined(separator: ",")
                 
-                if slotIndex == 4 {
-                    // Packet 4 is the final packet. Read flags and save.
-                    let flags = packet.type
-                    let matrixCircle = (flags & 2) != 0
-                    let matrixOneRow = (flags & 4) == 0 // Note: flag 4 means TWO row, so OneRow is false if flag 4 is present.
-                    
-                    let newMatrixStr = await MachinePool.shared.serializedMatrix()
-                    
+                Task {
                     await MainActor.run {
                         let settings = SettingsStore()
                         settings.machineMatrixString = newMatrixStr

@@ -52,7 +52,7 @@ final class AppCoordinator {
     private var isCrossingActive = false
 
     /// The machine ID assigned by the Windows machine during handshake.
-    private var localMachineID: UInt32 = 0
+    private var localMachineID: MachineID = .none
 
     // MARK: - Reconnection Tracking
 
@@ -85,7 +85,7 @@ final class AppCoordinator {
 
         let host = settings.windowsIP.trimmingCharacters(in: .whitespacesAndNewlines)
         let securityKey = settings.securityKey
-        let machineID = settings.machineID
+        let machineID = MachineID(rawValue: settings.machineID)
         let port = MWBConstants.inputPort
         let machineName = settings.machineName
         let screenSize = ScreenInfo.mainScreenSizeUInt16
@@ -407,7 +407,7 @@ final class AppCoordinator {
         let machineID = await nm.machineID
         let magicHash = await nm.magicHash
         let connectedName = await nm.connectedMachineName
-        guard machineID != 0 else {
+        guard machineID != .none else {
             Logger.coordinator.warning("Skipping subsystem restart: machineID is 0 (handshake may not be complete)")
             return
         }
@@ -587,7 +587,7 @@ final class AppCoordinator {
     }
 
     /// Windows detected cursor reaching its edge toward the Mac — accept control.
-    private func handleNextMachine(machineID: UInt32, x: Int32, y: Int32) {
+    private func handleNextMachine(machineID: MachineID, x: Int32, y: Int32) {
         guard connectionState == .connected else { return }
         guard !isCrossingActive else { return }
 
@@ -668,7 +668,7 @@ final class AppCoordinator {
 
     // MARK: - NextMachine
 
-    private func sendNextMachine(targetMachineID: UInt32, x: Int32, y: Int32) {
+    private func sendNextMachine(targetMachineID: MachineID, x: Int32, y: Int32) {
         guard let nm = networkManager else { return }
 
         var packet = MWBPacket()
@@ -679,7 +679,7 @@ final class AppCoordinator {
         var mouseData = MouseData()
         mouseData.x = x
         mouseData.y = y
-        mouseData.wheelDelta = Int32(bitPattern: localMachineID)
+        mouseData.wheelDelta = Int32(bitPattern: localMachineID.rawValue)
         mouseData.write(to: &packet)
 
         Task {
@@ -700,7 +700,7 @@ final class AppCoordinator {
         for (index, name) in slots.enumerated() {
             var packet = MWBPacket()
             packet.type = flags
-            packet.src = UInt32(index + 1) // Src is 1 to 4
+            packet.src = MachineID(rawValue: UInt32(index + 1)) // Src is 1 to 4
             packet.des = MWBConstants.broadcastDestination
 
             let nameData = HandshakeHandler.encodeMachineName(name)

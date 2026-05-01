@@ -13,7 +13,7 @@ actor HeartbeatService {
     // MARK: - State
 
     private let magicHash: UInt32
-    private let machineID: UInt32
+    private let machineID: MachineID
     private let generatedKey: Bool
     private var heartbeatTask: Task<Void, Never>?
 
@@ -24,7 +24,7 @@ actor HeartbeatService {
         screenWidth: UInt16,
         screenHeight: UInt16,
         magicHash: UInt32,
-        machineID: UInt32,
+        machineID: MachineID,
         generatedKey: Bool
     ) {
         self.machineName = machineName

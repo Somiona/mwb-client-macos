@@ -90,8 +90,8 @@ final class MWBPacketTests: XCTestCase {
         packet.magic0 = 0xBB
         packet.magic1 = 0xCC
         packet.id = 0x11223344
-        packet.src = 0x55667788
-        packet.des = 0x99AABBCC
+        packet.src = MachineID(rawValue: 0x55667788)
+        packet.des = MachineID(rawValue: 0x99AABBCC)
         
         let bytes = packet.rawBytes
         XCTAssertEqual(bytes[0], 122) // Keyboard
@@ -166,7 +166,7 @@ final class MWBPacketTests: XCTestCase {
             machineName: "TestMac", 
             screenWidth: 1920, 
             screenHeight: 1080, 
-            machineID: 1
+            machineID: MachineID(rawValue: 1)
         )
         let identityBytes = identityPacket.rawBytes
         // MachineName starts at byte 32 (offset 16 in data)

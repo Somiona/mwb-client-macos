@@ -10,7 +10,7 @@ final class ConnectionStateTests: XCTestCase {
         
         // Send 10 identical handshake packets (like Windows does)
         for _ in 0..<10 {
-            _ = handler.receiveChallenge(packet, localMachineName: "Mac", localMachineID: 1)
+            _ = handler.receiveChallenge(packet, localMachineName: "Mac", localMachineID: MachineID(rawValue: 1))
         }
         
         // Should only transition state once

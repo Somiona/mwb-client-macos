@@ -15,7 +15,7 @@ struct HandshakeHandler {
     private(set) var state: HandshakeState = .idle
     private(set) var receivedChallengeCount = 0
     private(set) var sentAckCount = 0
-    private(set) var adoptedMachineID: UInt32 = 0
+    private(set) var adoptedMachineID: MachineID = .none
 
     /// Encodes a machine name to 32 bytes using ASCII-compatible encoding,
     /// matching Windows `ASCIIEncoding.ASCII.GetBytes()` behavior.
@@ -39,7 +39,7 @@ struct HandshakeHandler {
         sentAckCount = 0
     }
 
-    mutating func receiveChallenge(_ packet: MWBPacket, localMachineName: String, localMachineID: UInt32) -> MWBPacket? {
+    mutating func receiveChallenge(_ packet: MWBPacket, localMachineName: String, localMachineID: MachineID) -> MWBPacket? {
         switch state {
         case .exchangingNoise, .receivingChallenge, .sendingIdentity, .completed:
             break
@@ -95,14 +95,14 @@ struct HandshakeHandler {
         state = .idle
         receivedChallengeCount = 0
         sentAckCount = 0
-        adoptedMachineID = 0
+        adoptedMachineID = .none
     }
 
     static func makeIdentityPacket(
         machineName: String,
         screenWidth: UInt16,
         screenHeight: UInt16,
-        machineID: UInt32
+        machineID: MachineID
     ) -> MWBPacket {
         var packet = MWBPacket()
         packet.type = PackageType.heartbeatEx.rawValue

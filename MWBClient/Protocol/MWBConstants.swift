@@ -29,5 +29,5 @@ enum MWBConstants {
     static let sha512Rounds = 50_001
 
     static let virtualDesktopMax: Int32 = 65535
-    static let broadcastDestination: UInt32 = 0xFF
+    static let broadcastDestination = MachineID.all
 }
