@@ -16,6 +16,7 @@ actor HeartbeatService {
     private let machineID: MachineID
     private let generatedKey: Bool
     private var heartbeatTask: Task<Void, Never>?
+    private var lastInputTimestamp: Date = .distantPast
 
     // MARK: - Init
 
@@ -43,6 +44,11 @@ actor HeartbeatService {
     /// Bind to the NetworkManager used for sending packets.
     func bind(networkManager: NetworkManager) {
         self.networkManager = networkManager
+    }
+
+    /// Records that user activity occurred.
+    func updateActivity() {
+        lastInputTimestamp = Date()
     }
 
     // MARK: - Start / Stop
@@ -108,8 +114,15 @@ actor HeartbeatService {
         )
 
         if !generatedKey {
-            // User-provided key: use plain Heartbeat (type 20)
-            packet.type = PackageType.heartbeat.rawValue
+            // User-provided key: use plain Heartbeat (type 20) or Awake (type 21)
+            let settings = await MainActor.run { SettingsStore() }
+            let isActive = Date().timeIntervalSince(lastInputTimestamp) < 30.0
+            
+            if settings.blockScreenSaver && isActive {
+                packet.type = PackageType.awake.rawValue
+            } else {
+                packet.type = PackageType.heartbeat.rawValue
+            }
         }
 
         packet.setMagic(magicHash)

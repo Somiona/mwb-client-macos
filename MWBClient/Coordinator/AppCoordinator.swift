@@ -555,7 +555,9 @@ final class AppCoordinator {
         // Forward mouse events when crossing is active
         inputCapture.onMouseEvent = { [weak self] mouseData in
             Task { @MainActor [weak self] in
-                guard let self, self.isCrossingActive else { return }
+                guard let self else { return }
+                await self.heartbeatService?.updateActivity()
+                guard self.isCrossingActive else { return }
                 await self.forwardMouseToRemote(mouseData)
             }
         }
@@ -563,7 +565,9 @@ final class AppCoordinator {
         // Forward keyboard events when crossing is active
         inputCapture.onKeyboardEvent = { [weak self] keyData in
             Task { @MainActor [weak self] in
-                guard let self, self.isCrossingActive else { return }
+                guard let self else { return }
+                await self.heartbeatService?.updateActivity()
+                guard self.isCrossingActive else { return }
                 await self.forwardKeyboardToRemote(keyData)
             }
         }

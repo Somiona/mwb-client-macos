@@ -37,6 +37,9 @@ final class InputCapture {
     /// Whether the event tap is currently running.
     private(set) var isRunning = false
 
+    /// The time of the last captured user input event.
+    private(set) var lastInputTimestamp = Date.distantPast
+    
     // MARK: - Callbacks
 
     var onMouseEvent: MouseCallback?
@@ -305,6 +308,7 @@ final class InputCapture {
         // Forward to callback regardless of suppression state.
         onMouseEvent?(mouseData)
         onMousePosition?(mouseData, location)
+        lastInputTimestamp = Date()
 
         // Suppress the event when crossing is active.
         if crossingActive {
@@ -356,6 +360,7 @@ final class InputCapture {
 
         // Forward to callback regardless of suppression state.
         onKeyboardEvent?(keyboardData)
+        lastInputTimestamp = Date()
 
         // Suppress the event when crossing is active.
         if crossingActive {
