@@ -53,6 +53,10 @@ actor ClipboardManager {
     /// The type of clipboard content currently being received.
     private var inboundContentType: PackageType?
 
+    // MARK: File Transfer State
+    private(set) var pendingFileSenderID: UInt32?
+    private(set) var isFileReady: Bool = false
+
     // MARK: Init
 
     init(
@@ -121,8 +125,9 @@ actor ClipboardManager {
 
         case .clipboard:
             // Type 69: clipboard notification (used for file/big clipboard paths)
-            inboundContentType = .clipboard
-            inboundPackets.append(packet)
+            pendingFileSenderID = packet.src
+            isFileReady = true
+            Logger.clipboard.info("Received Type 69 Clipboard Notification from \(packet.src). Ready to pull large data.")
 
         default:
             break
@@ -153,15 +158,35 @@ actor ClipboardManager {
                 Logger.clipboard.error("Failed to decode image clipboard from \(self.inboundPackets.count) packets")
             }
 
-        case .clipboard:
-            // File clipboard via type 69 - not yet implemented for full file transfer.
-            // The dedicated clipboard TCP path for files would use the raw stream
-            // header format described in the MWB protocol. For now, skip.
-            break
-
         default:
             break
         }
+    }
+
+    // MARK: Large File Pull
+
+    func pullLargeData() async {
+        guard let senderID = pendingFileSenderID else { return }
+        Logger.clipboard.info("Initiating large data pull from machine \(senderID)")
+        
+        // Mark as processing
+        isFileReady = false
+        pendingFileSenderID = nil
+        
+        guard isConnected, let sendPacket else { return }
+        
+        var packet = MWBPacket()
+        packet.type = PackageType.clipboardAsk.rawValue
+        packet.src = machineID
+        packet.des = senderID
+        // PostAction would be set here if needed (e.g. paste file)
+        
+        await sendPacket(packet)
+        
+        // TODO: Implement secondary TCP socket on inputPort + 1
+        // 1. Connect Network framework to inputPort + 1
+        // 2. Exchange noise
+        // 3. Receive raw file bytes
     }
 
     // MARK: Write to Pasteboard
