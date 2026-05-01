@@ -500,6 +500,18 @@ actor ServerListener {
             respondToHeartbeat(packet, connection: connection, crypto: crypto, magicHash: magicHash, machineID: handler.adoptedMachineID)
             return true
 
+        case .explorerDragDrop:
+            Task { @MainActor in
+                DragDropManager.shared.handleExplorerDragDropRequest()
+            }
+            return true
+            
+        case .clipboardDragDrop:
+            Task { @MainActor in
+                DragDropManager.shared.handleRemoteDragAnnounced()
+            }
+            return true
+
         default:
             return false
         }

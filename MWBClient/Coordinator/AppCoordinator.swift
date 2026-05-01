@@ -78,6 +78,21 @@ final class AppCoordinator {
         )
         wireEdgeDetector()
         wireInputCapture()
+        setupDragDrop()
+    }
+
+    private func setupDragDrop() {
+        DragDropManager.shared.setDragDetectedCallback { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.sendClipboardDragDrop()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(forName: .mwbTriggerClipboardPull, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.clipboardManager?.getRemoteClipboard(reason: "DragDrop")
+            }
+        }
     }
 
     // MARK: - Connect / Disconnect
@@ -556,6 +571,14 @@ final class AppCoordinator {
         inputCapture.onMouseEvent = { [weak self] mouseData in
             Task { @MainActor [weak self] in
                 guard let self else { return }
+                
+                // Track mouse button for drag & drop
+                if mouseData.dwFlags == WMMouseMessage.lButtonDown.rawValue {
+                    DragDropManager.shared.handleLocalMouseButton(down: true)
+                } else if mouseData.dwFlags == WMMouseMessage.lButtonUp.rawValue {
+                    DragDropManager.shared.handleLocalMouseButton(down: false)
+                }
+                
                 await self.heartbeatService?.updateActivity()
                 guard self.isCrossingActive else { return }
                 await self.forwardMouseToRemote(mouseData)
@@ -619,12 +642,20 @@ final class AppCoordinator {
         // Warp cursor to the requested position (virtual coords -> screen coords)
         let screenPoint = virtualToScreen(x: x, y: y)
         CGWarpMouseCursorPosition(screenPoint)
+        
+        // Ask source machine if they are dragging anything
+        sendExplorerDragDrop(targetMachineID: machineID)
     }
 
     // MARK: - Remote Input Handling
 
     private func handleRemoteMouse(_ data: MouseData) {
         guard connectionState == .connected else { return }
+
+        // Track remote mouse up for potential drop
+        if data.dwFlags == WMMouseMessage.lButtonUp.rawValue {
+            DragDropManager.shared.handleRemoteMouseUp()
+        }
 
         // First mouse event from Windows means cursor is returning
         if isCrossingActive {
@@ -702,6 +733,32 @@ final class AppCoordinator {
         mouseData.wheelDelta = Int32(bitPattern: localMachineID.rawValue)
         mouseData.write(to: &packet)
 
+        Task {
+            await nm.sendPacket(packet)
+        }
+    }
+
+    private func sendExplorerDragDrop(targetMachineID: MachineID) {
+        guard let nm = networkManager else { return }
+        
+        var packet = MWBPacket()
+        packet.type = PackageType.explorerDragDrop.rawValue
+        packet.src = localMachineID
+        packet.des = targetMachineID
+        
+        Task {
+            await nm.sendPacket(packet)
+        }
+    }
+    
+    private func sendClipboardDragDrop() {
+        guard let nm = networkManager else { return }
+        
+        var packet = MWBPacket()
+        packet.type = PackageType.clipboardDragDrop.rawValue
+        packet.src = localMachineID
+        packet.des = MWBConstants.broadcastDestination
+        
         Task {
             await nm.sendPacket(packet)
         }

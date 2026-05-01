@@ -17,7 +17,7 @@
 - Modify: `MWBClient/UI/Settings/PermissionsView.swift`
 - Modify: `MWBClient/Network/ServerListener.swift`
 
-- [ ] **Step 1: Add Settings Properties**
+- [x] **Step 1: Add Settings Properties**
 
 ```swift
 // In MWBClient/Persistence/SettingsStore.swift
@@ -25,11 +25,11 @@
 @AppStorage("validateRemoteIP") var validateRemoteIP = false
 ```
 
-- [ ] **Step 2: IP Validation Logic**
+- [x] **Step 2: IP Validation Logic**
 
 In `ServerListener.swift`, before starting the handshake on a new `NWConnection`, verify the incoming IP address against the local subnet and/or perform a reverse DNS lookup based on the settings toggles.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add MWBClient/Persistence/SettingsStore.swift MWBClient/UI/Settings/PermissionsView.swift MWBClient/Network/ServerListener.swift
@@ -42,19 +42,19 @@ git commit -m "feat: add same subnet and reverse dns security validations"
 - Modify: `MWBClient/Network/HeartbeatService.swift`
 - Modify: `MWBClient/Input/InputCapture.swift`
 
-- [ ] **Step 1: Activity Tracking**
+- [x] **Step 1: Activity Tracking**
 
 `InputCapture` should track the `lastInputTimestamp`.
 
-- [ ] **Step 2: Send Awake Packets**
+- [x] **Step 2: Send Awake Packets**
 
 If `settings.blockScreenSaver` is true and `lastInputTimestamp` is recent, `HeartbeatService` should send `PackageType.awake` (21) instead of `PackageType.heartbeat`.
 
-- [ ] **Step 3: Respond to Awake**
+- [x] **Step 3: Respond to Awake**
 
-When receiving an `awake` packet, `InputInjection` should trigger a micro-movement (e.g. `dx: 0, dy: 0`) to poke the local OS to prevent sleep.
+When receiving an `awake` packet, `InputInjection` should trigger a micro-movement (e.g. `dx: 0, dy: 0`) to poke the local OS to prevent sleep. (Note: On macOS, we use `IOPMAssertion` for a cleaner native implementation).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add MWBClient/Network/HeartbeatService.swift MWBClient/Input/InputCapture.swift
@@ -67,19 +67,19 @@ git commit -m "feat: implement Awake packets to block remote screensavers"
 - Create: `MWBClient/Clipboard/DragDropManager.swift`
 - Modify: `MWBClient/Input/InputCapture.swift`
 
-- [ ] **Step 1: State Machine Creation**
+- [x] **Step 1: State Machine Creation**
 
 Create the 12-step state machine in `DragDropManager` tracking `MouseDown` -> `Border Crossing` -> `The Inquiry`.
 
-- [ ] **Step 2: Invisible Drop Target Window**
+- [x] **Step 2: Invisible Drop Target Window**
 
 Create a transparent, borderless `NSWindow` that follows the mouse when receiving an inquiry to capture the dragged file payload via `NSDraggingDestination`.
 
-- [ ] **Step 3: Trigger Out-of-band Transfer**
+- [x] **Step 3: Trigger Out-of-band Transfer**
 
 Upon a drop event (`MouseUp`), invoke the `ClipboardManager` out-of-band pull logic to fetch the file contents.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add MWBClient/Clipboard/DragDropManager.swift MWBClient/Input/InputCapture.swift
