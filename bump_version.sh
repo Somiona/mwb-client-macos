@@ -2,7 +2,7 @@
 
 # Default values
 FORCE=0
-GPG_SIGN_FLAG=""
+GPG_CONFIG_OFF=""
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -12,7 +12,7 @@ while [[ "$#" -gt 0 ]]; do
       shift
       ;;
     --no-gpg-sign)
-      GPG_SIGN_FLAG="--no-gpg-sign"
+      GPG_CONFIG_OFF="-c commit.gpgSign=false -c tag.gpgSign=false"
       shift
       ;;
     -*)
@@ -67,11 +67,11 @@ if [ -d "MWBClient.xcodeproj" ]; then
     git add MWBClient.xcodeproj
 fi
 
-git commit $GPG_SIGN_FLAG -m "Bump version to $NEW_VERSION"
+git $GPG_CONFIG_OFF commit -m "Bump version to $NEW_VERSION"
 
 # Create a git tag
-# Using --no-gpg-sign if the flag was passed, Meowster!
-git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION" $GPG_SIGN_FLAG
+# Using config override to bypass GPG signing if your FIDO2 card is missing, Meowster!
+git $GPG_CONFIG_OFF tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 
 echo "Version bumped to $NEW_VERSION"
 echo "Commit created and tagged. You can now run 'git push origin main' and 'git push --tags'."
