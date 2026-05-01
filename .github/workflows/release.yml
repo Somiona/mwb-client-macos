@@ -1,0 +1,43 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "*"
+
+jobs:
+    build:
+        runs-on: macos-latest
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Setup Xcode
+              uses: maxim-lobanov/setup-xcode@v1
+              with:
+                  xcode-version: latest-stable
+
+            - name: Install dependencies
+              run: |
+                  brew install xcodegen
+                  xcodegen generate
+
+            - name: Build the App
+              run: |
+                  xcodebuild -project MWBClient.xcodeproj -scheme MWBClient -destination 'platform=macOS' -configuration Release -derivedDataPath ./build/DerivedData SYMROOT=./build/Products build
+
+            - name: Create DMG
+              run: |
+                  mkdir -p ./dmg_staging
+                  cp -r ./build/Products/Release/MWBClient.app ./dmg_staging/
+                  ln -s /Applications ./dmg_staging/Applications
+                  hdiutil create -volname "MWBClient" -srcfolder ./dmg_staging -ov -format UDZO MWBClient.dmg
+
+            - name: Publish Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: MWBClient.dmg
+                  generate_release_notes: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
