@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 import Network
 import os.log
@@ -149,16 +150,130 @@ actor ServerListener {
     private func handleNewConnection(_ connection: NWConnection) {
         let remoteEndpoint = connection.endpoint
         Logger.network.info("ServerListener: new connection from \(String(describing: remoteEndpoint))")
-        connection.start(queue: .global(qos: .userInitiated))
+        
+        Task { [weak self] in
+            guard let self else { return }
+            
+            if await !validateEndpoint(remoteEndpoint) {
+                Logger.network.warning("ServerListener: connection from \(String(describing: remoteEndpoint)) rejected by security policy")
+                connection.cancel()
+                return
+            }
+            
+            connection.start(queue: .global(qos: .userInitiated))
 
-        let tempID = UInt32.random(in: 1..<UInt32.max)
+            let tempID = UInt32.random(in: 1..<UInt32.max)
+            await self.addConnection(connection, taskID: tempID)
+        }
+    }
+
+    private func addConnection(_ connection: NWConnection, taskID: UInt32) {
         let task = Task { [weak self] in
             guard let self else { return }
             await self.handleConnection(connection, taskID: tempID)
         }
         
-        connectionTasks[tempID] = task
+        connectionTasks[taskID] = task
         activeConnectionCount += 1
+    }
+
+    private func validateEndpoint(_ endpoint: NWEndpoint) async -> Bool {
+        let settings = await MainActor.run { SettingsStore() }
+        guard settings.sameSubnetOnly || settings.validateRemoteIP else { return true }
+
+        guard case let .hostPort(host, _) = endpoint else { return false }
+        
+        var remoteIPString = ""
+        switch host {
+        case .ipv4(let ipv4): remoteIPString = "\(ipv4)"
+        case .ipv6(let ipv6): remoteIPString = "\(ipv6)"
+        case .name(let name, _): remoteIPString = name
+        @unknown default: return false
+        }
+
+        if settings.sameSubnetOnly {
+            if !isSameSubnet(remoteIPString) {
+                Logger.network.warning("ServerListener: Security rejection: \(remoteIPString) is not in the same subnet")
+                return false
+            }
+        }
+
+        if settings.validateRemoteIP {
+            // Reverse DNS check will be performed after handshake when we have the remote machine name
+            // For now we just allow the connection to proceed to handshake
+        }
+
+        return true
+    }
+
+    private func validateReverseDNS(connection: NWConnection, expectedName: String) async -> Bool {
+        guard case let .hostPort(host, _) = connection.endpoint else { return false }
+        
+        var ipString = ""
+        switch host {
+        case .ipv4(let ipv4): ipString = "\(ipv4)"
+        case .ipv6(let ipv6): ipString = "\(ipv6)"
+        case .name(let name, _): ipString = name
+        @unknown default: return false
+        }
+
+        return await withCheckedContinuation { continuation in
+            var hints = addrinfo()
+            hints.ai_family = AF_UNSPEC
+            hints.ai_socktype = SOCK_STREAM
+            
+            var res: UnsafeMutablePointer<addrinfo>?
+            if getaddrinfo(ipString, nil, &hints, &res) == 0, let res = res {
+                defer { freeaddrinfo(res) }
+                var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                if getnameinfo(res.pointee.ai_addr, res.pointee.ai_addrlen, &hostname, socklen_t(hostname.count), nil, 0, NI_NAMEREQD) == 0 {
+                    let reversedName = String(cString: hostname)
+                    // Match case-insensitively and ignore domain if provided
+                    let remoteBaseName = expectedName.split(separator: ".")[0].lowercased()
+                    let reversedBaseName = reversedName.split(separator: ".")[0].lowercased()
+                    
+                    if remoteBaseName == reversedBaseName {
+                        continuation.resume(returning: true)
+                        return
+                    }
+                    Logger.network.warning("ServerListener: DNS mismatch: expected \(remoteBaseName), got \(reversedBaseName)")
+                }
+            }
+            continuation.resume(returning: false)
+        }
+    }
+
+    private func isSameSubnet(_ remoteIP: String) -> Bool {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0 else { return true } // Fallback to allow if we can't check
+        defer { freeifaddrs(ifaddr) }
+
+        let remoteParts = remoteIP.split(separator: ".")
+        guard remoteParts.count == 4 else { return true } // Only IPv4 for this simple check
+
+        var ptr = ifaddr
+        while ptr != nil {
+            defer { ptr = ptr?.pointee.ifa_next }
+            guard let interface = ptr?.pointee else { continue }
+            let flags = Int32(interface.ifa_flags)
+            let addr = interface.ifa_addr.pointee
+
+            // Check for IPv4 and skip loopback
+            if addr.sa_family == UInt8(AF_INET) && (flags & IFF_LOOPBACK) == 0 && (flags & IFF_UP) != 0 {
+                var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len), &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
+                let localIP = String(cString: hostname)
+                let localParts = localIP.split(separator: ".")
+                
+                if localParts.count == 4 {
+                    // Windows MWB style: first two octets must match
+                    if localParts[0] == remoteParts[0] && localParts[1] == remoteParts[1] {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
     }
 
     // MARK: Per-Connection Lifecycle
@@ -358,8 +473,19 @@ actor ServerListener {
 
         case .handshakeAck:
             // Received response to our challenge: mark as trusted and store remote ID
+            let remoteName = packet.machineName
+            let settings = await MainActor.run { SettingsStore() }
+            
+            if settings.validateRemoteIP {
+                if await !validateReverseDNS(connection: connection, expectedName: remoteName) {
+                    Logger.network.warning("ServerListener: Reverse DNS validation failed for \(remoteName)")
+                    connection.cancel()
+                    return true
+                }
+            }
+
             self.remoteMachineID = packet.src
-            Logger.network.info("ServerListener: received handshakeAck from machine \(packet.src), connection trusted")
+            Logger.network.info("ServerListener: received handshakeAck from machine \(packet.src) (\(remoteName)), connection trusted")
             return true
 
         case .heartbeat, .heartbeatEx, .heartbeatExL2, .heartbeatExL3:
