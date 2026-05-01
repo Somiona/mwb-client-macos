@@ -180,4 +180,20 @@ final class MWBPacketTests: XCTestCase {
         XCTAssertEqual(identityBytes[39], 0x20) // ' ' (padded)
         XCTAssertEqual(identityBytes[63], 0x20) // last byte of machine name
     }
+
+    func testMatrixPacketFlagsAndName() {
+        var packet = MWBPacket()
+        // 134 = Matrix (128) | Swap (2) | TwoRow (4)
+        packet.type = 134 
+        XCTAssertEqual(packet.packageType, .matrix)
+        XCTAssertTrue(packet.isBig)
+        
+        packet.machineName = "WindowsBox"
+        XCTAssertEqual(packet.machineName, "WindowsBox")
+        
+        let bytes = packet.rawBytes
+        XCTAssertEqual(bytes[32], 0x57) // 'W'
+        XCTAssertEqual(bytes[41], 0x78) // 'x'
+        XCTAssertEqual(bytes[42], 0x20) // ' ' (padded)
+    }
 }

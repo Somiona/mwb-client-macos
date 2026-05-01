@@ -96,18 +96,21 @@ actor NetworkManager {
     var onKeyboard: KeyboardCallback?
     var onClipboard: ClipboardCallback?
     var onNextMachine: (@Sendable (MachineID, Int32, Int32) -> Void)?
+    var onMatrixUpdate: (@Sendable ([String], Bool, Bool) -> Void)?
 
     /// Sets all four callbacks in a single actor-isolated call.
     func setCallbacks(
         onMouse: MouseCallback?,
         onKeyboard: KeyboardCallback?,
-        onClipboard: ClipboardCallback?,
-        onNextMachine: (@Sendable (MachineID, Int32, Int32) -> Void)? = nil
+        onClipboard: ClipboardCallback? = nil,
+        onNextMachine: (@Sendable (MachineID, Int32, Int32) -> Void)? = nil,
+        onMatrixUpdate: (@Sendable ([String], Bool, Bool) -> Void)? = nil
     ) {
         self.onMouse = onMouse
         self.onKeyboard = onKeyboard
         self.onClipboard = onClipboard
         self.onNextMachine = onNextMachine
+        self.onMatrixUpdate = onMatrixUpdate
     }
 
     // MARK: Init
@@ -513,7 +516,9 @@ actor NetworkManager {
                 }
 
                 let packet = MWBPacket(rawData: fullData)
-
+                if Self.debugConnectionSteps {
+                    Logger.network.info("receivePump: received type \(packet.type) in state \(String(describing: self.state))")
+                }
                 guard packet.validateChecksum() else {
                     Logger.network.warning("Receive pump: invalid checksum, skipping packet")
                     continue
@@ -606,28 +611,30 @@ actor NetworkManager {
             sendPacket(l2)
 
         case .matrix:
-            let nameBytes = packet.data[16..<48]
-            guard let name = String(data: Data(nameBytes), encoding: .ascii)?.trimmingCharacters(in: .whitespaces) else { break }
-            MachinePool.shared.updateMachineMatrix(packetType: packet.type, src: packet.src, machineName: name)
+             if Self.debugConnectionSteps {
+                Logger.network.info("Processing matrix packet: src=\(packet.src.rawValue), name=\(packet.machineName)")
+            }
+            MachinePool.shared.updateMachineMatrix(packetType: packet.type, src: packet.src, machineName: packet.machineName)
             
             if packet.src.rawValue == 4 {
                 // Packet 4 is the final packet. Flags were handled in updateMachineMatrix.
-                let newMatrixStr = MachinePool.shared.serializedAsString() // Actually we want comma separated matrix
+                let matrix = MachinePool.shared.machineMatrix
                 let matrixCircle = MachinePool.shared.matrixCircle
                 let matrixOneRow = MachinePool.shared.matrixOneRow
                 
-                Task {
-                    await MainActor.run {
-                        let settings = SettingsStore()
-                        // Re-serialize matrix as comma separated names
-                        let matrixNames = MachinePool.shared.machineMatrix.joined(separator: ",")
-                        settings.machineMatrixString = matrixNames
-                        settings.matrixCircle = matrixCircle
-                        settings.matrixOneRow = matrixOneRow
-                    }
+                if Self.debugConnectionSteps {
+                    Logger.network.info("Matrix complete: \(matrix), circle=\(matrixCircle), oneRow=\(matrixOneRow)")
+                }
+                
+                if let callback = onMatrixUpdate {
                     if Self.debugConnectionSteps {
-                        Logger.network.info("Committed new matrix from remote: \(MachinePool.shared.machineMatrix)")
+                        Logger.network.info("Triggering onMatrixUpdate callback")
                     }
+                    callback(matrix, matrixOneRow, matrixCircle)
+                }
+                
+                if Self.debugConnectionSteps {
+                    Logger.network.info("Received complete matrix update: \(matrix), oneRow: \(matrixOneRow), circle: \(matrixCircle)")
                 }
             }
 
@@ -636,7 +643,8 @@ actor NetworkManager {
             onClipboard?(packet)
 
         case .heartbeat:
-            // Echo heartbeat if needed (no-op for now, HeartbeatService handles outgoing)
+            // Update remote machine name from heartbeat payload
+            connectedMachineName = packet.machineName
             break
 
         case .heartbeatExL2:

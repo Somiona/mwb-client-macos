@@ -42,6 +42,19 @@ final class MachinePool: @unchecked Sendable {
         set { state.withLock { $0.matrixOneRow = newValue } }
     }
 
+    func syncWithSettings(matrixString: String, oneRow: Bool, circle: Bool) {
+        state.withLock { state in
+            let parts = matrixString.split(separator: ",", omittingEmptySubsequences: false)
+                .map { String($0).trimmingCharacters(in: .whitespaces) }
+            
+            for i in 0..<min(Self.maxMachines, parts.count) {
+                state.machineMatrix[i] = parts[i]
+            }
+            state.matrixOneRow = oneRow
+            state.matrixCircle = circle
+        }
+    }
+
     func updateMachineMatrix(packetType: UInt8, src: MachineID, machineName: String) {
         state.withLock { state in
             let index = Int(src.rawValue) - 1
@@ -49,11 +62,13 @@ final class MachinePool: @unchecked Sendable {
             
             state.machineMatrix[index] = machineName
             
-            // Flags only apply on the 4th packet (src 4)
-            if src.rawValue == 4 {
-                state.matrixCircle = (packetType & MatrixFlags.matrixSwapEnabled) != 0
-                state.matrixOneRow = (packetType & MatrixFlags.twoRowFlag) == 0
-            }
+            // Extract flags from any matrix packet (PowerToys behavior)
+            state.matrixCircle = (packetType & MatrixFlags.matrixSwapEnabled) != 0
+            state.matrixOneRow = (packetType & MatrixFlags.twoRowFlag) == 0
+            
+            let circle = state.matrixCircle
+            let oneRow = state.matrixOneRow
+            Logger.network.debug("MachinePool: Updated slot \(src.rawValue) to '\(machineName)', circle=\(circle), oneRow=\(oneRow)")
         }
     }
     
@@ -153,6 +168,15 @@ final class MachinePool: @unchecked Sendable {
                     state.machines.append(MachineInfo(name: trimmed, id: .none, lastHeartbeat: 0))
                 }
             }
+        }
+    }
+
+    func clear() {
+        state.withLock { state in
+            state.machineMatrix = ["", "", "", ""]
+            state.matrixCircle = false
+            state.matrixOneRow = true
+            state.machines.removeAll()
         }
     }
 }

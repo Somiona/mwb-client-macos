@@ -19,20 +19,31 @@ struct LayoutView: View {
                     matrixGrid
                         .padding(.vertical)
 
-                    Toggle("Two Row Layout", isOn: Binding(
-                        get: { !settings.matrixOneRow },
-                        set: { 
-                            settings.matrixOneRow = !$0 
-                            broadcastMatrix() 
-                        }
-                    ))
-                    Toggle("Wrap Mouse Around", isOn: Binding(
-                        get: { settings.matrixCircle },
-                        set: { 
-                            settings.matrixCircle = $0 
-                            broadcastMatrix() 
-                        }
-                    ))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("Devices in a single row", isOn: Binding(
+                            get: { settings.matrixOneRow },
+                            set: { 
+                                settings.matrixOneRow = $0 
+                                broadcastMatrix() 
+                            }
+                        ))
+                        Text("Sets whether the devices are aligned on a single row. A two by two matrix is considered otherwise")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("Wrap mouse", isOn: Binding(
+                            get: { settings.matrixCircle },
+                            set: { 
+                                settings.matrixCircle = $0 
+                                broadcastMatrix() 
+                            }
+                        ))
+                        Text("Move the mouse back to the first machine when it passes the last one")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding()
             } header: {

@@ -71,6 +71,11 @@ final class AppCoordinator {
 
     init(settings: SettingsStore) {
         self.settings = settings
+        MachinePool.shared.syncWithSettings(
+            matrixString: settings.machineMatrixString,
+            oneRow: settings.matrixOneRow,
+            circle: settings.matrixCircle
+        )
         wireEdgeDetector()
         wireInputCapture()
     }
@@ -159,6 +164,11 @@ final class AppCoordinator {
                 onNextMachine: { [weak self] machineID, x, y in
                     Task { @MainActor [weak self] in
                         self?.handleNextMachine(machineID: machineID, x: x, y: y)
+                    }
+                },
+                onMatrixUpdate: { [weak self] matrix, oneRow, circle in
+                    Task { @MainActor [weak self] in
+                        self?.handleMatrixUpdate(matrix: matrix, oneRow: oneRow, circle: circle)
                     }
                 }
             )
@@ -276,9 +286,15 @@ final class AppCoordinator {
         let localName = localMachineName
         let remoteName = windowsMachineName
         
-        guard !localName.isEmpty && !remoteName.isEmpty else { return }
+        Logger.coordinator.info("Updating crossing edge. Local: '\(localName)', Remote: '\(remoteName)', Matrix: \(parts)")
+        
+        guard !localName.isEmpty && !remoteName.isEmpty else { 
+            Logger.coordinator.warning("Cannot update crossing edge: local or remote name is empty")
+            return 
+        }
         guard let localIdx = parts.firstIndex(of: localName),
               let remoteIdx = parts.firstIndex(of: remoteName) else {
+            Logger.coordinator.warning("Cannot update crossing edge: local or remote name not found in matrix")
             return
         }
         
@@ -703,13 +719,33 @@ final class AppCoordinator {
             packet.src = MachineID(rawValue: UInt32(index + 1)) // Src is 1 to 4
             packet.des = MWBConstants.broadcastDestination
 
-            let nameData = HandshakeHandler.encodeMachineName(name)
-            var fullData = packet.data
-            fullData.replaceSubrange(16..<48, with: nameData)
-            packet.data = fullData
-
+            packet.machineName = name
             await nm.sendPacket(packet)
         }
+        
+        // Ensure local state is updated immediately
+        MachinePool.shared.syncWithSettings(
+            matrixString: slots.joined(separator: ","),
+            oneRow: oneRow,
+            circle: circle
+        )
+        updateCrossingEdgeFromMatrix()
+    }
+
+    private func handleMatrixUpdate(matrix: [String], oneRow: Bool, circle: Bool) {
+        Logger.coordinator.info("Handling matrix update: \(matrix), oneRow: \(oneRow), circle: \(circle)")
+        settings.machineMatrixString = matrix.joined(separator: ",")
+        settings.matrixOneRow = oneRow
+        settings.matrixCircle = circle
+        
+        MachinePool.shared.syncWithSettings(
+            matrixString: settings.machineMatrixString,
+            oneRow: oneRow,
+            circle: circle
+        )
+        
+        // Refresh the crossing edge based on the new topology
+        updateCrossingEdgeFromMatrix()
     }
 
     /// Convert MWB virtual desktop coordinates (0-65535) to macOS screen coordinates.

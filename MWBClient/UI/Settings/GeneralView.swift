@@ -22,10 +22,33 @@ struct GeneralView: View {
             }
 
             Section("Advanced Mouse Settings") {
-                Toggle("Move mouse relatively", isOn: $settings.moveMouseRelatively)
-                Toggle("Block mouse at screen corners", isOn: $settings.blockMouseAtCorners)
-                Toggle("Hide mouse at screen edge", isOn: $settings.hideMouseAtScreenEdge)
-                Toggle("Disable easy mouse in fullscreen", isOn: $settings.disableEasyMouseInFullscreen)
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Move mouse relatively", isOn: $settings.moveMouseRelatively)
+                    Text("Use this option when remote machine's monitor settings are different, or remote machine has multiple monitors")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Block mouse at screen corners", isOn: $settings.blockMouseAtCorners)
+                    Text("To avoid accident machine-switch at screen corners")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Hide mouse at screen edge", isOn: $settings.hideMouseAtScreenEdge)
+                    Text("Hide the cursor at the top edge when switching to another machine, and take focus from full-screen apps to ensure keyboard input is redirected")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Disable Easy Mouse when an application is running in full screen", isOn: $settings.disableEasyMouseInFullscreen)
+                    Text("Prevent Easy Mouse from moving to another machine when an application is in full-screen mode")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Startup") {

@@ -41,7 +41,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             applyActivationPolicy(hideDockIcon: settings.hideDockIcon, windowOpen: false)
 
             if !settings.windowsIP.isEmpty && !settings.securityKey.isEmpty {
-                coordinator.connect()
+                // Only start services if not running in a test environment
+                let isTesting = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_TESTS"] != nil || NSClassFromString("XCTestCase") != nil
+                if !isTesting {
+                    coordinator.connect()
+                }
             }
         }
     }
