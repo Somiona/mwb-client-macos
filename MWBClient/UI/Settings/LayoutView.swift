@@ -1,8 +1,14 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct LayoutView: View {
     @Environment(SettingsStore.self) private var settings
     @Environment(AppCoordinator.self) private var coordinator
+
+    // Local state for the drag & drop array
+    @State private var machineSlots: [String] = ["", "", "", ""]
+    // State to track if drag is happening to update UI accordingly if needed
+    @State private var draggedItem: String?
 
     var body: some View {
         @Bindable var settings = settings
@@ -10,97 +16,119 @@ struct LayoutView: View {
         Form {
             Section {
                 VStack(spacing: 24) {
-                    screenDiagram
+                    matrixGrid
+                        .padding(.vertical)
 
-                    Text("Where is your Windows machine relative to this Mac?")
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 300)
+                    Toggle("Two Row Layout", isOn: Binding(
+                        get: { !settings.matrixOneRow },
+                        set: { 
+                            settings.matrixOneRow = !$0 
+                            broadcastMatrix() 
+                        }
+                    ))
+                    Toggle("Wrap Mouse Around", isOn: Binding(
+                        get: { settings.matrixCircle },
+                        set: { 
+                            settings.matrixCircle = $0 
+                            broadcastMatrix() 
+                        }
+                    ))
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding()
+            } header: {
+                Text("Device Arrangement")
+            } footer: {
+                Text("Drag and drop screens to match your physical layout.")
             }
         }
         .formStyle(.grouped)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .navigationTitle("Screen Layout")
-        .onChange(of: settings.crossingEdge) {
-            coordinator.crossingEdgeDidChange()
+        .onAppear {
+            loadMatrix()
+        }
+        .onChange(of: settings.machineMatrixString) {
+            loadMatrix()
         }
     }
 
-    // MARK: - Screen Diagram
+    private var matrixGrid: some View {
+        let columns = settings.matrixOneRow 
+            ? Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
+            : Array(repeating: GridItem(.flexible(), spacing: 12), count: 2)
 
-    private var screenDiagram: some View {
-        ZStack {
-            // Mac screen rectangle
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.secondary.opacity(0.3), lineWidth: 2)
-                .fill(Color.primary.opacity(0.05))
-                .frame(width: 200, height: 140)
-
-            Text("Mac")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            // Edge buttons
-            edgeButton(for: .top)
-                .offset(y: -90)
-
-            edgeButton(for: .bottom)
-                .offset(y: 90)
-
-            edgeButton(for: .left)
-                .offset(x: -120)
-
-            edgeButton(for: .right)
-                .offset(x: 120)
-        }
-    }
-
-    private func edgeButton(for edge: CrossingEdge) -> some View {
-        let isSelected = settings.crossingEdge == edge
-        let label: String
-        let rotation: Angle
-
-        switch edge {
-        case .top:
-            label = "Windows"
-            rotation = .zero
-        case .bottom:
-            label = "Windows"
-            rotation = .zero
-        case .left:
-            label = "Win"
-            rotation = .degrees(-90)
-        case .right:
-            label = "Win"
-            rotation = .degrees(90)
-        }
-
-        return Button {
-            settings.crossingEdge = edge
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.forward")
-                    .font(.caption2)
-                    .rotationEffect(rotation)
-                Text(label)
-                    .font(.caption)
+        return LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(0..<4, id: \.self) { index in
+                MachineSlotView(name: machineSlots[index], index: index)
+                    .onDrag {
+                        self.draggedItem = String(index)
+                        return NSItemProvider(object: String(index) as NSString)
+                    }
+                    .onDrop(of: [.text], isTargeted: nil) { providers in
+                        guard let provider = providers.first else { return false }
+                        let _ = provider.loadObject(ofClass: NSString.self) { item, _ in
+                            if let str = item as? String, let fromIndex = Int(str) {
+                                DispatchQueue.main.async {
+                                    swapSlots(from: fromIndex, to: index)
+                                }
+                            }
+                        }
+                        return true
+                    }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1.5)
-            )
-            .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: settings.matrixOneRow ? 500 : 250)
+    }
+
+    private func loadMatrix() {
+        let parts = settings.machineMatrixString.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+        var newSlots = ["", "", "", ""]
+        for i in 0..<min(4, parts.count) {
+            newSlots[i] = parts[i].trimmingCharacters(in: .whitespaces)
+        }
+        // Always place current machine in slot 1 if it's completely empty? No, respect settings.
+        machineSlots = newSlots
+    }
+
+    private func swapSlots(from: Int, to: Int) {
+        guard from != to else { return }
+        machineSlots.swapAt(from, to)
+        
+        // Save to settings
+        settings.machineMatrixString = machineSlots.joined(separator: ",")
+        
+        // Broadcast change
+        broadcastMatrix()
+    }
+
+    private func broadcastMatrix() {
+        Task {
+            await coordinator.broadcastMatrix(slots: machineSlots, oneRow: settings.matrixOneRow, circle: settings.matrixCircle)
+        }
+    }
+}
+
+struct MachineSlotView: View {
+    let name: String
+    let index: Int
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(name.isEmpty ? Color.secondary.opacity(0.1) : Color.accentColor.opacity(0.2))
+                .strokeBorder(name.isEmpty ? Color.secondary.opacity(0.3) : Color.accentColor, lineWidth: 2)
+                
+            if name.isEmpty {
+                Text("Empty")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            } else {
+                Text(name)
+                    .foregroundColor(.primary)
+                    .font(.headline)
+            }
+        }
+        .frame(height: 80)
+        // Add content shape so the empty area is draggable/droppable
+        .contentShape(Rectangle())
     }
 }

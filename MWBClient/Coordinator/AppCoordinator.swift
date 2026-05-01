@@ -638,6 +638,31 @@ final class AppCoordinator {
         }
     }
 
+    // MARK: - Matrix Broadcasting
+
+    func broadcastMatrix(slots: [String], oneRow: Bool, circle: Bool) async {
+        guard let nm = networkManager else { return }
+
+        // Compile flags: SwapFlag (2) = circle, TwoRowFlag (4) = !oneRow
+        var flags: UInt8 = PackageType.matrix.rawValue
+        if circle { flags |= 2 }
+        if !oneRow { flags |= 4 }
+
+        for (index, name) in slots.enumerated() {
+            var packet = MWBPacket()
+            packet.type = flags
+            packet.src = UInt32(index + 1) // Src is 1 to 4
+            packet.des = MWBConstants.broadcastDestination
+
+            let nameData = HandshakeHandler.encodeMachineName(name)
+            var fullData = packet.data
+            fullData.replaceSubrange(16..<48, with: nameData)
+            packet.data = fullData
+
+            await nm.sendPacket(packet)
+        }
+    }
+
     /// Convert MWB virtual desktop coordinates (0-65535) to macOS screen coordinates.
     private func virtualToScreen(x: Int32, y: Int32) -> CGPoint {
         let screen = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
