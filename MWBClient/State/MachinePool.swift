@@ -68,7 +68,7 @@ final class MachinePool: @unchecked Sendable {
             
             let circle = state.matrixCircle
             let oneRow = state.matrixOneRow
-            Logger.network.debug("MachinePool: Updated slot \(src.rawValue) to '\(machineName)', circle=\(circle), oneRow=\(oneRow)")
+            mwbDebug(Logger.network, "MachinePool: Updated slot \(src.rawValue) to '\(machineName)', circle=\(circle), oneRow=\(oneRow)")
         }
     }
     

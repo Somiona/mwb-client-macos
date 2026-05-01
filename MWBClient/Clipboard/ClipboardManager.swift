@@ -318,7 +318,7 @@ actor ClipboardManager {
         guard isConnected, let sendPacket else { return }
 
         let packets = ClipboardCodec.encodeText(text)
-        Logger.clipboard.debug("Sending text clipboard in \(packets.count) packets")
+        mwbDebug(Logger.clipboard, "Sending text clipboard in \(packets.count) packets")
         for packet in packets {
             var mutablePacket = packet
             mutablePacket.src = machineID
@@ -331,7 +331,7 @@ actor ClipboardManager {
         guard isConnected, let sendPacket else { return }
 
         let packets = ClipboardCodec.encodeImage(data)
-        Logger.clipboard.debug("Sending image clipboard in \(packets.count) packets")
+        mwbDebug(Logger.clipboard, "Sending image clipboard in \(packets.count) packets")
         for packet in packets {
             var mutablePacket = packet
             mutablePacket.src = machineID

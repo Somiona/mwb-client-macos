@@ -33,15 +33,12 @@ actor NetworkManager {
 
     /// Toggle to enable verbose logging of every connection step.
     /// Set to true for debugging, false for release.
-    static let debugConnectionSteps = true
 
     // MARK: Public State
 
     private(set) var state: ConnectionState = .disconnected {
         didSet {
-            if Self.debugConnectionSteps {
-                Logger.network.info("Connection state: \(String(describing: oldValue)) -> \(String(describing: self.state))")
-            }
+            mwbDebug(Logger.network, "Connection state: \(String(describing: oldValue)) -> \(String(describing: self.state))")
         }
     }
     private(set) var machineID: MachineID = .none
@@ -151,9 +148,7 @@ actor NetworkManager {
         guard state == .disconnected || state == .reconnecting else { return }
 
         intentionalDisconnect = false
-        if Self.debugConnectionSteps {
-            Logger.network.info("Connecting to \(self.host):\(self.port)")
-        }
+        mwbDebug(Logger.network, "Connecting to \(self.host):\(self.port)")
         failureReason = .none
         updateState(.connecting)
 
@@ -170,9 +165,7 @@ actor NetworkManager {
     }
 
     func disconnect() {
-        if Self.debugConnectionSteps {
-            Logger.network.info("Disconnecting")
-        }
+        mwbDebug(Logger.network, "Disconnecting")
         intentionalDisconnect = true
         failureReason = .none
         reconnectTask?.cancel()
@@ -273,9 +266,7 @@ actor NetworkManager {
             scheduleReconnect(reason: classifyNWError(error))
             return
         } catch is NetworkError {
-            if Self.debugConnectionSteps {
-                Logger.network.info("Connection cancelled during wait")
-            }
+            mwbDebug(Logger.network, "Connection cancelled during wait")
             updateState(.disconnected)
             return
         } catch {
@@ -326,10 +317,8 @@ actor NetworkManager {
         failureReason = .none
         lastHeartbeatReceived = .now
         updateState(.connected)
-        if Self.debugConnectionSteps {
-            let now = MWBCrypto.stamp()
-            Logger.network.info("[\(now)] Connected successfully (ID: \(self.machineID))")
-        }
+        let now = MWBCrypto.stamp()
+        mwbDebug(Logger.network, "[\(now)] Connected successfully (ID: \(self.machineID))")
         startHeartbeatMonitor()
 
         await receivePump(conn)
@@ -366,10 +355,10 @@ actor NetworkManager {
             _ = SecRandomCopyBytes(kSecRandomDefault, MWBConstants.noiseSize, ptr.baseAddress!)
         }
         let now = MWBCrypto.stamp()
-        Logger.crypto.debug("[\(now)] [PHASE] noise-send: \(randomNoise.count) bytes plaintext")
+        mwbDebug(Logger.crypto, "[\(now)] [PHASE] noise-send: \(randomNoise.count) bytes plaintext")
         let encryptedNoise = crypto.encrypt(padToBlock(randomNoise))
         let now2 = MWBCrypto.stamp()
-        Logger.crypto.debug("[\(now2)] [PHASE] noise-send: \(encryptedNoise.count) bytes ciphertext on wire")
+        mwbDebug(Logger.crypto, "[\(now2)] [PHASE] noise-send: \(encryptedNoise.count) bytes ciphertext on wire")
         try await conn.send(content: encryptedNoise)
 
         // Receive 16 bytes of noise back
@@ -378,21 +367,19 @@ actor NetworkManager {
             throw NetworkError.invalidNoise
         }
         let now3 = MWBCrypto.stamp()
-        Logger.crypto.debug("[\(now3)] [PHASE] noise-recv: \(noiseData.count) bytes ciphertext from wire")
+        mwbDebug(Logger.crypto, "[\(now3)] [PHASE] noise-recv: \(noiseData.count) bytes ciphertext from wire")
         _ = crypto.decrypt(padToBlock(noiseData))
         let now4 = MWBCrypto.stamp()
-        Logger.crypto.debug("[\(now4)] [PHASE] noise-recv: decrypted")
+        mwbDebug(Logger.crypto, "[\(now4)] [PHASE] noise-recv: decrypted")
     }
 
     // MARK: Handshake
 
     private func performHandshake(_ conn: NWConnection) async throws {
         // Receive and respond to 10 challenges from the server
-        let now = MWBCrypto.stamp(); Logger.crypto.debug("[\(now)] [PHASE] handshake-start: expecting \(MWBConstants.handshakeIterationCount) challenges")
+        let now = MWBCrypto.stamp(); mwbDebug(Logger.crypto, "[\(now)] [PHASE] handshake-start: expecting \(MWBConstants.handshakeIterationCount) challenges")
         for i in 0..<MWBConstants.handshakeIterationCount {
-            if Self.debugConnectionSteps {
-                Logger.network.debug("Handshake iteration \(i): waiting for challenge")
-            }
+            mwbDebug(Logger.network, "Handshake iteration \(i): waiting for challenge")
 
             // Read first 32 bytes (encrypted)
             let rawFirst = try await conn.receive(
@@ -439,9 +426,7 @@ actor NetworkManager {
 
             // Encrypt and send ACK
             let ackEncrypted = crypto.encrypt(padToBlock(ackPacket.transmittedData))
-            if Self.debugConnectionSteps {
-                Logger.network.debug("ACK \(i): type=\(ackPacket.type) m0=\(ackPacket.rawBytes[2]) m1=\(ackPacket.rawBytes[3]) cksum=\(ackPacket.rawBytes[1]) M1=\(ackPacket.dataUInt32(at: 0))")
-            }
+            mwbDebug(Logger.network, "ACK \(i): type=\(ackPacket.type) m0=\(ackPacket.rawBytes[2]) m1=\(ackPacket.rawBytes[3]) cksum=\(ackPacket.rawBytes[1]) M1=\(ackPacket.dataUInt32(at: 0))")
             try await conn.send(content: ackEncrypted)
         }
 
@@ -464,9 +449,9 @@ actor NetworkManager {
         _ = identityPacket.computeChecksum()
 
         let txData = identityPacket.transmittedData
-        let now = MWBCrypto.stamp(); Logger.crypto.debug("[\(now)] [PHASE] identity-send: \(txData.count) bytes plaintext, isBig=\(identityPacket.isBig), type=\(identityPacket.type)")
+        let now = MWBCrypto.stamp(); mwbDebug(Logger.crypto, "[\(now)] [PHASE] identity-send: \(txData.count) bytes plaintext, isBig=\(identityPacket.isBig), type=\(identityPacket.type)")
         let encrypted = crypto.encrypt(padToBlock(txData))
-        let now2 = MWBCrypto.stamp(); Logger.crypto.debug("[\(now2)] [PHASE] identity-send: \(encrypted.count) bytes ciphertext on wire")
+        let now2 = MWBCrypto.stamp(); mwbDebug(Logger.crypto, "[\(now2)] [PHASE] identity-send: \(encrypted.count) bytes ciphertext on wire")
         try await conn.send(content: encrypted)
         handshakeHandler.completeIdentity()
     }
@@ -483,10 +468,8 @@ actor NetworkManager {
                 )
 
                 guard let firstData = firstChunk, firstData.count == MWBConstants.smallPacketSize else {
-                    if Self.debugConnectionSteps {
-                        let now = MWBCrypto.stamp()
-                        Logger.network.info("[\(now)] Receive pump: connection closed (no data)")
-                    }
+                    let now = MWBCrypto.stamp()
+                    mwbDebug(Logger.network, "[\(now)] Receive pump: connection closed (no data)")
                     break // Connection closed or error
                 }
 
@@ -516,9 +499,7 @@ actor NetworkManager {
                 }
 
                 let packet = MWBPacket(rawData: fullData)
-                if Self.debugConnectionSteps {
-                    Logger.network.info("receivePump: received type \(packet.type) in state \(String(describing: self.state))")
-                }
+                mwbDebug(Logger.network, "receivePump: received type \(packet.type) in state \(String(describing: self.state))")
                 guard packet.validateChecksum() else {
                     Logger.network.warning("Receive pump: invalid checksum, skipping packet")
                     continue
@@ -529,9 +510,7 @@ actor NetworkManager {
                 }
 
                 dispatchPacket(packet)
-                if Self.debugConnectionSteps {
-                    Logger.network.debug("Receive pump: got packet type=\(packet.type) src=\(packet.src) des=\(packet.des)")
-                }
+                mwbDebug(Logger.network, "Receive pump: got packet type=\(packet.type) src=\(packet.src) des=\(packet.des)")
 
             } catch {
                 Logger.network.error("Receive pump error: \(error.localizedDescription)")
@@ -541,9 +520,7 @@ actor NetworkManager {
 
         // If we exit the pump while still "connected", schedule reconnect
         if state == .connected {
-            if Self.debugConnectionSteps {
-                Logger.network.info("Receive pump exited while connected, scheduling reconnect")
-            }
+            mwbDebug(Logger.network, "Receive pump exited while connected, scheduling reconnect")
             scheduleReconnect(reason: .unknown("Connection lost"))
         }
     }
@@ -557,9 +534,7 @@ actor NetworkManager {
         let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
         if !exemptFromDedup.contains(type) {
             if dedup.isDuplicate(packet.id) {
-                if Self.debugConnectionSteps {
-                    Logger.network.debug("Dedup: dropping duplicate packet id=\(packet.id)")
-                }
+                mwbDebug(Logger.network, "Dedup: dropping duplicate packet id=\(packet.id)")
                 return
             }
         }
@@ -578,9 +553,7 @@ actor NetworkManager {
         case .nextMachine:
             let mouseData = MouseData(from: packet)
             let targetMachineID = MachineID(rawValue: UInt32(bitPattern: mouseData.wheelDelta))
-            if Self.debugConnectionSteps {
-                Logger.network.info("Received NextMachine: target=\(targetMachineID.rawValue), pos=(\(mouseData.x),\(mouseData.y))")
-            }
+            mwbDebug(Logger.network, "Received NextMachine: target=\(targetMachineID.rawValue), pos=(\(mouseData.x),\(mouseData.y))")
             onNextMachine?(targetMachineID, mouseData.x, mouseData.y)
 
         case .keyboard:
@@ -597,9 +570,7 @@ actor NetworkManager {
             if let name = String(data: Data(nameBytes), encoding: .ascii) {
                 connectedMachineName = name.trimmingCharacters(in: .whitespaces)
             }
-            if Self.debugConnectionSteps {
-                Logger.network.info("Received Heartbeat_ex from remote, sending Heartbeat_ex_l2")
-            }
+            mwbDebug(Logger.network, "Received Heartbeat_ex from remote, sending Heartbeat_ex_l2")
             var l2 = MWBPacket()
             l2.type = PackageType.heartbeatExL2.rawValue
             l2.id = packet.id
@@ -611,9 +582,7 @@ actor NetworkManager {
             sendPacket(l2)
 
         case .matrix:
-             if Self.debugConnectionSteps {
-                Logger.network.info("Processing matrix packet: src=\(packet.src.rawValue), name=\(packet.machineName)")
-            }
+             mwbDebug(Logger.network, "Processing matrix packet: src=\(packet.src.rawValue), name=\(packet.machineName)")
             MachinePool.shared.updateMachineMatrix(packetType: packet.type, src: packet.src, machineName: packet.machineName)
             
             if packet.src.rawValue == 4 {
@@ -622,20 +591,14 @@ actor NetworkManager {
                 let matrixCircle = MachinePool.shared.matrixCircle
                 let matrixOneRow = MachinePool.shared.matrixOneRow
                 
-                if Self.debugConnectionSteps {
-                    Logger.network.info("Matrix complete: \(matrix), circle=\(matrixCircle), oneRow=\(matrixOneRow)")
-                }
+                mwbDebug(Logger.network, "Matrix complete: \(matrix), circle=\(matrixCircle), oneRow=\(matrixOneRow)")
                 
                 if let callback = onMatrixUpdate {
-                    if Self.debugConnectionSteps {
-                        Logger.network.info("Triggering onMatrixUpdate callback")
-                    }
+                    mwbDebug(Logger.network, "Triggering onMatrixUpdate callback")
                     callback(matrix, matrixOneRow, matrixCircle)
                 }
                 
-                if Self.debugConnectionSteps {
-                    Logger.network.info("Received complete matrix update: \(matrix), oneRow: \(matrixOneRow), circle: \(matrixCircle)")
-                }
+                mwbDebug(Logger.network, "Received complete matrix update: \(matrix), oneRow: \(matrixOneRow), circle: \(matrixCircle)")
             }
 
         case .clipboard, .clipboardText, .clipboardImage, .clipboardDataEnd,
@@ -649,9 +612,7 @@ actor NetworkManager {
 
         case .heartbeatExL2:
             // Remote acknowledged our key generation - send confirmation with Heartbeat_ex_l3
-            if Self.debugConnectionSteps {
-                Logger.network.info("Received Heartbeat_ex_l2 from remote, sending Heartbeat_ex_l3")
-            }
+            mwbDebug(Logger.network, "Received Heartbeat_ex_l2 from remote, sending Heartbeat_ex_l3")
             var l3 = MWBPacket()
             l3.type = PackageType.heartbeatExL3.rawValue
             l3.id = packet.id
@@ -664,20 +625,14 @@ actor NetworkManager {
 
         case .heartbeatExL3:
             // Key agreement complete
-            if Self.debugConnectionSteps {
-                Logger.network.info("Key agreement complete with remote machine")
-            }
+            mwbDebug(Logger.network, "Key agreement complete with remote machine")
 
         case .byeBye:
-            if Self.debugConnectionSteps {
-                Logger.network.info("Received ByeBye packet from remote, disconnecting")
-            }
+            mwbDebug(Logger.network, "Received ByeBye packet from remote, disconnecting")
             updateState(.disconnected)
 
         case .hi:
-            if Self.debugConnectionSteps {
-                Logger.network.info("Received Hi packet from remote")
-            }
+            mwbDebug(Logger.network, "Received Hi packet from remote")
 
         default:
             break
@@ -749,16 +704,12 @@ actor NetworkManager {
         connection?.cancel()
         connection = nil
         stopHeartbeatMonitor()
-        if Self.debugConnectionSteps {
-            Logger.network.info("Disconnected due to error: \(String(describing: reason)), manual reconnect required")
-        }
+        mwbDebug(Logger.network, "Disconnected due to error: \(String(describing: reason)), manual reconnect required")
     }
 
     private func scheduleReconnect(reason: ConnectionFailureReason = .unknown("Unknown")) {
         guard !intentionalDisconnect else {
-            if Self.debugConnectionSteps {
-                Logger.network.info("Skipping reconnect: intentional disconnect")
-            }
+            mwbDebug(Logger.network, "Skipping reconnect: intentional disconnect")
             updateState(.disconnected)
             return
         }
@@ -767,9 +718,7 @@ actor NetworkManager {
         crypto.reset()
         handshakeHandler.reset()
         stopHeartbeatMonitor()
-        if Self.debugConnectionSteps {
-            Logger.network.info("Scheduling reconnect in \(MWBConstants.reconnectDelay)s, reason: \(String(describing: reason))")
-        }
+        mwbDebug(Logger.network, "Scheduling reconnect in \(MWBConstants.reconnectDelay)s, reason: \(String(describing: reason))")
 
         connection?.cancel()
         connection = nil

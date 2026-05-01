@@ -156,7 +156,7 @@ final class EdgeDetector {
     ///
     /// Useful when the connection is lost or crossing is explicitly cancelled.
     func reset() {
-        Logger.input.debug("Edge detector reset")
+        mwbDebug(Logger.input, "Edge detector reset")
         isCrossingActive = false
         crossingEntryPosition = .zero
         cancelDebounce()

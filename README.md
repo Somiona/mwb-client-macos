@@ -112,11 +112,10 @@ Enable or disable text and image clipboard sync on the **Clipboard** settings pa
 
 ## Known Issues
 
-- **Two devices only** -- Currently supports exactly one Mac and one Windows machine. Multi-machine matrix layouts (3+ devices) are not yet supported.
 - **Display hotplug** -- Screen bounds are cached when input capture starts and do not refresh when displays are added, removed, or rearranged. Restart the app after changing display configuration.
-- **Large file clipboard** -- Only inline clipboard transfer is supported (text and images up to 1MB). TCP stream-based large file clipboard transfer is not yet implemented.
 - **Drag & Drop** -- Experimental support for cross-border file dragging. This may not work flawlessly with all Windows configurations or high-integrity (Admin) applications.
-- **Fullscreen detection** -- Edge crossing is not blocked when a fullscreen application is active. This can cause accidental machine switches during presentations or games.
+- **Mac Controlling Windows** -- Currently partially work - it does not travels back to mac, and not hiding the mac cursor properly
+- **Keyboard input** -- Currently doesn't work at all
 
 ---
 

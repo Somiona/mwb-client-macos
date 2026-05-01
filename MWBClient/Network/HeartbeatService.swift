@@ -101,7 +101,7 @@ actor HeartbeatService {
 
         let state = await networkManager.state
         guard state == .connected else {
-            Logger.network.debug("HeartbeatService: NetworkManager not connected (\(String(describing: state))), skipping heartbeat")
+            mwbDebug(Logger.network, "HeartbeatService: NetworkManager not connected (\(String(describing: state))), skipping heartbeat")
             return
         }
 

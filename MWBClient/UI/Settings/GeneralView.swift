@@ -65,6 +65,15 @@ struct GeneralView: View {
             Section("Dock") {
                 Toggle("Hide dock icon", isOn: $settings.hideDockIcon)
             }
+
+            Section("Developer") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Enable Debug Logging", isOn: $settings.debugLogging)
+                    Text("Emits verbose protocol and connection logs to Console.app for troubleshooting. Leave off for better performance.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

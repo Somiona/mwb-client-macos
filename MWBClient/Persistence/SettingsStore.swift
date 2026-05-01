@@ -25,6 +25,7 @@ private enum SettingsKey {
     static let blockMouseAtCorners = "settings.blockMouseAtCorners"
     static let hideMouseAtScreenEdge = "settings.hideMouseAtScreenEdge"
     static let disableEasyMouseInFullscreen = "settings.disableEasyMouseInFullscreen"
+    static let debugLogging = "settings.debugLogging"
 }
 
 // MARK: - Defaults
@@ -60,6 +61,7 @@ private enum SettingsDefault {
     static let blockMouseAtCorners = false
     static let hideMouseAtScreenEdge = true
     static let disableEasyMouseInFullscreen = false
+    static let debugLogging = false
 }
 
 // MARK: - SettingsStore
@@ -195,6 +197,14 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(disableEasyMouseInFullscreen, forKey: SettingsKey.disableEasyMouseInFullscreen) }
     }
 
+    // MARK: - Developer Settings
+
+    /// When enabled, verbose debug messages are emitted via os_log for all subsystems.
+    /// Off by default; intended for diagnosing connection and protocol issues.
+    var debugLogging: Bool {
+        didSet { UserDefaults.standard.set(debugLogging, forKey: SettingsKey.debugLogging) }
+    }
+
     // MARK: - Init
 
     /// Creates a settings store, loading persisted values from UserDefaults
@@ -232,6 +242,7 @@ final class SettingsStore {
         self.blockMouseAtCorners = defaults.object(forKey: SettingsKey.blockMouseAtCorners) as? Bool ?? SettingsDefault.blockMouseAtCorners
         self.hideMouseAtScreenEdge = defaults.object(forKey: SettingsKey.hideMouseAtScreenEdge) as? Bool ?? SettingsDefault.hideMouseAtScreenEdge
         self.disableEasyMouseInFullscreen = defaults.object(forKey: SettingsKey.disableEasyMouseInFullscreen) as? Bool ?? SettingsDefault.disableEasyMouseInFullscreen
+        self.debugLogging = defaults.object(forKey: SettingsKey.debugLogging) as? Bool ?? SettingsDefault.debugLogging
 
         if let storedID = defaults.object(forKey: SettingsKey.machineID) as? Int {
             self.machineID = UInt32(truncatingIfNeeded: storedID)
@@ -266,5 +277,6 @@ final class SettingsStore {
         blockMouseAtCorners = SettingsDefault.blockMouseAtCorners
         hideMouseAtScreenEdge = SettingsDefault.hideMouseAtScreenEdge
         disableEasyMouseInFullscreen = SettingsDefault.disableEasyMouseInFullscreen
+        debugLogging = SettingsDefault.debugLogging
     }
 }

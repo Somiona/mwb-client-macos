@@ -595,7 +595,7 @@ actor ServerListener {
         let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
         if !exemptFromDedup.contains(type) {
             if dedup.isDuplicate(packet.id) {
-                Logger.network.debug("ServerListener dedup: dropping duplicate packet id=\(packet.id)")
+                mwbDebug(Logger.network, "ServerListener dedup: dropping duplicate packet id=\(packet.id)")
                 return
             }
         }

@@ -82,7 +82,7 @@ final class InputInjection {
             return
         }
 
-        Logger.input.debug("Inject mouse: \(String(describing: message)) at (\(data.x), \(data.y))")
+        mwbDebug(Logger.input, "Inject mouse: \(String(describing: message)) at (\(data.x), \(data.y))")
 
         let target = mapVirtualToScreen(x: data.x, y: data.y)
 
@@ -225,7 +225,7 @@ final class InputInjection {
     /// ignored.
     func injectKeyboard(_ data: KeyboardData) {
         guard let macOSKeycode = KeyCodeMapper.vkToMacOS(vkCode: data.vkCode) else {
-            Logger.input.debug("Inject keyboard: unmapped VK code \(data.vkCode)")
+            mwbDebug(Logger.input, "Inject keyboard: unmapped VK code \(data.vkCode)")
             return
         }
 
