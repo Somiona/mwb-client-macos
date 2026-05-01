@@ -104,6 +104,12 @@ final class EdgeDetector {
         // While crossing is active, track the entry position but do not
         // trigger another crossing.
         if isCrossingActive {
+            // Keep the physical cursor frozen at the entry position so it doesn't wander around the Mac screen
+            let dx = abs(screenPoint.x - crossingEntryPosition.x)
+            let dy = abs(screenPoint.y - crossingEntryPosition.y)
+            if dx > 1 || dy > 1 {
+                CGWarpMouseCursorPosition(crossingEntryPosition)
+            }
             return
         }
 
@@ -138,11 +144,14 @@ final class EdgeDetector {
     /// Warps the cursor back to the entry edge (slightly inset so it is visible)
     /// and resumes edge monitoring.
     func crossingDidEnd() {
+        CGAssociateMouseAndMouseCursorPosition(1) // Unfreeze the cursor
+        
         let warpTarget = insetPosition(crossingEntryPosition, for: crossingEdge, inset: threshold + 1)
         CGWarpMouseCursorPosition(warpTarget)
         
         if UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge") {
             CGDisplayShowCursor(CGMainDisplayID())
+            NSCursor.unhide()
         }
         
         Logger.input.info("Edge crossing ended, warped cursor to (\(warpTarget.x), \(warpTarget.y))")
@@ -157,6 +166,9 @@ final class EdgeDetector {
     /// Useful when the connection is lost or crossing is explicitly cancelled.
     func reset() {
         mwbDebug(Logger.input, "Edge detector reset")
+        if isCrossingActive {
+            CGAssociateMouseAndMouseCursorPosition(1) // Unfreeze the cursor if we were crossing
+        }
         isCrossingActive = false
         crossingEntryPosition = .zero
         cancelDebounce()
@@ -193,8 +205,11 @@ final class EdgeDetector {
         isCrossingActive = true
         crossingEntryPosition = screenPoint
         
+        CGAssociateMouseAndMouseCursorPosition(0) // Freeze the cursor
+        
         if UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge") {
             CGDisplayHideCursor(CGMainDisplayID())
+            NSCursor.hide()
         }
         
         let edgeName = crossingEdge.rawValue

@@ -32,7 +32,33 @@ final class InputCapture {
 
     /// When true, captured events are suppressed (not delivered to the system)
     /// and only forwarded via callbacks.
-    var crossingActive = false
+    var crossingActive = false {
+        didSet {
+            if crossingActive {
+                // When crossing begins, we rely on EdgeDetector to set the initial virtualX/Y via setVirtualPosition
+            }
+        }
+    }
+    
+    /// Virtual cursor position while crossing (0-65535).
+    /// Tracked by accumulating deltas so the physical cursor doesn't hit screen edges.
+    private(set) var virtualX: Int32 = 0
+    private(set) var virtualY: Int32 = 0
+
+    /// Sets the initial virtual position when crossing starts.
+    func setVirtualPosition(x: Int32, y: Int32, crossingEdge: CrossingEdge = .right) {
+        self.virtualX = x
+        self.virtualY = y
+        self.activeCrossingEdge = crossingEdge
+    }
+
+    /// Which edge the cursor crossed to enter the remote machine.
+    /// Used to determine when the virtual cursor has crossed back toward Mac.
+    private var activeCrossingEdge: CrossingEdge = .right
+
+    /// Callback invoked when the virtual cursor crosses back off the remote screen
+    /// (e.g., virtualX < 0 or > 65535).
+    var onVirtualBoundsExceeded: (@Sendable (Int32, Int32) -> Void)?
 
     /// Whether the event tap is currently running.
     private(set) var isRunning = false
@@ -235,69 +261,106 @@ final class InputCapture {
         switch type {
         case .mouseMoved:
             wmMessage = .mouseMove
-            if UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively") {
+            if crossingActive {
                 let dx = Int32(event.getIntegerValueField(.mouseEventDeltaX))
                 let dy = Int32(event.getIntegerValueField(.mouseEventDeltaY))
-                mouseData = MouseData(x: dx + 100000, y: dy + 100000, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+                
+                // Accumulate dx, dy into virtual cursor
+                let bounds = screenBounds
+                let maxVirtual = CGFloat(MWBConstants.virtualDesktopMax)
+                
+                // Scale dx and dy to virtual coords
+                let vdx = Int32((CGFloat(dx) / bounds.width) * maxVirtual)
+                let vdy = Int32((CGFloat(dy) / bounds.height) * maxVirtual)
+                
+                virtualX += vdx
+                virtualY += vdy
+                
+                // Only trigger crossing-back when cursor moves toward the Mac edge.
+                // Crossing RIGHT edge means Mac is to the LEFT → return when virtualX < 0
+                // Crossing LEFT edge means Mac is to the RIGHT → return when virtualX > max
+                // Crossing BOTTOM edge means Mac is ABOVE → return when virtualY < 0
+                // Crossing TOP edge means Mac is BELOW → return when virtualY > max
+                let crossedBack: Bool
+                switch activeCrossingEdge {
+                case .right:  crossedBack = virtualX < 0
+                case .left:   crossedBack = virtualX > MWBConstants.virtualDesktopMax
+                case .bottom: crossedBack = virtualY < 0
+                case .top:    crossedBack = virtualY > MWBConstants.virtualDesktopMax
+                }
+                
+                if crossedBack {
+                    onVirtualBoundsExceeded?(virtualX, virtualY)
+                }
+                
+                // Clamp for the MouseData packet
+                let clampedX = Swift.max(Int32(0), Swift.min(MWBConstants.virtualDesktopMax, virtualX))
+                let clampedY = Swift.max(Int32(0), Swift.min(MWBConstants.virtualDesktopMax, virtualY))
+                
+                if UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively") {
+                    mouseData = MouseData(x: dx + 100000, y: dy + 100000, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+                } else {
+                    mouseData = MouseData(x: clampedX, y: clampedY, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+                }
             } else {
-                mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+                virtualX = vx
+                virtualY = vy
+                if UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively") {
+                    let dx = Int32(event.getIntegerValueField(.mouseEventDeltaX))
+                    let dy = Int32(event.getIntegerValueField(.mouseEventDeltaY))
+                    mouseData = MouseData(x: dx + 100000, y: dy + 100000, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+                } else {
+                    mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+                }
             }
 
         case .leftMouseDown:
             wmMessage = .lButtonDown
-            mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
 
         case .leftMouseUp:
             wmMessage = .lButtonUp
-            mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
 
         case .rightMouseDown:
             wmMessage = .rButtonDown
-            mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
 
         case .rightMouseUp:
             wmMessage = .rButtonUp
-            mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
 
         case .otherMouseDown:
             let buttonNumber = event.getIntegerValueField(.mouseEventButtonNumber)
-            // Middle button = button 2 on macOS. MWB protocol only distinguishes
-            // left, right, and middle, so map all "other" buttons to middle.
             wmMessage = .mButtonDown
             _ = buttonNumber // acknowledged
-            mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
 
         case .otherMouseUp:
             let buttonNumber = event.getIntegerValueField(.mouseEventButtonNumber)
             wmMessage = .mButtonUp
             _ = buttonNumber // acknowledged
-            mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+            mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
 
         case .scrollWheel:
-            // kCGScrollWheelEventDelta1 = 11, kCGScrollWheelEventDelta2 = 12
-            // These constants have been removed from the Swift overlay but
-            // still work with raw CGEventField values.
             let fieldDelta1 = CGEventField(rawValue: 11)!
             let fieldDelta2 = CGEventField(rawValue: 12)!
             let delta1 = event.getIntegerValueField(fieldDelta1)
             let delta2 = event.getIntegerValueField(fieldDelta2)
             let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
 
-            // Determine scroll direction and convert to MWB WHEEL_DELTA (120 per notch).
             if delta2 != 0 && delta1 == 0 {
-                // Horizontal scroll.
                 let mwbDelta: Int32 = isContinuous
                     ? Int32(CGFloat(delta2) * 120.0 / 3.0)
                     : Int32(delta2 * 120)
                 wmMessage = .mouseHWheel
-                mouseData = MouseData(x: vx, y: vy, wheelDelta: mwbDelta, dwFlags: wmMessage.rawValue)
+                mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: mwbDelta, dwFlags: wmMessage.rawValue)
             } else {
-                // Vertical scroll. macOS positive = scroll up, MWB positive = scroll up.
                 let mwbDelta: Int32 = isContinuous
                     ? Int32(CGFloat(delta1) * 120.0 / 3.0)
                     : Int32(delta1 * 120)
                 wmMessage = .mouseWheel
-                mouseData = MouseData(x: vx, y: vy, wheelDelta: mwbDelta, dwFlags: wmMessage.rawValue)
+                mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: mwbDelta, dwFlags: wmMessage.rawValue)
             }
 
         default:

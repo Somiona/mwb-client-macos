@@ -605,6 +605,17 @@ final class AppCoordinator {
                 self?.edgeDetector.updateCursorPosition(mouseData, screenPoint: screenPoint)
             }
         }
+
+        // Handle virtual bounds exceeded (cross back to Mac)
+        inputCapture.onVirtualBoundsExceeded = { [weak self] vx, vy in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if self.isCrossingActive {
+                    Logger.coordinator.info("Virtual bounds exceeded: (\(vx), \(vy)). Ending crossing.")
+                    self.endCrossing()
+                }
+            }
+        }
     }
 
     private func wireEdgeDetector() {
@@ -625,18 +636,55 @@ final class AppCoordinator {
         inputCapture.crossingActive = true
         inputInjection.reset()
 
-        // Send NextMachine packet so Windows knows to hand off control
+        let landing = remoteLandingPosition(for: info.edge, virtualX: info.virtualPosition.x, virtualY: info.virtualPosition.y)
+        inputCapture.setVirtualPosition(x: landing.x, y: landing.y, crossingEdge: info.edge)
+
+        // Send NextMachine packet so Windows knows to hand off control.
+        // The coordinates represent where the cursor should appear on the remote.
         sendNextMachine(
             targetMachineID: MWBConstants.broadcastDestination,
-            x: info.virtualPosition.x,
-            y: info.virtualPosition.y
+            x: landing.x,
+            y: landing.y
         )
+    }
+
+    /// Computes the cursor position (in MWB virtual coords 0-65535) on the remote
+    /// machine where the cursor should appear after crossing the given edge.
+    ///
+    /// Matches the PowerToys logic in MachineStuff.MoveRight/MoveLeft/MoveUp/MoveDown:
+    /// - Crossing RIGHT edge → cursor lands at LEFT edge of remote (x = JUMP_PIXELS ≈ 2)
+    /// - Crossing LEFT edge  → cursor lands at RIGHT edge of remote (x = max - JUMP_PIXELS)
+    /// - Crossing BOTTOM edge → cursor lands at TOP edge of remote (y = JUMP_PIXELS)
+    /// - Crossing TOP edge    → cursor lands at BOTTOM edge of remote (y = max - JUMP_PIXELS)
+    private func remoteLandingPosition(for edge: CrossingEdge, virtualX: Int32, virtualY: Int32) -> (x: Int32, y: Int32) {
+        let max = Int32(MWBConstants.virtualDesktopMax)
+        let jump: Int32 = 2
+        let cx = Swift.max(0, Swift.min(max, virtualX))
+        let cy = Swift.max(0, Swift.min(max, virtualY))
+
+        switch edge {
+        case .right:
+            return (jump, cy)
+        case .left:
+            return (max - jump, cy)
+        case .bottom:
+            return (cx, jump)
+        case .top:
+            return (cx, max - jump)
+        }
     }
 
     /// Windows detected cursor reaching its edge toward the Mac — accept control.
     private func handleNextMachine(machineID: MachineID, x: Int32, y: Int32) {
         guard connectionState == .connected else { return }
-        guard !isCrossingActive else { return }
+
+        if isCrossingActive {
+            // If we were already crossing (Mac controlling Windows), and we get a NextMachine,
+            // it means Windows is giving control back to us.
+            Logger.coordinator.info("Received NextMachine while crossing, ending crossing to accept control back")
+            endCrossing()
+            return
+        }
 
         Logger.coordinator.info("Received NextMachine from machine \(machineID) at (\(x), \(y))")
         isCrossingActive = true
@@ -815,13 +863,8 @@ final class AppCoordinator {
 
     /// Convert MWB virtual desktop coordinates (0-65535) to macOS screen coordinates.
     private func virtualToScreen(x: Int32, y: Int32) -> CGPoint {
-        let screen = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
-        let scaleX = CGFloat(x) / CGFloat(MWBConstants.virtualDesktopMax)
-        let scaleY = CGFloat(y) / CGFloat(MWBConstants.virtualDesktopMax)
-        // macOS has bottom-left origin, virtual coords have top-left origin
-        return CGPoint(
-            x: screen.minX + scaleX * screen.width,
-            y: screen.minY + (1.0 - scaleY) * screen.height
-        )
+        // Use the centralized coordinate mapping from ScreenInfo which correctly
+        // handles Quartz coordinates (top-left origin).
+        return ScreenInfo.virtualToScreen(x: x, y: y)
     }
 }
