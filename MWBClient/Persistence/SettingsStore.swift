@@ -15,6 +15,9 @@ private enum SettingsKey {
     static let machineName = "settings.machineName"
     static let machineID = "settings.machineID"
     static let hideDockIcon = "settings.hideDockIcon"
+    static let machineMatrixString = "settings.machineMatrixString"
+    static let matrixOneRow = "settings.matrixOneRow"
+    static let matrixCircle = "settings.matrixCircle"
 }
 
 // MARK: - Defaults
@@ -40,6 +43,9 @@ private enum SettingsDefault {
         }.reduce(into: "") { $0.append($1) }
     }
     static let hideDockIcon = true
+    static let machineMatrixString = ",,,"
+    static let matrixOneRow = true
+    static let matrixCircle = false
 }
 
 // MARK: - SettingsStore
@@ -125,6 +131,23 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(hideDockIcon, forKey: SettingsKey.hideDockIcon) }
     }
 
+    // MARK: - Machine Matrix Settings
+
+    /// Comma-separated list of machine names in the matrix (max 4).
+    var machineMatrixString: String {
+        didSet { UserDefaults.standard.set(machineMatrixString, forKey: SettingsKey.machineMatrixString) }
+    }
+
+    /// Whether the matrix is one row (1x4) instead of two rows (2x2).
+    var matrixOneRow: Bool {
+        didSet { UserDefaults.standard.set(matrixOneRow, forKey: SettingsKey.matrixOneRow) }
+    }
+
+    /// Whether the mouse wraps around the screen edges.
+    var matrixCircle: Bool {
+        didSet { UserDefaults.standard.set(matrixCircle, forKey: SettingsKey.matrixCircle) }
+    }
+
     // MARK: - Init
 
     /// Creates a settings store, loading persisted values from UserDefaults
@@ -150,6 +173,9 @@ final class SettingsStore {
         self.machineName = defaults.string(forKey: SettingsKey.machineName) ?? SettingsDefault.machineName
         
         self.hideDockIcon = defaults.object(forKey: SettingsKey.hideDockIcon) as? Bool ?? SettingsDefault.hideDockIcon
+        self.machineMatrixString = defaults.string(forKey: SettingsKey.machineMatrixString) ?? SettingsDefault.machineMatrixString
+        self.matrixOneRow = defaults.object(forKey: SettingsKey.matrixOneRow) as? Bool ?? SettingsDefault.matrixOneRow
+        self.matrixCircle = defaults.object(forKey: SettingsKey.matrixCircle) as? Bool ?? SettingsDefault.matrixCircle
 
         if let storedID = defaults.object(forKey: SettingsKey.machineID) as? Int {
             self.machineID = UInt32(truncatingIfNeeded: storedID)
@@ -174,5 +200,8 @@ final class SettingsStore {
         crossingEdge = SettingsDefault.crossingEdge
         machineName = SettingsDefault.machineName
         hideDockIcon = SettingsDefault.hideDockIcon
+        machineMatrixString = SettingsDefault.machineMatrixString
+        matrixOneRow = SettingsDefault.matrixOneRow
+        matrixCircle = SettingsDefault.matrixCircle
     }
 }

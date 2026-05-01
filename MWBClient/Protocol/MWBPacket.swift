@@ -64,7 +64,13 @@ struct MWBPacket {
     }
 
     var packageType: PackageType? {
-        get { PackageType(rawValue: type) }
+        get { 
+            // Matrix packets use bitwise flags (Swap=2, TwoRow=4), so type can be 128, 130, 132, 134
+            if type >= 128 && type <= 134 && (type & ~UInt8(6)) == 128 {
+                return .matrix
+            }
+            return PackageType(rawValue: type) 
+        }
         set { type = newValue?.rawValue ?? 0 }
     }
 

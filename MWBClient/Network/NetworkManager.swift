@@ -605,6 +605,34 @@ actor NetworkManager {
             _ = l2.computeChecksum()
             sendPacket(l2)
 
+        case .matrix:
+            let nameBytes = packet.data[16..<48]
+            guard let name = String(data: Data(nameBytes), encoding: .ascii)?.trimmingCharacters(in: .whitespaces) else { break }
+            let slotIndex = Int(packet.src) // 1, 2, 3, or 4
+            
+            Task {
+                await MachinePool.shared.updateMatrixSlot(slotIndex, with: name)
+                
+                if slotIndex == 4 {
+                    // Packet 4 is the final packet. Read flags and save.
+                    let flags = packet.type
+                    let matrixCircle = (flags & 2) != 0
+                    let matrixOneRow = (flags & 4) == 0 // Note: flag 4 means TWO row, so OneRow is false if flag 4 is present.
+                    
+                    let newMatrixStr = await MachinePool.shared.serializedMatrix()
+                    
+                    await MainActor.run {
+                        let settings = SettingsStore()
+                        settings.machineMatrixString = newMatrixStr
+                        settings.matrixCircle = matrixCircle
+                        settings.matrixOneRow = matrixOneRow
+                    }
+                    if Self.debugConnectionSteps {
+                        Logger.network.info("Committed new matrix from remote: \(newMatrixStr)")
+                    }
+                }
+            }
+
         case .clipboard, .clipboardText, .clipboardImage, .clipboardDataEnd,
              .clipboardAsk, .clipboardPush, .clipboardDragDrop, .clipboardDragDropEnd:
             onClipboard?(packet)
