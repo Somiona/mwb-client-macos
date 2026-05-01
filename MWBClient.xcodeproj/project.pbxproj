@@ -8,7 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD24509B5BCB183847AFE67F /* KeyCodeMapper.swift */; };
+		107B8C3251531893EB2709B6 /* MatrixFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989A0826C11AE419D13531ED /* MatrixFlags.swift */; };
 		1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45A0CEA80080FDC8E52159 /* NetworkCallbacks.swift */; };
+		14477F5DF0DD5ABC011F0BFD /* MachineID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0CEC22E5C2418C8A31BCA3 /* MachineID.swift */; };
 		188C72432675028FAD914BDC /* MWBPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */; };
 		1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */; };
 		1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5929D4D7603B549A3D3E214C /* HeartbeatService.swift */; };
@@ -49,12 +51,10 @@
 		94CBC90F7D1E72C34D157BE6 /* MockEventSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E53853262A1E9DB43D733C1 /* MockEventSink.swift */; };
 		97D6854FF5FF9739321AF909 /* ProtocolExtractor.csproj in Resources */ = {isa = PBXBuildFile; fileRef = 4BFCFBA88F96723652ED7FC3 /* ProtocolExtractor.csproj */; };
 		A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59334291F885148BC161FCE2 /* MWBKeyboardData.swift */; };
-		AA0000000000000000000002 /* MachineID.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000001 /* MachineID.swift */; };
-		AA0000000000000000000004 /* MatrixFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000003 /* MatrixFlags.swift */; };
-		AA0000000000000000000006 /* DragDropManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000005 /* DragDropManager.swift */; };
-		AA0000000000000000000008 /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000007 /* PowerManager.swift */; };
 		ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC5F135996CBF70C5BCB674 /* GeneralView.swift */; };
 		B2929940AD3A62597ADCDFC6 /* ProtocolBinaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E98C9EA00CA537542EE9799 /* ProtocolBinaryTests.swift */; };
+		C3DCD1B407ECAEEC90C2A360 /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B891CA69B4D7427528E869 /* PowerManager.swift */; };
+		C413574A08D72F84CC16B0A9 /* DragDropManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0066F4E1A3C8CE57C854E639 /* DragDropManager.swift */; };
 		C73329BC2DD49CA44BAF2DBF /* ProtocolCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */; };
 		C7A95CBA30FE515DF2F2278A /* ClipboardCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */; };
 		CAE9E1C8EB97F8C0F5B3C8F4 /* EdgeDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B665D45733F4493D7A0AAC /* EdgeDetectorTests.swift */; };
@@ -80,10 +80,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0066F4E1A3C8CE57C854E639 /* DragDropManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropManager.swift; sourceTree = "<group>"; };
 		085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputCapture.swift; sourceTree = "<group>"; };
 		0B590DE1D1DA01D6B2357AE4 /* magic.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = magic.bin; sourceTree = "<group>"; };
 		0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolCompatibilityTests.swift; sourceTree = "<group>"; };
 		0FC5F135996CBF70C5BCB674 /* GeneralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralView.swift; sourceTree = "<group>"; };
+		13B891CA69B4D7427528E869 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 		2B622ECD0A5D76C6DD2FDBC9 /* ConnectionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStateTests.swift; sourceTree = "<group>"; };
 		2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetector.swift; sourceTree = "<group>"; };
 		2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBConstants.swift; sourceTree = "<group>"; };
@@ -91,13 +93,13 @@
 		3636C262BEECE646EB78B8B5 /* MachinePoolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachinePoolTests.swift; sourceTree = "<group>"; };
 		3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCryptoTests.swift; sourceTree = "<group>"; };
 		3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
-		42AEE9538485AC16F64BFCE6 /* ProtocolExtractor.cs */ = {isa = PBXFileReference; lastKnownFileType = text; path = ProtocolExtractor.cs; sourceTree = "<group>"; };
+		42AEE9538485AC16F64BFCE6 /* ProtocolExtractor.cs */ = {isa = PBXFileReference; path = ProtocolExtractor.cs; sourceTree = "<group>"; };
 		43716A77A3EC0A53CFE489A2 /* MachinePool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachinePool.swift; sourceTree = "<group>"; };
 		44757A274942A16843F68B9E /* LayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutView.swift; sourceTree = "<group>"; };
 		46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoCrossPlatformTests.swift; sourceTree = "<group>"; };
 		491B710D380573EF0C358439 /* MWBPacketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBPacketTests.swift; sourceTree = "<group>"; };
 		4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCodec.swift; sourceTree = "<group>"; };
-		4BFCFBA88F96723652ED7FC3 /* ProtocolExtractor.csproj */ = {isa = PBXFileReference; lastKnownFileType = text; path = ProtocolExtractor.csproj; sourceTree = "<group>"; };
+		4BFCFBA88F96723652ED7FC3 /* ProtocolExtractor.csproj */ = {isa = PBXFileReference; path = ProtocolExtractor.csproj; sourceTree = "<group>"; };
 		4DA5714D75003D2FD578D32A /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		53B665D45733F4493D7A0AAC /* EdgeDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetectorTests.swift; sourceTree = "<group>"; };
 		5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputLayerTests.swift; sourceTree = "<group>"; };
@@ -114,13 +116,11 @@
 		8E53853262A1E9DB43D733C1 /* MockEventSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockEventSink.swift; sourceTree = "<group>"; };
 		90CF48864FCE733E195625FD /* MWBClient.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MWBClient.entitlements; sourceTree = "<group>"; };
 		93F3D0296E0F76D9C47BD4AE /* MWBHandshake.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBHandshake.swift; sourceTree = "<group>"; };
+		989A0826C11AE419D13531ED /* MatrixFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatrixFlags.swift; sourceTree = "<group>"; };
+		9B0CEC22E5C2418C8A31BCA3 /* MachineID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineID.swift; sourceTree = "<group>"; };
 		A1BBC2304145EBEC609D6A75 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A26795837B7EC4F86C491C10 /* InputInjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputInjection.swift; sourceTree = "<group>"; };
 		A3CF15F6F4BF38FE160BAE62 /* generate_fixtures.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = generate_fixtures.sh; sourceTree = "<group>"; };
-		AA0000000000000000000001 /* MachineID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineID.swift; sourceTree = "<group>"; };
-		AA0000000000000000000003 /* MatrixFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatrixFlags.swift; sourceTree = "<group>"; };
-		AA0000000000000000000005 /* DragDropManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropManager.swift; sourceTree = "<group>"; };
-		AA0000000000000000000007 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 		AB222A87194D78042767C39F /* MWBMouseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBMouseData.swift; sourceTree = "<group>"; };
 		AC10AB6D2D613EE34A724CD2 /* InputIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputIntegrationTests.swift; sourceTree = "<group>"; };
 		ADB3C9DAEF8AA27C09D7C1F3 /* NetworkIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkIntegrationTests.swift; sourceTree = "<group>"; };
@@ -152,7 +152,7 @@
 			children = (
 				4B4462AE53F365CE3387B40E /* ClipboardCodec.swift */,
 				3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */,
-				AA0000000000000000000005 /* DragDropManager.swift */,
+				0066F4E1A3C8CE57C854E639 /* DragDropManager.swift */,
 			);
 			path = Clipboard;
 			sourceTree = "<group>";
@@ -161,7 +161,7 @@
 			isa = PBXGroup;
 			children = (
 				AE09E447C777581836F67970 /* Logger.swift */,
-				AA0000000000000000000007 /* PowerManager.swift */,
+				13B891CA69B4D7427528E869 /* PowerManager.swift */,
 				E46CD9FF1712D138D025FB2C /* ResumeOnce.swift */,
 				AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */,
 			);
@@ -171,13 +171,13 @@
 		1AE39F3B38371A7B17E088FB /* Protocol */ = {
 			isa = PBXGroup;
 			children = (
+				9B0CEC22E5C2418C8A31BCA3 /* MachineID.swift */,
+				989A0826C11AE419D13531ED /* MatrixFlags.swift */,
 				2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */,
 				93F3D0296E0F76D9C47BD4AE /* MWBHandshake.swift */,
 				59334291F885148BC161FCE2 /* MWBKeyboardData.swift */,
 				AB222A87194D78042767C39F /* MWBMouseData.swift */,
 				BDD724BDBFCCDEB3A54D1B66 /* MWBPacket.swift */,
-				AA0000000000000000000001 /* MachineID.swift */,
-				AA0000000000000000000003 /* MatrixFlags.swift */,
 			);
 			path = Protocol;
 			sourceTree = "<group>";
@@ -416,7 +416,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2640;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					52DE2E9BACF025BE2D3E66E9 = {
 						ProvisioningStyle = Automatic;
@@ -505,6 +505,7 @@
 				2A4B51C885C8AE958B57EEF3 /* ClipboardManager.swift in Sources */,
 				49B80F2968571D548F8D1F7B /* ClipboardView.swift in Sources */,
 				805EB3CA3399A58A45A7BC04 /* ConnectionView.swift in Sources */,
+				C413574A08D72F84CC16B0A9 /* DragDropManager.swift in Sources */,
 				CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */,
 				ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */,
 				1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */,
@@ -520,18 +521,17 @@
 				A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */,
 				564A59595DFAFCAB8F83C87A /* MWBMouseData.swift in Sources */,
 				188C72432675028FAD914BDC /* MWBPacket.swift in Sources */,
+				14477F5DF0DD5ABC011F0BFD /* MachineID.swift in Sources */,
 				89A653556334EAF0D63BA872 /* MachinePool.swift in Sources */,
+				107B8C3251531893EB2709B6 /* MatrixFlags.swift in Sources */,
 				1159796E4981D19AB5D71171 /* NetworkCallbacks.swift in Sources */,
 				86984B4B9B7BDF070488D91D /* NetworkManager.swift in Sources */,
 				2115B5C705F7B788A886C7AC /* PackageDeduplicator.swift in Sources */,
 				76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */,
+				C3DCD1B407ECAEEC90C2A360 /* PowerManager.swift in Sources */,
 				F1E03F704170F4EF03677607 /* ResumeOnce.swift in Sources */,
 				1CB4DA06DBBA0F47D454293F /* ScreenInfo.swift in Sources */,
 				7F771834B9783E346FDA5EF1 /* ServerListener.swift in Sources */,
-				AA0000000000000000000002 /* MachineID.swift in Sources */,
-				AA0000000000000000000004 /* MatrixFlags.swift in Sources */,
-				AA0000000000000000000006 /* DragDropManager.swift in Sources */,
-				AA0000000000000000000008 /* PowerManager.swift in Sources */,
 				777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */,
 				E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */,
 				48EB907090A3E8A126AB063A /* TrayMenu.swift in Sources */,
@@ -553,7 +553,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -587,11 +586,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -608,14 +605,13 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = b1.0.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -628,7 +624,6 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -647,7 +642,6 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -667,14 +661,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MWBClient/App/MWBClient.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = MWBClient;
 				SDKROOT = macosx;
@@ -688,14 +678,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MWBClient/App/MWBClient.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = MWBClient;
 				SDKROOT = macosx;
@@ -707,7 +693,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -741,11 +726,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -756,13 +739,12 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = b1.0.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
