@@ -97,7 +97,9 @@ struct ConnectionView: View {
 
         return Button(isConnected || isConnecting ? "Disconnect" : "Connect") {
             if isConnected || isConnecting {
-                coordinator.disconnect()
+                Task {
+                    await coordinator.disconnect()
+                }
             } else {
                 coordinator.connect()
             }

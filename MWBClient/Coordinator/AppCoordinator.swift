@@ -87,7 +87,6 @@ final class AppCoordinator {
         let securityKey = settings.securityKey
         let machineID = settings.machineID
         let port = MWBConstants.inputPort
-        let clipboardPort = MWBConstants.clipboardPort
         let machineName = settings.machineName
         let screenSize = ScreenInfo.mainScreenSizeUInt16
 
@@ -104,13 +103,7 @@ final class AppCoordinator {
         )
 
         let cm = ClipboardManager(
-            host: host,
-            port: clipboardPort,
-            securityKey: securityKey,
             machineID: machineID,
-            machineName: machineName,
-            screenWidth: screenSize.width,
-            screenHeight: screenSize.height,
             syncText: settings.syncText,
             syncImages: settings.syncImages,
             syncFiles: settings.syncFiles
@@ -128,6 +121,13 @@ final class AppCoordinator {
         networkManager = nm
         clipboardManager = cm
         serverListener = sl
+
+        // Wire clipboard manager to send via network manager
+        Task {
+            await cm.setSendPacketCallback { [weak nm] packet in
+                await nm?.sendPacket(packet)
+            }
+        }
 
         // --- Edge detector configuration ---
         edgeDetector.crossingEdge = settings.crossingEdge
@@ -151,7 +151,11 @@ final class AppCoordinator {
                         self?.handleRemoteKeyboard(keyData)
                     }
                 },
-                onClipboard: nil,
+                onClipboard: { [weak cm] packet in
+                    Task {
+                        await cm?.handleIncomingPacket(packet)
+                    }
+                },
                 onNextMachine: { [weak self] machineID, x, y in
                     Task { @MainActor [weak self] in
                         self?.handleNextMachine(machineID: machineID, x: x, y: y)
@@ -171,7 +175,11 @@ final class AppCoordinator {
                         self?.handleRemoteKeyboard(keyData)
                     }
                 },
-                onClipboard: nil
+                onClipboard: { [weak cm] packet in
+                    Task {
+                        await cm?.handleIncomingPacket(packet)
+                    }
+                }
             )
 
             // Connect to Windows machine
@@ -192,30 +200,37 @@ final class AppCoordinator {
         }
     }
 
-    func disconnect() {
+    /// Gracefully disconnects from the remote machine, sending a ByeBye signal.
+    func disconnect() async {
         Logger.coordinator.info("Disconnecting")
+        
+        // 1. Send ByeBye signal to remote if connected
+        if let nm = networkManager {
+            await nm.sendByeBye()
+            await nm.disconnect()
+        }
+        
+        // 2. Send ByeBye signal to all inbound connections
+        if let sl = serverListener {
+            await sl.sendByeBye()
+            await sl.stop()
+        }
+        
+        // 3. Clean up other subsystems
+        if let hb = heartbeatService { await hb.stop() }
+        if let cm = clipboardManager { await cm.stop() }
+        
+        // 4. Clean up local state
         errorMessage = nil
         statePollTask?.cancel()
         statePollTask = nil
         connectTask?.cancel()
         connectTask = nil
 
-        let nm = networkManager
-        let sl = serverListener
-        let hb = heartbeatService
-        let cm = clipboardManager
-
         networkManager = nil
         serverListener = nil
         heartbeatService = nil
         clipboardManager = nil
-
-        Task {
-            await nm?.disconnect()
-            await sl?.stop()
-            await hb?.stop()
-            await cm?.stop()
-        }
 
         inputCapture.stop()
         inputCapture.crossingActive = false
@@ -227,6 +242,18 @@ final class AppCoordinator {
         connectionState = .disconnected
         windowsMachineName = ""
         isInitialConnection = true
+    }
+
+    /// Performs a graceful shutdown, sending a ByeBye packet before disconnecting.
+    func quit() async {
+        Logger.coordinator.info("Graceful quit requested")
+        
+        // 1. Perform full graceful disconnect
+        await disconnect()
+        
+        // 2. Give a tiny moment for packets to flush then exit
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        NSApp.terminate(nil)
     }
 
     // MARK: - Settings Observation
@@ -546,13 +573,13 @@ final class AppCoordinator {
     // MARK: - Sleep / Wake
 
     func handleSleep() async {
-        guard let nm = networkManager else { return }
-        await nm.handleSleep()
+        Logger.coordinator.info("OS Sleep detected, tearing down sockets")
+        await disconnect()
     }
 
-    func handleWake() async {
-        guard let nm = networkManager else { return }
-        await nm.handleWake()
+    func handleWake() {
+        Logger.network.info("OS Wake detected, scheduling reconnect")
+        connect()
     }
 
     // MARK: - Forwarding to Remote

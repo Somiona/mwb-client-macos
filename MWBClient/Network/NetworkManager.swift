@@ -184,6 +184,44 @@ actor NetworkManager {
         updateState(.disconnected)
     }
 
+    /// Sends a ByeBye packet (type 4) to the remote machine to gracefully announce disconnection.
+    func sendByeBye() async {
+        guard state == .connected else { return }
+        
+        var packet = MWBPacket()
+        packet.type = PackageType.byeBye.rawValue
+        packet.src = machineID
+        packet.des = MWBConstants.broadcastDestination
+        
+        let nameData = HandshakeHandler.encodeMachineName(localMachineName)
+        var fullData = packet.data
+        fullData.replaceSubrange(16..<48, with: nameData)
+        packet.data = fullData
+        
+        // We use a manual send here because sendPacket() only works if state is .connected,
+        // and we want to ensure it's sent even if we are about to transition state.
+        if let conn = connection {
+            packet.id = nextPacketID
+            nextPacketID &+= 1
+            packet.setMagic(magicHash)
+            _ = packet.computeChecksum()
+            
+            let data = packet.transmittedData
+            let encrypted = crypto.encrypt(padToBlock(data))
+            
+            // Send synchronously-ish (await completion) to ensure it's on the wire before process exits
+            try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                conn.send(content: encrypted, completion: .contentProcessed { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                })
+            }
+        }
+    }
+
     // MARK: Send
 
     func sendPacket(_ packet: MWBPacket) {
@@ -287,13 +325,9 @@ actor NetworkManager {
         updateState(.connected)
         if Self.debugConnectionSteps {
             let now = MWBCrypto.stamp()
-            Logger.network.info("[\(now)] Connected successfully")
+            Logger.network.info("[\(now)] Connected successfully (ID: \(self.machineID))")
         }
         startHeartbeatMonitor()
-
-        if handshakeHandler.adoptedMachineID != 0 {
-            machineID = handshakeHandler.adoptedMachineID
-        }
 
         await receivePump(conn)
     }
@@ -394,7 +428,7 @@ actor NetworkManager {
             }
 
             // Build ACK (bitwise NOT of challenge data)
-            guard var ackPacket = handshakeHandler.receiveChallenge(challengePacket, localMachineName: localMachineName) else {
+            guard var ackPacket = handshakeHandler.receiveChallenge(challengePacket, localMachineName: localMachineName, localMachineID: machineID) else {
                 throw NetworkError.handshakeFailed("handshake handler rejected challenge")
             }
             ackPacket.setMagic(magicHash)
@@ -654,7 +688,7 @@ actor NetworkManager {
     // MARK: Re-handshake
 
     private func handleRehandshake(_ packet: MWBPacket) {
-        guard var ack = handshakeHandler.receiveChallenge(packet, localMachineName: localMachineName) else {
+        guard var ack = handshakeHandler.receiveChallenge(packet, localMachineName: localMachineName, localMachineID: machineID) else {
             Logger.network.warning("Re-handshake: handler rejected challenge")
             return
         }
@@ -776,15 +810,7 @@ actor NetworkManager {
 
     // MARK: OS Sleep / Wake
 
-    func handleSleep() {
-        Logger.network.info("OS Sleep detected, tearing down sockets")
-        disconnect()
-    }
-
-    func handleWake() {
-        Logger.network.info("OS Wake detected, scheduling reconnect")
-        Task { await connect() }
-    }
+    // handleSleep and handleWake are now managed by AppCoordinator
 
     // MARK: Configuration Updates
 

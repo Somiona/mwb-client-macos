@@ -164,11 +164,13 @@ final class TrayMenu {
     // MARK: - Actions
 
     @objc private func toggleEnabled() {
-        switch coordinator.connectionState {
-        case .disconnected:
-            coordinator.connect()
-        case .connected, .connecting, .handshaking, .reconnecting:
-            coordinator.disconnect()
+        Task {
+            switch coordinator.connectionState {
+            case .disconnected:
+                coordinator.connect()
+            case .connected, .connecting, .handshaking, .reconnecting:
+                await coordinator.disconnect()
+            }
         }
     }
 
@@ -182,8 +184,9 @@ final class TrayMenu {
     }
 
     @objc private func quit() {
-        coordinator.disconnect()
-        NSApp.terminate(nil)
+        Task {
+            await coordinator.quit()
+        }
     }
 
     // MARK: - Tray Icon Assets

@@ -15,7 +15,7 @@ final class MWBHandshakeTests: XCTestCase {
             challengePacket.setDataUInt32(0x11223344 + UInt32(i), at: i * 4)
         }
 
-        let ackPacket = handler.receiveChallenge(challengePacket, localMachineName: "Test")
+        let ackPacket = handler.receiveChallenge(challengePacket, localMachineName: "Test", localMachineID: 1)
         let unwrappedAck = try XCTUnwrap(ackPacket)
         
         // Verify bitwise NOT
@@ -53,7 +53,7 @@ final class MWBHandshakeTests: XCTestCase {
         packet.type = PackageType.handshake.rawValue
         
         for _ in 0..<MWBConstants.handshakeIterationCount {
-            _ = handler.receiveChallenge(packet, localMachineName: "Mac")
+            _ = handler.receiveChallenge(packet, localMachineName: "Mac", localMachineID: 1)
         }
         XCTAssertEqual(handler.state, .receivingChallenge)
         

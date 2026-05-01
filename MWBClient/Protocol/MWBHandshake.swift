@@ -39,7 +39,7 @@ struct HandshakeHandler {
         sentAckCount = 0
     }
 
-    mutating func receiveChallenge(_ packet: MWBPacket, localMachineName: String) -> MWBPacket? {
+    mutating func receiveChallenge(_ packet: MWBPacket, localMachineName: String, localMachineID: UInt32) -> MWBPacket? {
         switch state {
         case .exchangingNoise, .receivingChallenge, .sendingIdentity, .completed:
             break
@@ -51,15 +51,11 @@ struct HandshakeHandler {
         state = .receivingChallenge
         receivedChallengeCount += 1
 
-        if packet.des != 0 {
-            adoptedMachineID = packet.des
-        }
-
         var ack = MWBPacket()
         ack.type = PackageType.handshakeAck.rawValue
         ack.id = packet.id
-        ack.src = 0
-        ack.des = packet.des
+        ack.src = localMachineID
+        ack.des = packet.src // Respond back to the server's ID
 
         // Flip Machine1-4 fields (first 16 bytes of data, four UInt32s at offsets 0, 4, 8, 12)
         let challengeData = packet.data

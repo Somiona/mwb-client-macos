@@ -76,7 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func handleWake() {
         guard let coordinator = Self.sharedCoordinator else { return }
-        Task { await coordinator.handleWake() }
+        coordinator.handleWake()
     }
 
     // MARK: - Helpers
@@ -111,6 +111,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.setActivationPolicy(.regular)
         } else {
             NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // This method is called when the user quits from the Dock or via Cmd+Q.
+        // If we haven't already performed a graceful quit, try to do it now.
+        // Note: Task in willTerminate is risky if it outlives the exit, 
+        // but NSApp.terminate() from within coordinator.quit() is safe.
+        if let coordinator = Self.sharedCoordinator, coordinator.connectionState == .connected {
+            // We use a short timeout here to avoid hanging the OS logout/shutdown
+            let task = Task {
+                await coordinator.quit()
+            }
+            // Give it 500ms to send the packet
+            Thread.sleep(forTimeInterval: 0.5)
+            task.cancel()
         }
     }
 }

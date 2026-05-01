@@ -18,20 +18,21 @@ actor ServerListener {
 
     private let port: UInt16
     private let securityKey: String
+    private let localMachineID: UInt32
     private let localMachineName: String
     private let screenWidth: UInt16
     private let screenHeight: UInt16
 
-    private let localMachineID: UInt32
-
     // MARK: Listener
 
     private var listener: NWListener?
-    private var connectionTasks: Set<Task<Void, Never>> = []
+    private var connectionTasks: [UInt32: Task<Void, Never>] = [:]
+    private var connections: [UInt32: (NWConnection, MWBCrypto, UInt32)] = [:]
     private var dedup = PackageDeduplicator()
     private var nextPacketID: UInt32 = UInt32.random(in: 1..<0x7FFFFFFF)
 
     // MARK: Callbacks
+
 
     var onMouse: MouseCallback?
     var onKeyboard: KeyboardCallback?
@@ -107,10 +108,17 @@ actor ServerListener {
 
     func stop() {
         Logger.network.info("ServerListener stopping")
-        for task in connectionTasks {
+        let tasks = connectionTasks.values
+        let conns = connections.values.map { $0.0 }
+        connectionTasks.removeAll()
+        connections.removeAll()
+
+        for task in tasks {
             task.cancel()
         }
-        connectionTasks.removeAll()
+        for conn in conns {
+            conn.cancel()
+        }
 
         listener?.cancel()
         listener = nil
@@ -143,22 +151,24 @@ actor ServerListener {
         Logger.network.info("ServerListener: new connection from \(String(describing: remoteEndpoint))")
         connection.start(queue: .global(qos: .userInitiated))
 
+        let tempID = UInt32.random(in: 1..<UInt32.max)
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.handleConnection(connection)
+            await self.handleConnection(connection, taskID: tempID)
         }
-        connectionTasks.insert(task)
+        
+        connectionTasks[tempID] = task
         activeConnectionCount += 1
     }
 
     // MARK: Per-Connection Lifecycle
 
-    private func handleConnection(_ connection: NWConnection) async {
+    private func handleConnection(_ connection: NWConnection, taskID: UInt32) async {
         defer {
             connection.cancel()
             Logger.network.info("ServerListener: connection closed")
             Task { [weak self] in
-                await self?.connectionDidClose()
+                await self?.connectionDidClose(taskID: taskID)
             }
         }
 
@@ -186,12 +196,16 @@ actor ServerListener {
 
         // Phase 3: Receive pump (handles incoming HandshakeAck verification and all other packets)
         Logger.network.info("ServerListener: entering receive pump")
+        
+        connections[taskID] = (connection, crypto, magicHash)
+        
         await receivePump(connection, crypto: crypto, magicHash: magicHash, handler: &handshakeHandler)
     }
 
-    private func connectionDidClose() {
+    private func connectionDidClose(taskID: UInt32) {
         activeConnectionCount = max(0, activeConnectionCount - 1)
-        connectionTasks = connectionTasks.filter { !$0.isCancelled }
+        connectionTasks.removeValue(forKey: taskID)
+        connections.removeValue(forKey: taskID)
     }
 
     // MARK: Noise Exchange (Outbound — same order as NetworkManager)
@@ -368,7 +382,7 @@ actor ServerListener {
         magicHash: UInt32,
         handler: inout HandshakeHandler
     ) {
-        guard var ack = handler.receiveChallenge(packet, localMachineName: localMachineName) else { return }
+        guard var ack = handler.receiveChallenge(packet, localMachineName: localMachineName, localMachineID: localMachineID) else { return }
         ack.setMagic(magicHash)
         _ = ack.computeChecksum()
 
@@ -460,7 +474,40 @@ actor ServerListener {
         }
     }
 
-    // MARK: Helpers
+    /// Sends a ByeBye packet to all active inbound connections.
+    func sendByeBye() async {
+        let activeConns = Array(connections.values)
+        
+        for (conn, crypto, magicHash) in activeConns {
+            var packet = MWBPacket()
+            packet.type = PackageType.byeBye.rawValue
+            packet.src = localMachineID
+            packet.des = MWBConstants.broadcastDestination
+            packet.id = nextPacketID
+            nextPacketID &+= 1
+
+            let nameData = HandshakeHandler.encodeMachineName(localMachineName)
+            var fullData = packet.data
+            fullData.replaceSubrange(16..<48, with: nameData)
+            packet.data = fullData
+
+            packet.setMagic(magicHash)
+            _ = packet.computeChecksum()
+            
+            let data = packet.transmittedData
+            let encrypted = crypto.encrypt(padToBlock(data))
+            
+            try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                conn.send(content: encrypted, completion: .contentProcessed { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                })
+            }
+        }
+    }
 
     /// Pad data to AES block size (16 bytes) with zero bytes.
     private func padToBlock(_ data: Data) -> Data {
