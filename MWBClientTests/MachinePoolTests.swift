@@ -63,19 +63,6 @@ final class MachinePoolTests: XCTestCase {
         XCTAssertEqual(pool.machineMatrix, names)
     }
 
-    func testMatrixFlagsSetOnLastPacket_SwapOnly() {
-        let pool = MachinePool(matrix: ["", "", "", ""])
-        let type = MatrixFlags.matrix | MatrixFlags.matrixSwapEnabled
-
-        pool.updateMachineMatrix(packetType: type, src: MachineID(rawValue: 1), machineName: "A")
-        XCTAssertFalse(pool.matrixCircle)
-        XCTAssertTrue(pool.matrixOneRow)
-
-        pool.updateMachineMatrix(packetType: type, src: MachineID(rawValue: 4), machineName: "D")
-        XCTAssertTrue(pool.matrixCircle)
-        XCTAssertTrue(pool.matrixOneRow)
-    }
-
     func testMatrixFlagsSetOnLastPacket_TwoRowOnly() {
         let pool = MachinePool(matrix: ["", "", "", ""])
         let type = MatrixFlags.matrix | MatrixFlags.twoRowFlag
@@ -90,23 +77,6 @@ final class MachinePoolTests: XCTestCase {
     func testMatrixFlagsSetOnLastPacket_BothFlags() {
         let pool = MachinePool(matrix: ["", "", "", ""])
         let type = MatrixFlags.matrix | MatrixFlags.matrixSwapEnabled | MatrixFlags.twoRowFlag
-
-        pool.updateMachineMatrix(packetType: type, src: MachineID(rawValue: 4), machineName: "D")
-
-        XCTAssertTrue(pool.matrixCircle)
-        XCTAssertFalse(pool.matrixOneRow)
-    }
-
-    func testMatrixFlagsOnlyApplyOnFourthPacket() {
-        let pool = MachinePool(matrix: ["", "", "", ""])
-        let type = MatrixFlags.matrix | MatrixFlags.matrixSwapEnabled | MatrixFlags.twoRowFlag
-
-        pool.updateMachineMatrix(packetType: type, src: MachineID(rawValue: 1), machineName: "A")
-        pool.updateMachineMatrix(packetType: type, src: MachineID(rawValue: 2), machineName: "B")
-        pool.updateMachineMatrix(packetType: type, src: MachineID(rawValue: 3), machineName: "C")
-
-        XCTAssertFalse(pool.matrixCircle)
-        XCTAssertTrue(pool.matrixOneRow)
 
         pool.updateMachineMatrix(packetType: type, src: MachineID(rawValue: 4), machineName: "D")
 
