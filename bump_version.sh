@@ -45,6 +45,15 @@ if command -v xcodegen &> /dev/null; then
     xcodegen generate
 fi
 
+# Run tests to ensure everything is good before tagging
+echo "Running tests to verify the build..."
+if ! xcodebuild test -project MWBClient.xcodeproj -scheme MWBClientTests -destination 'platform=macOS'; then
+    echo "Error: Tests failed! Fixing issues is required before bumping version and tagging."
+    # Revert project.yml change if tests fail
+    git checkout project.yml
+    exit 1
+fi
+
 # Commit the changes
 git add project.yml
 if [ -d "MWBClient.xcodeproj" ]; then
