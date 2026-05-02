@@ -29,6 +29,7 @@
 		5D474965B74691874F7CD6EE /* MWBConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */; };
 		612570169ECCBFBB3A0F8360 /* MWBClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0993BDCE17559BFCB0EEA8 /* MWBClientTests.swift */; };
 		641D0DCE57A302CCCE6DD70E /* MWBApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFA93B213339C595595EFE7 /* MWBApp.swift */; };
+		64499A7ECAD406E18A70EBDB /* VersionChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15531B7A6626F2D04E44BF21 /* VersionChecker.swift */; };
 		685B0C572FFBF96A95DA9023 /* ManualClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FBF1967856CE1E64F947C6 /* ManualClock.swift */; };
 		698F92E1224098F980B71FC2 /* CryptoCrossPlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46932C6CF3981C3B9EB22218 /* CryptoCrossPlatformTests.swift */; };
 		6A0FF454F115902423D28831 /* InputLayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5849C71C3FA6E0AD586C40C7 /* InputLayerTests.swift */; };
@@ -86,6 +87,7 @@
 		0B590DE1D1DA01D6B2357AE4 /* magic.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = magic.bin; sourceTree = "<group>"; };
 		0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolCompatibilityTests.swift; sourceTree = "<group>"; };
 		13B891CA69B4D7427528E869 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
+		15531B7A6626F2D04E44BF21 /* VersionChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionChecker.swift; sourceTree = "<group>"; };
 		2B622ECD0A5D76C6DD2FDBC9 /* ConnectionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStateTests.swift; sourceTree = "<group>"; };
 		2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetector.swift; sourceTree = "<group>"; };
 		2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBConstants.swift; sourceTree = "<group>"; };
@@ -166,6 +168,7 @@
 				13B891CA69B4D7427528E869 /* PowerManager.swift */,
 				E46CD9FF1712D138D025FB2C /* ResumeOnce.swift */,
 				AE87B0DA1C8247ECB21E9F07 /* ScreenInfo.swift */,
+				15531B7A6626F2D04E44BF21 /* VersionChecker.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -539,6 +542,7 @@
 				777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */,
 				E12A08B0CE7DE8092399D6AD /* SettingsWindow.swift in Sources */,
 				48EB907090A3E8A126AB063A /* TrayMenu.swift in Sources */,
+				64499A7ECAD406E18A70EBDB /* VersionChecker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -609,7 +613,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = b1.0.3;
+				MARKETING_VERSION = b1.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -743,7 +747,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = MWBClient/App/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = b1.0.3;
+				MARKETING_VERSION = b1.0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mwb.client;

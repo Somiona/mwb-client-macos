@@ -27,6 +27,7 @@ private enum SettingsKey {
     static let hideMouseAtScreenEdge = "settings.hideMouseAtScreenEdge"
     static let disableEasyMouseInFullscreen = "settings.disableEasyMouseInFullscreen"
     static let debugLogging = "settings.debugLogging"
+    static let checkForUpdates = "settings.checkForUpdates"
 }
 
 // MARK: - Defaults
@@ -64,6 +65,7 @@ private enum SettingsDefault {
     static let hideMouseAtScreenEdge = true
     static let disableEasyMouseInFullscreen = false
     static let debugLogging = false
+    static let checkForUpdates = true
 }
 
 // MARK: - Cached Settings (Hot-Path Optimized)
@@ -238,6 +240,10 @@ final class SettingsStore {
         }
     }
 
+    var checkForUpdates: Bool {
+        didSet { UserDefaults.standard.set(checkForUpdates, forKey: SettingsKey.checkForUpdates) }
+    }
+
     // MARK: - Init
 
     /// Creates a settings store, loading persisted values from UserDefaults
@@ -277,6 +283,7 @@ final class SettingsStore {
         self.hideMouseAtScreenEdge = defaults.object(forKey: SettingsKey.hideMouseAtScreenEdge) as? Bool ?? SettingsDefault.hideMouseAtScreenEdge
         self.disableEasyMouseInFullscreen = defaults.object(forKey: SettingsKey.disableEasyMouseInFullscreen) as? Bool ?? SettingsDefault.disableEasyMouseInFullscreen
         self.debugLogging = defaults.object(forKey: SettingsKey.debugLogging) as? Bool ?? SettingsDefault.debugLogging
+        self.checkForUpdates = defaults.object(forKey: SettingsKey.checkForUpdates) as? Bool ?? SettingsDefault.checkForUpdates
 
         if let storedID = defaults.object(forKey: SettingsKey.machineID) as? Int {
             self.machineID = UInt32(truncatingIfNeeded: storedID)
@@ -313,5 +320,6 @@ final class SettingsStore {
         hideMouseAtScreenEdge = SettingsDefault.hideMouseAtScreenEdge
         disableEasyMouseInFullscreen = SettingsDefault.disableEasyMouseInFullscreen
         debugLogging = SettingsDefault.debugLogging
+        checkForUpdates = SettingsDefault.checkForUpdates
     }
 }

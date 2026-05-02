@@ -50,6 +50,7 @@ struct ConnectionView: View {
           }
         Toggle("Show in menu bar", isOn: $settings.showInMenuBar)
         Toggle("Hide dock icon", isOn: $settings.hideDockIcon)
+        Toggle("Check for updates", isOn: $settings.checkForUpdates)
       }
 
       Section {
@@ -68,6 +69,43 @@ struct ConnectionView: View {
           Text(" on GitHub.")
             .foregroundStyle(.secondary)
           Spacer()
+        }
+
+        if settings.checkForUpdates, VersionChecker.shared.isUpdateAvailable,
+           let version = VersionChecker.shared.latestVersion {
+          HStack(spacing: 0) {
+            Image(systemName: "arrow.down.circle.fill")
+              .foregroundStyle(.green)
+            Text(" Update available: ")
+              .foregroundStyle(.secondary)
+            Button {
+              if let url = VersionChecker.shared.releaseURL {
+                NSWorkspace.shared.open(url)
+              }
+            } label: {
+              Text(version)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
+            Spacer()
+          }
+        }
+
+        if settings.checkForUpdates, VersionChecker.shared.hasFailed {
+          HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.circle.fill")
+              .foregroundStyle(.orange)
+            Text("Version check failed. ")
+              .foregroundStyle(.secondary)
+            Button {
+              VersionChecker.shared.checkIfNeeded()
+            } label: {
+              Text("Retry")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
+            Spacer()
+          }
         }
       }
     }
