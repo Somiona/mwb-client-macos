@@ -1,7 +1,6 @@
-import ServiceManagement
 import SwiftUI
 
-struct GeneralView: View {
+struct AdvancedView: View {
   @Environment(SettingsStore.self) private var settings
 
   var body: some View {
@@ -19,20 +18,6 @@ struct GeneralView: View {
         Text("This name is displayed to the connected Windows machine.")
           .foregroundStyle(.secondary)
           .font(.caption)
-      }
-
-      Section("About") {
-        HStack {
-          Text("Version")
-          Spacer()
-          if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-            Text(version)
-              .foregroundStyle(.secondary)
-          } else {
-            Text("Unknown")
-              .foregroundStyle(.secondary)
-          }
-        }
       }
 
       Section("Advanced Mouse Settings") {
@@ -73,19 +58,64 @@ struct GeneralView: View {
         }
       }
 
-      Section("Startup") {
-        Toggle("Start at login", isOn: $settings.startAtLogin)
-          .onChange(of: settings.startAtLogin) { _, newValue in
-            setLoginItemEnabled(newValue)
+      Section("Security & Power") {
+        Toggle("Same Subnet Only", isOn: $settings.sameSubnetOnly)
+        Text("Only allow connections from machines on the same local subnet.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+
+        Toggle("Validate Remote IP (DNS)", isOn: $settings.validateRemoteIP)
+        Text("Perform reverse DNS lookup to verify the remote machine's hostname.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+
+        Toggle("Block Remote Screen Saver", isOn: $settings.blockScreenSaver)
+        Text("Periodically send 'Awake' packets to prevent the remote screen from sleeping while you are active.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      Section("About") {
+        HStack {
+          Text("Version")
+          Spacer()
+          if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            Text(version)
+              .foregroundStyle(.secondary)
+          } else {
+            Text("Unknown")
+              .foregroundStyle(.secondary)
           }
-      }
-
-      Section("Menu Bar") {
-        Toggle("Show in menu bar", isOn: $settings.showInMenuBar)
-      }
-
-      Section("Dock") {
-        Toggle("Hide dock icon", isOn: $settings.hideDockIcon)
+        }
+        HStack {
+          Text("Author")
+          Spacer()
+          Text("Somiona")
+            .foregroundStyle(.secondary)
+        }
+        HStack {
+          Text("GitHub")
+          Spacer()
+          Button {
+            if let url = URL(string: "https://github.com/Somiona/mwb-client-macos") {
+              NSWorkspace.shared.open(url)
+            }
+          } label: {
+            Text("github.com/Somiona/mwb-client-macos")
+          }
+          .buttonStyle(.plain)
+          .foregroundStyle(.blue)
+        }
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Disclaimer")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          Text(
+            "This project is independent and is not affiliated with or endorsed by Microsoft. It interoperates with the PowerToys Mouse Without Borders protocol by studying the published open-source implementation at microsoft/PowerToys."
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        }
       }
 
       Section("Developer") {
@@ -97,23 +127,12 @@ struct GeneralView: View {
           .font(.caption)
           .foregroundStyle(.secondary)
         }
+
+        LogConsoleView()
       }
     }
     .formStyle(.grouped)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    .navigationTitle("General")
-  }
-
-  private func setLoginItemEnabled(_ enabled: Bool) {
-    do {
-      if enabled {
-        try SMAppService.mainApp.register()
-      } else {
-        try SMAppService.mainApp.unregister()
-      }
-    } catch {
-      // Revert the toggle on failure so it stays in sync with the system state.
-      settings.startAtLogin = !enabled
-    }
+    .navigationTitle("Advanced")
   }
 }

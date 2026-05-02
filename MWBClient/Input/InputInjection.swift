@@ -69,7 +69,7 @@ final class InputInjection {
     /// the target position instead of posting a relative move.
     func injectMouse(_ data: MouseData) {
         guard let message = data.wmMessage else {
-            Logger.input.warning("Inject mouse: unknown WM message")
+            mwbWarning(MWBLog.input, "Inject mouse: unknown WM message")
             return
         }
 
@@ -82,7 +82,7 @@ final class InputInjection {
             return
         }
 
-        mwbDebug(Logger.input, "Inject mouse: \(String(describing: message)) at (\(data.x), \(data.y))")
+        mwbDebug(MWBLog.input, "Inject mouse: \(String(describing: message)) at (\(data.x), \(data.y))")
 
         let target = mapVirtualToScreen(x: data.x, y: data.y)
 
@@ -125,7 +125,7 @@ final class InputInjection {
             mouseCursorPosition: target,
             mouseButton: .left
         ) else {
-            Logger.input.error("Failed to create mouse move CGEvent")
+            mwbError(MWBLog.input, "Failed to create mouse move CGEvent")
             return
         }
 
@@ -150,7 +150,7 @@ final class InputInjection {
             mouseCursorPosition: target,
             mouseButton: .left
         ) else {
-            Logger.input.error("Failed to create relative mouse CGEvent")
+            mwbError(MWBLog.input, "Failed to create relative mouse CGEvent")
             return
         }
 
@@ -177,7 +177,7 @@ final class InputInjection {
             mouseCursorPosition: location,
             mouseButton: button
         ) else {
-            Logger.input.error("Failed to create mouse button CGEvent")
+            mwbError(MWBLog.input, "Failed to create mouse button CGEvent")
             return
         }
 
@@ -208,7 +208,7 @@ final class InputInjection {
             wheel2: 0,
             wheel3: 0
         ) else {
-            Logger.input.error("Failed to create scroll wheel CGEvent")
+            mwbError(MWBLog.input, "Failed to create scroll wheel CGEvent")
             return
         }
 
@@ -225,7 +225,7 @@ final class InputInjection {
     /// ignored.
     func injectKeyboard(_ data: KeyboardData) {
         guard let macOSKeycode = KeyCodeMapper.vkToMacOS(vkCode: data.vkCode) else {
-            mwbDebug(Logger.input, "Inject keyboard: unmapped VK code \(data.vkCode)")
+            mwbDebug(MWBLog.input, "Inject keyboard: unmapped VK code \(data.vkCode)")
             return
         }
 
@@ -234,7 +234,7 @@ final class InputInjection {
             virtualKey: macOSKeycode,
             keyDown: !data.isKeyUp
         ) else {
-            Logger.input.error("Failed to create keyboard CGEvent for keycode \(macOSKeycode)")
+            mwbError(MWBLog.input, "Failed to create keyboard CGEvent for keycode \(macOSKeycode)")
             return
         }
 

@@ -25,7 +25,7 @@ final class MWBCrypto {
 
     init(securityKey: String) {
         self.securityKey = securityKey
-        mwbDebug(Logger.crypto, "Deriving encryption key from security key")
+        mwbDebug(MWBLog.crypto, "Deriving encryption key from security key")
 
         let salt = MWBConstants.saltString.data(using: .utf16LittleEndian)!
         var derivedKey = [UInt8](repeating: 0, count: MWBConstants.derivedKeyLength)
@@ -53,7 +53,7 @@ final class MWBCrypto {
         let ivHex = hexPrefix(initialIV, 16)
         let saltHex = hexPrefix(Array(salt), 4)
         let now = Self.stamp()
-        mwbDebug(Logger.crypto, "[\(now)] [CRYPTO-INIT] key(4)=\(keyHex) iv=\(ivHex) salt(4)=\(saltHex)")
+        mwbDebug(MWBLog.crypto, "[\(now)] [CRYPTO-INIT] key(4)=\(keyHex) iv=\(ivHex) salt(4)=\(saltHex)")
     }
 
     private func hexPrefix(_ bytes: [UInt8], _ count: Int) -> String {
@@ -92,14 +92,14 @@ final class MWBCrypto {
         }
         let ivFinal = encryptIV
 
-        if UserDefaults.standard.bool(forKey: "settings.debugLogging") {
+        if CachedSettings.debugLogging {
             let ptHex = hexPrefix(plaintext, 4)
             let ctHex = hexPrefix(Data(outBytes.prefix(numBytesEncrypted)), 4)
             let ivInHex = hexPrefix(ivBefore, 4)
             let ivAfterHex = hexPrefix(ivAfterCCCrypt, 4)
             let ivFinalHex = hexPrefix(ivFinal, 4)
             let now = Self.stamp()
-            mwbDebug(Logger.crypto, "[\(now)] [ENC #\(seq)] len=\(plaintext.count) pt(4)=\(ptHex) iv_in=\(ivInHex) iv_afterCC=\(ivAfterHex) iv_final=\(ivFinalHex) ct(4)=\(ctHex) status=\(status)")
+            mwbDebug(MWBLog.crypto, "[\(now)] [ENC #\(seq)] len=\(plaintext.count) pt(4)=\(ptHex) iv_in=\(ivInHex) iv_afterCC=\(ivAfterHex) iv_final=\(ivFinalHex) ct(4)=\(ctHex) status=\(status)")
         }
 
         assert(status == kCCSuccess)
@@ -136,14 +136,14 @@ final class MWBCrypto {
         }
         let ivFinal = decryptIV
 
-        if UserDefaults.standard.bool(forKey: "settings.debugLogging") {
+        if CachedSettings.debugLogging {
             let ctHex = hexPrefix(ciphertext, 4)
             let ptHex = hexPrefix(Data(outBytes.prefix(numBytesDecrypted)), 4)
             let ivInHex = hexPrefix(ivBefore, 4)
             let ivAfterHex = hexPrefix(ivAfterCCCrypt, 4)
             let ivFinalHex = hexPrefix(ivFinal, 4)
             let now = Self.stamp()
-            mwbDebug(Logger.crypto, "[\(now)] [DEC #\(seq)] len=\(ciphertext.count) ct(4)=\(ctHex) iv_in=\(ivInHex) iv_afterCC=\(ivAfterHex) iv_final=\(ivFinalHex) pt(4)=\(ptHex) status=\(status)")
+            mwbDebug(MWBLog.crypto, "[\(now)] [DEC #\(seq)] len=\(ciphertext.count) ct(4)=\(ctHex) iv_in=\(ivInHex) iv_afterCC=\(ivAfterHex) iv_final=\(ivFinalHex) pt(4)=\(ptHex) status=\(status)")
         }
 
         assert(status == kCCSuccess)
@@ -153,7 +153,7 @@ final class MWBCrypto {
     func reset() {
         let seq = opSequence
         let now = Self.stamp()
-        mwbDebug(Logger.crypto, "[\(now)] [CRYPTO-RESET] seq=\(seq)")
+        mwbDebug(MWBLog.crypto, "[\(now)] [CRYPTO-RESET] seq=\(seq)")
         opSequence = 0
         encryptIV = initialIV
         decryptIV = initialIV

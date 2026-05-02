@@ -34,6 +34,10 @@ final class AppCoordinator {
     /// Observed by UI to display error banners. Set to nil on successful connection.
     private(set) var errorMessage: String?
 
+    var canConnect: Bool {
+        !settings.windowsIP.isEmpty && !settings.securityKey.isEmpty
+    }
+
     // MARK: - Subsystem References
 
     private let settings: SettingsStore
@@ -102,7 +106,7 @@ final class AppCoordinator {
         guard connectionState == .disconnected else { return }
 
         let logIP = settings.windowsIP
-        Logger.coordinator.info("Connecting to Windows machine at \(logIP):\(MWBConstants.inputPort)")
+        mwbInfo(MWBLog.coordinator, "Connecting to Windows machine at \(logIP):\(MWBConstants.inputPort)")
 
         let host = settings.windowsIP.trimmingCharacters(in: .whitespacesAndNewlines)
         let securityKey = settings.securityKey
@@ -223,13 +227,13 @@ final class AppCoordinator {
         isSharingEnabled = captureStarted
 
         if !captureStarted {
-            Logger.coordinator.warning("Input capture not started (accessibility permission may be missing)")
+            mwbWarning(MWBLog.coordinator, "Input capture not started (accessibility permission may be missing)")
         }
     }
 
     /// Gracefully disconnects from the remote machine, sending a ByeBye signal.
     func disconnect() async {
-        Logger.coordinator.info("Disconnecting")
+        mwbInfo(MWBLog.coordinator, "Disconnecting")
         
         // 1. Send ByeBye signal to remote if connected
         if let nm = networkManager {
@@ -273,7 +277,7 @@ final class AppCoordinator {
 
     /// Performs a graceful shutdown, sending a ByeBye packet before disconnecting.
     func quit() async {
-        Logger.coordinator.info("Graceful quit requested")
+        mwbInfo(MWBLog.coordinator, "Graceful quit requested")
         
         // 1. Perform full graceful disconnect
         await disconnect()
@@ -303,15 +307,15 @@ final class AppCoordinator {
         let localName = localMachineName
         let remoteName = windowsMachineName
         
-        Logger.coordinator.info("Updating crossing edge. Local: '\(localName)', Remote: '\(remoteName)', Matrix: \(parts)")
+        mwbInfo(MWBLog.coordinator, "Updating crossing edge. Local: '\(localName)', Remote: '\(remoteName)', Matrix: \(parts)")
         
         guard !localName.isEmpty && !remoteName.isEmpty else { 
-            Logger.coordinator.warning("Cannot update crossing edge: local or remote name is empty")
+            mwbWarning(MWBLog.coordinator, "Cannot update crossing edge: local or remote name is empty")
             return 
         }
         guard let localIdx = parts.firstIndex(of: localName),
               let remoteIdx = parts.firstIndex(of: remoteName) else {
-            Logger.coordinator.warning("Cannot update crossing edge: local or remote name not found in matrix")
+            mwbWarning(MWBLog.coordinator, "Cannot update crossing edge: local or remote name not found in matrix")
             return
         }
         
@@ -413,7 +417,7 @@ final class AppCoordinator {
 
         connectionState = .connected
         errorMessage = nil
-        Logger.coordinator.info("All services started, connected to \(connectedName)")
+        mwbInfo(MWBLog.coordinator, "All services started, connected to \(connectedName)")
     }
 
     // MARK: - Subsystem Lifecycle (ReopenSockets Pattern)
@@ -421,7 +425,7 @@ final class AppCoordinator {
     /// Stops all subsystems (HeartbeatService, ClipboardManager, ServerListener).
     /// Called when NetworkManager enters .reconnecting or .disconnected state.
     private func stopSubsystems() {
-        Logger.coordinator.info("Stopping subsystems (ReopenSockets)")
+        mwbInfo(MWBLog.coordinator, "Stopping subsystems (ReopenSockets)")
         let hb = heartbeatService
         let cm = clipboardManager
         let sl = serverListener
@@ -442,7 +446,7 @@ final class AppCoordinator {
         let magicHash = await nm.magicHash
         let connectedName = await nm.connectedMachineName
         guard machineID != .none else {
-            Logger.coordinator.warning("Skipping subsystem restart: machineID is 0 (handshake may not be complete)")
+            mwbWarning(MWBLog.coordinator, "Skipping subsystem restart: machineID is 0 (handshake may not be complete)")
             return
         }
 
@@ -475,7 +479,7 @@ final class AppCoordinator {
         await serverListener?.start()
 
         errorMessage = nil
-        Logger.coordinator.info("All services restarted after reconnection to \(connectedName)")
+        mwbInfo(MWBLog.coordinator, "All services restarted after reconnection to \(connectedName)")
     }
 
     // MARK: - State Observation
@@ -496,7 +500,7 @@ final class AppCoordinator {
                     }
                     // Safety: release input capture if connection lost during crossing
                     if self.isCrossingActive && (state == .reconnecting || state == .disconnected) {
-                        Logger.coordinator.warning("Connection lost during edge crossing, releasing input capture")
+                        mwbWarning(MWBLog.coordinator, "Connection lost during edge crossing, releasing input capture")
                         self.isCrossingActive = false
                         self.inputCapture.crossingActive = false
                         self.edgeDetector.reset()
@@ -565,7 +569,7 @@ final class AppCoordinator {
         inputCapture.onPermissionRevoked = { [weak self] in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                Logger.coordinator.error("Accessibility permission revoked mid-session")
+                mwbError(MWBLog.coordinator, "Accessibility permission revoked mid-session")
                 self.errorMessage = "Accessibility permission was revoked. Input capture has been stopped. Please re-grant permission in System Settings."
                 self.isSharingEnabled = false
             }
@@ -611,7 +615,7 @@ final class AppCoordinator {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 if self.isCrossingActive {
-                    Logger.coordinator.info("Virtual bounds exceeded: (\(vx), \(vy)). Ending crossing.")
+                    mwbInfo(MWBLog.coordinator, "Virtual bounds exceeded: (\(vx), \(vy)). Ending crossing.")
                     self.endCrossing()
                 }
             }
@@ -631,7 +635,7 @@ final class AppCoordinator {
     private func handleCrossingStart(_ info: CrossingStartInfo) {
         guard !isCrossingActive else { return }
 
-        Logger.coordinator.info("Crossing started at \(info.edge.rawValue) edge")
+        mwbInfo(MWBLog.coordinator, "Crossing started at \(info.edge.rawValue) edge")
         isCrossingActive = true
         inputCapture.crossingActive = true
         inputInjection.reset()
@@ -681,12 +685,12 @@ final class AppCoordinator {
         if isCrossingActive {
             // If we were already crossing (Mac controlling Windows), and we get a NextMachine,
             // it means Windows is giving control back to us.
-            Logger.coordinator.info("Received NextMachine while crossing, ending crossing to accept control back")
+            mwbInfo(MWBLog.coordinator, "Received NextMachine while crossing, ending crossing to accept control back")
             endCrossing()
             return
         }
 
-        Logger.coordinator.info("Received NextMachine from machine \(machineID) at (\(x), \(y))")
+        mwbInfo(MWBLog.coordinator, "Received NextMachine from machine \(machineID) at (\(x), \(y))")
         isCrossingActive = true
         inputCapture.crossingActive = true
         inputInjection.reset()
@@ -725,12 +729,12 @@ final class AppCoordinator {
     // MARK: - Sleep / Wake
 
     func handleSleep() async {
-        Logger.coordinator.info("OS Sleep detected, tearing down sockets")
+        mwbInfo(MWBLog.coordinator, "OS Sleep detected, tearing down sockets")
         await disconnect()
     }
 
     func handleWake() {
-        Logger.network.info("OS Wake detected, scheduling reconnect")
+        mwbInfo(MWBLog.network, "OS Wake detected, scheduling reconnect")
         connect()
     }
 
@@ -763,7 +767,7 @@ final class AppCoordinator {
     // MARK: - Crossing End
 
     private func endCrossing() {
-        Logger.coordinator.info("Crossing ended")
+        mwbInfo(MWBLog.coordinator, "Crossing ended")
         isCrossingActive = false
         inputCapture.crossingActive = false
         edgeDetector.crossingDidEnd()
@@ -846,7 +850,7 @@ final class AppCoordinator {
     }
 
     private func handleMatrixUpdate(matrix: [String], oneRow: Bool, circle: Bool) {
-        Logger.coordinator.info("Handling matrix update: \(matrix), oneRow: \(oneRow), circle: \(circle)")
+        mwbInfo(MWBLog.coordinator, "Handling matrix update: \(matrix), oneRow: \(oneRow), circle: \(circle)")
         settings.machineMatrixString = matrix.joined(separator: ",")
         settings.matrixOneRow = oneRow
         settings.matrixCircle = circle

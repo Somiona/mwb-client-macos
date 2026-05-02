@@ -8,16 +8,27 @@ import CoreGraphics
 /// All coordinate mapping uses Quartz (top-left origin) convention,
 /// which is what CGEvent uses and matches the MWB protocol's origin.
 ///
-/// This is a stateless utility -- every method queries the current
-/// screen configuration so that runtime changes (display add/remove,
-/// resolution changes) are always reflected.
+/// Hot-path values are cached and invalidated on display configuration changes.
 enum ScreenInfo {
+
+    // MARK: - Cache
+
+    private nonisolated(unsafe) static var _cachedVirtualDesktopBounds: CGRect?
+    private nonisolated(unsafe) static var _cachedMainScreenBounds: CGRect?
+
+    static func invalidateCache() {
+        _cachedVirtualDesktopBounds = nil
+        _cachedMainScreenBounds = nil
+    }
 
     // MARK: - Main screen
 
     /// Main display bounds in Quartz coordinates (top-left origin).
     static var mainScreenBounds: CGRect {
-        CGDisplayBounds(CGMainDisplayID())
+        if let cached = _cachedMainScreenBounds { return cached }
+        let bounds = CGDisplayBounds(CGMainDisplayID())
+        _cachedMainScreenBounds = bounds
+        return bounds
     }
 
     /// Main screen pixel width (Quartz coordinates).
@@ -42,6 +53,7 @@ enum ScreenInfo {
 
     /// The union of all screen frames in Quartz coordinates.
     static var virtualDesktopBounds: CGRect {
+        if let cached = _cachedVirtualDesktopBounds { return cached }
         let screens = NSScreen.screens
         guard let first = screens.first else {
             return mainScreenBounds
@@ -61,6 +73,7 @@ enum ScreenInfo {
             result = result.union(quartzRect)
         }
 
+        _cachedVirtualDesktopBounds = result
         return result
     }
 

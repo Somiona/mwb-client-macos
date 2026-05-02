@@ -76,12 +76,12 @@ actor ClipboardManager {
     func start() {
         guard !isConnected else { return }
         isConnected = true
-        Logger.clipboard.info("ClipboardManager starting pasteboard polling")
+        mwbInfo(MWBLog.clipboard, "ClipboardManager starting pasteboard polling")
         startPollLoop()
     }
 
     func stop() {
-        Logger.clipboard.info("ClipboardManager stopping")
+        mwbInfo(MWBLog.clipboard, "ClipboardManager stopping")
         pollTask?.cancel()
         pollTask = nil
         isConnected = false
@@ -127,7 +127,7 @@ actor ClipboardManager {
             // Type 69: clipboard notification (used for file/big clipboard paths)
             pendingFileSenderID = packet.src
             isFileReady = true
-            Logger.clipboard.info("Received Type 69 Clipboard Notification from \(packet.src.rawValue). Ready to pull large data.")
+            mwbInfo(MWBLog.clipboard, "Received Type 69 Clipboard Notification from \(packet.src.rawValue). Ready to pull large data.")
 
         default:
             break
@@ -143,19 +143,19 @@ actor ClipboardManager {
         case .clipboardText:
             guard syncText else { return }
             if let text = ClipboardCodec.decodeText(from: inboundPackets) {
-                Logger.clipboard.info("Received text clipboard (\(text.count) chars)")
+                mwbInfo(MWBLog.clipboard, "Received text clipboard (\(text.count) chars)")
                 writeTextToPasteboard(text)
             } else {
-                Logger.clipboard.error("Failed to decode text clipboard from \(self.inboundPackets.count) packets")
+                mwbError(MWBLog.clipboard, "Failed to decode text clipboard from \(self.inboundPackets.count) packets")
             }
 
         case .clipboardImage:
             guard syncImages else { return }
             if let imageData = ClipboardCodec.decodeImage(from: inboundPackets) {
-                Logger.clipboard.info("Received image clipboard (\(imageData.count) bytes)")
+                mwbInfo(MWBLog.clipboard, "Received image clipboard (\(imageData.count) bytes)")
                 writeImageToPasteboard(imageData)
             } else {
-                Logger.clipboard.error("Failed to decode image clipboard from \(self.inboundPackets.count) packets")
+                mwbError(MWBLog.clipboard, "Failed to decode image clipboard from \(self.inboundPackets.count) packets")
             }
 
         default:
@@ -167,7 +167,7 @@ actor ClipboardManager {
 
     func pullLargeData() async {
         guard let senderID = pendingFileSenderID else { return }
-        Logger.clipboard.info("Initiating large data pull from machine \(senderID.rawValue)")
+        mwbInfo(MWBLog.clipboard, "Initiating large data pull from machine \(senderID.rawValue)")
         
         // Mark as processing
         isFileReady = false
@@ -198,13 +198,13 @@ actor ClipboardManager {
         if success {
             lastWriteChangeCount = pasteboard.changeCount
         } else {
-            Logger.clipboard.error("Failed to write text to pasteboard")
+            mwbError(MWBLog.clipboard, "Failed to write text to pasteboard")
         }
     }
 
     private func writeImageToPasteboard(_ data: Data) {
         guard let image = NSImage(data: data) else {
-            Logger.clipboard.error("Failed to create NSImage from clipboard data")
+            mwbError(MWBLog.clipboard, "Failed to create NSImage from clipboard data")
             return
         }
         let pasteboard = NSPasteboard.general
@@ -213,7 +213,7 @@ actor ClipboardManager {
         if success {
             lastWriteChangeCount = pasteboard.changeCount
         } else {
-            Logger.clipboard.error("Failed to write image to pasteboard")
+            mwbError(MWBLog.clipboard, "Failed to write image to pasteboard")
         }
     }
 
@@ -256,11 +256,11 @@ actor ClipboardManager {
         // Priority: text > image > files
         if syncText, let text = readTextFromPasteboard() {
             if text.utf16.count > maxClipboardDataSize {
-                Logger.clipboard.warning("Text clipboard too large (\(text.utf16.count) bytes), skipping")
+                mwbWarning(MWBLog.clipboard, "Text clipboard too large (\(text.utf16.count) bytes), skipping")
                 lastSentChangeCount = currentCount
                 return
             }
-            Logger.clipboard.info("Sending text clipboard (\(text.count) chars)")
+            mwbInfo(MWBLog.clipboard, "Sending text clipboard (\(text.count) chars)")
             await sendTextClipboard(text)
             lastSentChangeCount = currentCount
             return
@@ -268,11 +268,11 @@ actor ClipboardManager {
 
         if syncImages, let imageData = readImageFromPasteboard() {
             if imageData.count > maxClipboardDataSize {
-                Logger.clipboard.warning("Image clipboard too large (\(imageData.count) bytes), skipping")
+                mwbWarning(MWBLog.clipboard, "Image clipboard too large (\(imageData.count) bytes), skipping")
                 lastSentChangeCount = currentCount
                 return
             }
-            Logger.clipboard.info("Sending image clipboard (\(imageData.count) bytes)")
+            mwbInfo(MWBLog.clipboard, "Sending image clipboard (\(imageData.count) bytes)")
             await sendImageClipboard(imageData)
             lastSentChangeCount = currentCount
             return
@@ -300,12 +300,12 @@ actor ClipboardManager {
         }
 
         guard let tiffData = image.tiffRepresentation else {
-            Logger.clipboard.error("Failed to get TIFF representation from pasteboard image")
+            mwbError(MWBLog.clipboard, "Failed to get TIFF representation from pasteboard image")
             return nil
         }
 
         guard let bitmap = NSBitmapImageRep(data: tiffData) else {
-            Logger.clipboard.error("Failed to create NSBitmapImageRep from TIFF data")
+            mwbError(MWBLog.clipboard, "Failed to create NSBitmapImageRep from TIFF data")
             return nil
         }
 
@@ -318,7 +318,7 @@ actor ClipboardManager {
         guard isConnected, let sendPacket else { return }
 
         let packets = ClipboardCodec.encodeText(text)
-        mwbDebug(Logger.clipboard, "Sending text clipboard in \(packets.count) packets")
+        mwbDebug(MWBLog.clipboard, "Sending text clipboard in \(packets.count) packets")
         for packet in packets {
             var mutablePacket = packet
             mutablePacket.src = machineID
@@ -331,7 +331,7 @@ actor ClipboardManager {
         guard isConnected, let sendPacket else { return }
 
         let packets = ClipboardCodec.encodeImage(data)
-        mwbDebug(Logger.clipboard, "Sending image clipboard in \(packets.count) packets")
+        mwbDebug(MWBLog.clipboard, "Sending image clipboard in \(packets.count) packets")
         for packet in packets {
             var mutablePacket = packet
             mutablePacket.src = machineID

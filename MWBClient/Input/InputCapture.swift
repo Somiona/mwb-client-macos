@@ -117,12 +117,12 @@ final class InputCapture {
         guard !isRunning else { return true }
 
         guard InputCapture.hasAccessibilityPermission() else {
-            Logger.input.warning("Accessibility permission not granted, requesting")
+            mwbWarning(MWBLog.input, "Accessibility permission not granted, requesting")
             InputCapture.requestAccessibilityPermission()
             return false
         }
 
-        Logger.input.info("Starting input capture")
+        mwbInfo(MWBLog.input, "Starting input capture")
 
         // Cache the main display bounds for coordinate mapping.
         screenBounds = NSScreen.fullDesktopBounds
@@ -182,7 +182,7 @@ final class InputCapture {
     /// Disables and removes the event tap from the run loop.
     func stop() {
         guard isRunning else { return }
-        Logger.input.info("Stopping input capture")
+        mwbInfo(MWBLog.input, "Stopping input capture")
 
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
@@ -216,7 +216,7 @@ final class InputCapture {
         timer.setEventHandler { [weak self] in
             guard let self, self.isRunning else { return }
             if !Self.hasAccessibilityPermission() {
-                Logger.input.error("Accessibility permission revoked mid-session, stopping capture")
+                mwbError(MWBLog.input, "Accessibility permission revoked mid-session, stopping capture")
                 self.stop()
                 self.onPermissionRevoked?()
             }
@@ -297,7 +297,7 @@ final class InputCapture {
                 let clampedX = Swift.max(Int32(0), Swift.min(MWBConstants.virtualDesktopMax, virtualX))
                 let clampedY = Swift.max(Int32(0), Swift.min(MWBConstants.virtualDesktopMax, virtualY))
                 
-                if UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively") {
+                if CachedSettings.moveMouseRelatively {
                     mouseData = MouseData(x: dx + 100000, y: dy + 100000, wheelDelta: 0, dwFlags: wmMessage.rawValue)
                 } else {
                     mouseData = MouseData(x: clampedX, y: clampedY, wheelDelta: 0, dwFlags: wmMessage.rawValue)
@@ -305,7 +305,7 @@ final class InputCapture {
             } else {
                 virtualX = vx
                 virtualY = vy
-                if UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively") {
+                if CachedSettings.moveMouseRelatively {
                     let dx = Int32(event.getIntegerValueField(.mouseEventDeltaX))
                     let dy = Int32(event.getIntegerValueField(.mouseEventDeltaY))
                     mouseData = MouseData(x: dx + 100000, y: dy + 100000, wheelDelta: 0, dwFlags: wmMessage.rawValue)
@@ -343,8 +343,8 @@ final class InputCapture {
             mouseData = MouseData(x: crossingActive ? virtualX : vx, y: crossingActive ? virtualY : vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
 
         case .scrollWheel:
-            let fieldDelta1 = CGEventField(rawValue: 11)!
-            let fieldDelta2 = CGEventField(rawValue: 12)!
+            let fieldDelta1 = Self.scrollDeltaField1
+            let fieldDelta2 = Self.scrollDeltaField2
             let delta1 = event.getIntegerValueField(fieldDelta1)
             let delta2 = event.getIntegerValueField(fieldDelta2)
             let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
@@ -435,6 +435,9 @@ final class InputCapture {
     // MARK: - Modifier key helpers
 
     /// macOS keycodes for right-side modifiers that map to Windows extended keys.
+    private static let scrollDeltaField1 = CGEventField(rawValue: 11)!
+    private static let scrollDeltaField2 = CGEventField(rawValue: 12)!
+
     private static let rightModifierKeycodes: Set<UInt16> = [
         0x3C, // Right Shift
         0x3E, // Right Control

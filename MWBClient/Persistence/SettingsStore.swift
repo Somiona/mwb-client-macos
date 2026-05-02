@@ -15,6 +15,7 @@ private enum SettingsKey {
     static let machineName = "settings.machineName"
     static let machineID = "settings.machineID"
     static let hideDockIcon = "settings.hideDockIcon"
+    static let autoConnect = "settings.autoConnect"
     static let sameSubnetOnly = "settings.sameSubnetOnly"
     static let validateRemoteIP = "settings.validateRemoteIP"
     static let blockScreenSaver = "settings.blockScreenSaver"
@@ -51,6 +52,7 @@ private enum SettingsDefault {
         }.reduce(into: "") { $0.append($1) }
     }
     static let hideDockIcon = true
+    static let autoConnect = false
     static let sameSubnetOnly = false
     static let validateRemoteIP = false
     static let blockScreenSaver = true
@@ -62,6 +64,20 @@ private enum SettingsDefault {
     static let hideMouseAtScreenEdge = true
     static let disableEasyMouseInFullscreen = false
     static let debugLogging = false
+}
+
+// MARK: - Cached Settings (Hot-Path Optimized)
+
+/// Thread-safe cached copies of settings accessed on hot paths (mouse events,
+/// crypto, network packet processing). Updated by `SettingsStore` on every
+/// didSet — readers use the cached value without touching UserDefaults.
+///
+/// Access via `CachedSettings.debugLogging`, etc. from any isolation context.
+enum CachedSettings {
+    nonisolated(unsafe) static var debugLogging = UserDefaults.standard.bool(forKey: "settings.debugLogging")
+    nonisolated(unsafe) static var moveMouseRelatively = UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively")
+    nonisolated(unsafe) static var blockMouseAtCorners = UserDefaults.standard.bool(forKey: "settings.blockMouseAtCorners")
+    nonisolated(unsafe) static var hideMouseAtScreenEdge = UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge")
 }
 
 // MARK: - SettingsStore
@@ -117,6 +133,11 @@ final class SettingsStore {
     /// Whether to launch MWB Client automatically at login.
     var startAtLogin: Bool {
         didSet { UserDefaults.standard.set(startAtLogin, forKey: SettingsKey.startAtLogin) }
+    }
+
+    /// Whether to automatically connect when the app launches.
+    var autoConnect: Bool {
+        didSet { UserDefaults.standard.set(autoConnect, forKey: SettingsKey.autoConnect) }
     }
 
     /// Whether to show the menu bar tray icon.
@@ -182,15 +203,24 @@ final class SettingsStore {
     // MARK: - Advanced Mouse Settings
 
     var moveMouseRelatively: Bool {
-        didSet { UserDefaults.standard.set(moveMouseRelatively, forKey: SettingsKey.moveMouseRelatively) }
+        didSet {
+            UserDefaults.standard.set(moveMouseRelatively, forKey: SettingsKey.moveMouseRelatively)
+            CachedSettings.moveMouseRelatively = moveMouseRelatively
+        }
     }
 
     var blockMouseAtCorners: Bool {
-        didSet { UserDefaults.standard.set(blockMouseAtCorners, forKey: SettingsKey.blockMouseAtCorners) }
+        didSet {
+            UserDefaults.standard.set(blockMouseAtCorners, forKey: SettingsKey.blockMouseAtCorners)
+            CachedSettings.blockMouseAtCorners = blockMouseAtCorners
+        }
     }
 
     var hideMouseAtScreenEdge: Bool {
-        didSet { UserDefaults.standard.set(hideMouseAtScreenEdge, forKey: SettingsKey.hideMouseAtScreenEdge) }
+        didSet {
+            UserDefaults.standard.set(hideMouseAtScreenEdge, forKey: SettingsKey.hideMouseAtScreenEdge)
+            CachedSettings.hideMouseAtScreenEdge = hideMouseAtScreenEdge
+        }
     }
 
     var disableEasyMouseInFullscreen: Bool {
@@ -202,7 +232,10 @@ final class SettingsStore {
     /// When enabled, verbose debug messages are emitted via os_log for all subsystems.
     /// Off by default; intended for diagnosing connection and protocol issues.
     var debugLogging: Bool {
-        didSet { UserDefaults.standard.set(debugLogging, forKey: SettingsKey.debugLogging) }
+        didSet {
+            UserDefaults.standard.set(debugLogging, forKey: SettingsKey.debugLogging)
+            CachedSettings.debugLogging = debugLogging
+        }
     }
 
     // MARK: - Init
@@ -218,6 +251,7 @@ final class SettingsStore {
         self.syncImages = defaults.object(forKey: SettingsKey.syncImages) as? Bool ?? SettingsDefault.syncImages
         self.syncFiles = defaults.object(forKey: SettingsKey.syncFiles) as? Bool ?? SettingsDefault.syncFiles
         self.startAtLogin = defaults.object(forKey: SettingsKey.startAtLogin) as? Bool ?? SettingsDefault.startAtLogin
+        self.autoConnect = defaults.object(forKey: SettingsKey.autoConnect) as? Bool ?? SettingsDefault.autoConnect
         self.showInMenuBar = defaults.object(forKey: SettingsKey.showInMenuBar) as? Bool ?? SettingsDefault.showInMenuBar
 
         if let raw = defaults.string(forKey: SettingsKey.crossingEdge),
@@ -263,6 +297,7 @@ final class SettingsStore {
         syncImages = SettingsDefault.syncImages
         syncFiles = SettingsDefault.syncFiles
         startAtLogin = SettingsDefault.startAtLogin
+        autoConnect = SettingsDefault.autoConnect
         showInMenuBar = SettingsDefault.showInMenuBar
         crossingEdge = SettingsDefault.crossingEdge
         machineName = SettingsDefault.machineName

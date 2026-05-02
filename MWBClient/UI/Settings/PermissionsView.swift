@@ -47,25 +47,6 @@ struct PermissionsView: View {
                     .foregroundStyle(.secondary)
                     .font(.caption)
             }
-
-            Section("Security & Power") {
-                @Bindable var settings = settings
-                
-                Toggle("Same Subnet Only", isOn: $settings.sameSubnetOnly)
-                Text("Only allow connections from machines on the same local subnet.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Toggle("Validate Remote IP (DNS)", isOn: $settings.validateRemoteIP)
-                Text("Perform reverse DNS lookup to verify the remote machine's hostname.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Toggle("Block Remote Screen Saver", isOn: $settings.blockScreenSaver)
-                Text("Periodically send 'Awake' packets to prevent the remote screen from sleeping while you are active.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
         .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

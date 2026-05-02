@@ -36,6 +36,7 @@
 		6F1C90EEE9D40EEFD40BA4B5 /* CoordinateMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C58B88196F8629339DCDEF11 /* CoordinateMappingTests.swift */; };
 		6FA563E0B55479657E09821E /* InputInjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26795837B7EC4F86C491C10 /* InputInjection.swift */; };
 		711217305E826FC8505F9940 /* InputCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */; };
+		72372606931DF9D6231AB92C /* AdvancedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36D952EC15849C08963EF86F /* AdvancedView.swift */; };
 		742D77599C631DD05494E75A /* MWBCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18E0E38C37A18A0A947A57E /* MWBCrypto.swift */; };
 		76A1009E1B17824D59069D79 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0303F387359BE5F8635EA8C /* PermissionsView.swift */; };
 		777872F2FAEF9B05CC605900 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA5714D75003D2FD578D32A /* SettingsStore.swift */; };
@@ -51,8 +52,8 @@
 		94CBC90F7D1E72C34D157BE6 /* MockEventSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E53853262A1E9DB43D733C1 /* MockEventSink.swift */; };
 		97D6854FF5FF9739321AF909 /* ProtocolExtractor.csproj in Resources */ = {isa = PBXBuildFile; fileRef = 4BFCFBA88F96723652ED7FC3 /* ProtocolExtractor.csproj */; };
 		A74871FF060B77B321E529C2 /* MWBKeyboardData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59334291F885148BC161FCE2 /* MWBKeyboardData.swift */; };
-		ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC5F135996CBF70C5BCB674 /* GeneralView.swift */; };
 		B2929940AD3A62597ADCDFC6 /* ProtocolBinaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E98C9EA00CA537542EE9799 /* ProtocolBinaryTests.swift */; };
+		B866ECFC5F27A0CC86BBF1D5 /* LogConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D47E22D738AA3E976CAABEEA /* LogConsoleView.swift */; };
 		C3DCD1B407ECAEEC90C2A360 /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B891CA69B4D7427528E869 /* PowerManager.swift */; };
 		C413574A08D72F84CC16B0A9 /* DragDropManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0066F4E1A3C8CE57C854E639 /* DragDropManager.swift */; };
 		C73329BC2DD49CA44BAF2DBF /* ProtocolCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */; };
@@ -84,13 +85,13 @@
 		085ADDFADFBF1882F0D20AE9 /* InputCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputCapture.swift; sourceTree = "<group>"; };
 		0B590DE1D1DA01D6B2357AE4 /* magic.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = magic.bin; sourceTree = "<group>"; };
 		0CEC0F96273BB180784C0505 /* ProtocolCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolCompatibilityTests.swift; sourceTree = "<group>"; };
-		0FC5F135996CBF70C5BCB674 /* GeneralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralView.swift; sourceTree = "<group>"; };
 		13B891CA69B4D7427528E869 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 		2B622ECD0A5D76C6DD2FDBC9 /* ConnectionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStateTests.swift; sourceTree = "<group>"; };
 		2B6D67D28EBEA0FA49E5298B /* EdgeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetector.swift; sourceTree = "<group>"; };
 		2FA600A533BC3DD7BCCFB11F /* MWBConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBConstants.swift; sourceTree = "<group>"; };
 		301AE8381DA1536DC4A155D5 /* PackageDeduplicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackageDeduplicator.swift; sourceTree = "<group>"; };
 		3636C262BEECE646EB78B8B5 /* MachinePoolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachinePoolTests.swift; sourceTree = "<group>"; };
+		36D952EC15849C08963EF86F /* AdvancedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedView.swift; sourceTree = "<group>"; };
 		3B4E0529638EACDB77913CD9 /* MWBCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MWBCryptoTests.swift; sourceTree = "<group>"; };
 		3FD5387313A7FCD8B6885B73 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
 		42AEE9538485AC16F64BFCE6 /* ProtocolExtractor.cs */ = {isa = PBXFileReference; path = ProtocolExtractor.cs; sourceTree = "<group>"; };
@@ -135,6 +136,7 @@
 		C58B88196F8629339DCDEF11 /* CoordinateMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoordinateMappingTests.swift; sourceTree = "<group>"; };
 		C5AACCF218BC814F6EAE9777 /* handshake.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = handshake.bin; sourceTree = "<group>"; };
 		C99E0500DC51D1376645C1E2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D47E22D738AA3E976CAABEEA /* LogConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogConsoleView.swift; sourceTree = "<group>"; };
 		D4CDB2AFF1972828D0E8BE1C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D55DC62E228DC882B82162C7 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
 		E0303F387359BE5F8635EA8C /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
@@ -286,10 +288,11 @@
 		7FDCB4E9048B3E471D5236ED /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				36D952EC15849C08963EF86F /* AdvancedView.swift */,
 				641FE17D9AFE54ED91ED5FE1 /* ClipboardView.swift */,
 				D55DC62E228DC882B82162C7 /* ConnectionView.swift */,
-				0FC5F135996CBF70C5BCB674 /* GeneralView.swift */,
 				44757A274942A16843F68B9E /* LayoutView.swift */,
+				D47E22D738AA3E976CAABEEA /* LogConsoleView.swift */,
 				E0303F387359BE5F8635EA8C /* PermissionsView.swift */,
 				B0B03D6DF490960A2425D804 /* SettingsWindow.swift */,
 			);
@@ -499,6 +502,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72372606931DF9D6231AB92C /* AdvancedView.swift in Sources */,
 				93C6BFBF8C21BAD92CECFBA0 /* AppCoordinator.swift in Sources */,
 				6C2B7A995DA6FBEFEBC26538 /* AppDelegate.swift in Sources */,
 				C7A95CBA30FE515DF2F2278A /* ClipboardCodec.swift in Sources */,
@@ -507,12 +511,12 @@
 				805EB3CA3399A58A45A7BC04 /* ConnectionView.swift in Sources */,
 				C413574A08D72F84CC16B0A9 /* DragDropManager.swift in Sources */,
 				CC2CC9FB9EE4D62DB15AF5BC /* EdgeDetector.swift in Sources */,
-				ADC9409C5BC9709F054F8D20 /* GeneralView.swift in Sources */,
 				1EBA6C5E03D82ABE72BCFF46 /* HeartbeatService.swift in Sources */,
 				711217305E826FC8505F9940 /* InputCapture.swift in Sources */,
 				6FA563E0B55479657E09821E /* InputInjection.swift in Sources */,
 				06426C1285AA023437E7C852 /* KeyCodeMapper.swift in Sources */,
 				34D5E78EA0EF050D71D06129 /* LayoutView.swift in Sources */,
+				B866ECFC5F27A0CC86BBF1D5 /* LogConsoleView.swift in Sources */,
 				79B82E2105E254F306900059 /* Logger.swift in Sources */,
 				641D0DCE57A302CCCE6DD70E /* MWBApp.swift in Sources */,
 				5D474965B74691874F7CD6EE /* MWBConstants.swift in Sources */,

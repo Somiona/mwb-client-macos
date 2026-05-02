@@ -77,7 +77,7 @@ actor ServerListener {
         guard !isListening else { return }
 
         guard let nwPort = NWEndpoint.Port(rawValue: port) else {
-            Logger.network.error("ServerListener: invalid port \(self.port)")
+            mwbError(MWBLog.network,"ServerListener: invalid port \(self.port)")
             return
         }
 
@@ -87,7 +87,7 @@ actor ServerListener {
 
             listener = try NWListener(using: parameters, on: nwPort)
         } catch {
-            Logger.network.error("ServerListener: failed to create listener: \(error.localizedDescription)")
+            mwbError(MWBLog.network,"ServerListener: failed to create listener: \(error.localizedDescription)")
             return
         }
 
@@ -107,11 +107,11 @@ actor ServerListener {
 
         listener.start(queue: .global(qos: .userInitiated))
         isListening = true
-        Logger.network.info("ServerListener started on port \(self.port)")
+        mwbInfo(MWBLog.network,"ServerListener started on port \(self.port)")
     }
 
     func stop() {
-        Logger.network.info("ServerListener stopping")
+        mwbInfo(MWBLog.network,"ServerListener stopping")
         let tasks = connectionTasks.values
         let conns = connections.values.map { $0.0 }
         connectionTasks.removeAll()
@@ -136,13 +136,13 @@ actor ServerListener {
         switch state {
         case .ready:
             isListening = true
-            Logger.network.info("ServerListener ready and listening")
+            mwbInfo(MWBLog.network,"ServerListener ready and listening")
         case .failed(let error):
             isListening = false
-            Logger.network.error("ServerListener failed: \(error.localizedDescription)")
+            mwbError(MWBLog.network,"ServerListener failed: \(error.localizedDescription)")
         case .cancelled:
             isListening = false
-            Logger.network.info("ServerListener cancelled")
+            mwbInfo(MWBLog.network,"ServerListener cancelled")
         default:
             break
         }
@@ -152,13 +152,13 @@ actor ServerListener {
 
     private func handleNewConnection(_ connection: NWConnection) {
         let remoteEndpoint = connection.endpoint
-        Logger.network.info("ServerListener: new connection from \(String(describing: remoteEndpoint))")
+        mwbInfo(MWBLog.network,"ServerListener: new connection from \(String(describing: remoteEndpoint))")
         
         Task { [weak self] in
             guard let self else { return }
             
             if await !validateEndpoint(remoteEndpoint) {
-                Logger.network.warning("ServerListener: connection from \(String(describing: remoteEndpoint)) rejected by security policy")
+                mwbWarning(MWBLog.network,"ServerListener: connection from \(String(describing: remoteEndpoint)) rejected by security policy")
                 connection.cancel()
                 return
             }
@@ -197,7 +197,7 @@ actor ServerListener {
 
         if sameSubnetOnly {
             if !isSameSubnet(remoteIPString) {
-                Logger.network.warning("ServerListener: Security rejection: \(remoteIPString) is not in the same subnet")
+                mwbWarning(MWBLog.network,"ServerListener: Security rejection: \(remoteIPString) is not in the same subnet")
                 return false
             }
         }
@@ -241,7 +241,7 @@ actor ServerListener {
                         continuation.resume(returning: true)
                         return
                     }
-                    Logger.network.warning("ServerListener: DNS mismatch: expected \(remoteBaseName), got \(reversedBaseName)")
+                    mwbWarning(MWBLog.network,"ServerListener: DNS mismatch: expected \(remoteBaseName), got \(reversedBaseName)")
                 }
             }
             continuation.resume(returning: false)
@@ -287,7 +287,7 @@ actor ServerListener {
     private func handleConnection(_ connection: NWConnection, taskID: UInt32) async {
         defer {
             connection.cancel()
-            Logger.network.info("ServerListener: connection closed")
+            mwbInfo(MWBLog.network,"ServerListener: connection closed")
             Task { [weak self] in
                 await self?.connectionDidClose(taskID: taskID)
             }
@@ -302,7 +302,7 @@ actor ServerListener {
         do {
             try await exchangeNoiseOutbound(connection, crypto: crypto)
         } catch {
-            Logger.network.error("ServerListener: outbound noise exchange failed: \(error.localizedDescription)")
+            mwbError(MWBLog.network,"ServerListener: outbound noise exchange failed: \(error.localizedDescription)")
             return
         }
 
@@ -311,12 +311,12 @@ actor ServerListener {
         do {
             try await sendHandshakeChallenges(connection, crypto: crypto, magicHash: magicHash, handler: &handshakeHandler)
         } catch {
-            Logger.network.error("ServerListener: send challenges failed: \(error.localizedDescription)")
+            mwbError(MWBLog.network,"ServerListener: send challenges failed: \(error.localizedDescription)")
             return
         }
 
         // Phase 3: Receive pump (handles incoming HandshakeAck verification and all other packets)
-        Logger.network.info("ServerListener: entering receive pump")
+        mwbInfo(MWBLog.network,"ServerListener: entering receive pump")
         
         connections[taskID] = (connection, crypto, magicHash)
         
@@ -407,7 +407,7 @@ actor ServerListener {
                 )
 
                 guard let firstData = firstChunk, firstData.count == MWBConstants.smallPacketSize else {
-                    Logger.network.info("ServerListener receive pump: connection closed")
+                    mwbInfo(MWBLog.network,"ServerListener receive pump: connection closed")
                     break
                 }
 
@@ -424,7 +424,7 @@ actor ServerListener {
                     )
 
                     guard let secondData = secondChunk, secondData.count == MWBConstants.smallPacketSize else {
-                        Logger.network.warning("ServerListener receive pump: incomplete big packet")
+                        mwbWarning(MWBLog.network,"ServerListener receive pump: incomplete big packet")
                         break
                     }
 
@@ -437,11 +437,11 @@ actor ServerListener {
                 let packet = MWBPacket(rawData: fullData)
 
                 guard packet.validateChecksum() else {
-                    Logger.network.warning("ServerListener: invalid checksum, skipping packet")
+                    mwbWarning(MWBLog.network,"ServerListener: invalid checksum, skipping packet")
                     continue
                 }
                 guard packet.validateMagic(magicHash) else {
-                    Logger.network.warning("ServerListener: invalid magic, skipping packet")
+                    mwbWarning(MWBLog.network,"ServerListener: invalid magic, skipping packet")
                     continue
                 }
 
@@ -453,7 +453,7 @@ actor ServerListener {
                 dispatchPacket(packet)
 
             } catch {
-                Logger.network.error("ServerListener receive pump error: \(error.localizedDescription)")
+                mwbError(MWBLog.network,"ServerListener receive pump error: \(error.localizedDescription)")
                 break
             }
         }
@@ -484,14 +484,14 @@ actor ServerListener {
             
             if validateIP {
                 if await !validateReverseDNS(connection: connection, expectedName: remoteName) {
-                    Logger.network.warning("ServerListener: Reverse DNS validation failed for \(remoteName)")
+                    mwbWarning(MWBLog.network,"ServerListener: Reverse DNS validation failed for \(remoteName)")
                     connection.cancel()
                     return true
                 }
             }
 
             self.remoteMachineID = packet.src
-            Logger.network.info("ServerListener: received handshakeAck from machine \(packet.src) (\(remoteName)), connection trusted")
+            mwbInfo(MWBLog.network,"ServerListener: received handshakeAck from machine \(packet.src) (\(remoteName)), connection trusted")
             return true
 
         case .heartbeat, .heartbeatEx, .heartbeatExL2, .heartbeatExL3:
@@ -561,12 +561,12 @@ actor ServerListener {
         switch type {
         case .heartbeat, .heartbeatEx:
             responseType = .heartbeatExL2
-            Logger.network.info("ServerListener: received heartbeat type \(type.rawValue), sending heartbeatExL2")
+            mwbInfo(MWBLog.network,"ServerListener: received heartbeat type \(type.rawValue), sending heartbeatExL2")
         case .heartbeatExL2:
             responseType = .heartbeatExL3
-            Logger.network.info("ServerListener: received heartbeatExL2, sending heartbeatExL3")
+            mwbInfo(MWBLog.network,"ServerListener: received heartbeatExL2, sending heartbeatExL3")
         case .heartbeatExL3:
-            Logger.network.info("ServerListener: received heartbeatExL3, key agreement complete")
+            mwbInfo(MWBLog.network,"ServerListener: received heartbeatExL3, key agreement complete")
             return
         default:
             return
@@ -595,7 +595,7 @@ actor ServerListener {
         let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
         if !exemptFromDedup.contains(type) {
             if dedup.isDuplicate(packet.id) {
-                mwbDebug(Logger.network, "ServerListener dedup: dropping duplicate packet id=\(packet.id)")
+                mwbDebug(MWBLog.network, "ServerListener dedup: dropping duplicate packet id=\(packet.id)")
                 return
             }
         }
@@ -627,7 +627,7 @@ actor ServerListener {
                         settings.matrixCircle = matrixCircle
                         settings.matrixOneRow = matrixOneRow
                     }
-                    Logger.network.info("ServerListener: Committed new matrix from remote: \(newMatrixStr)")
+                    mwbInfo(MWBLog.network,"ServerListener: Committed new matrix from remote: \(newMatrixStr)")
                 }
             }
 
@@ -636,11 +636,11 @@ actor ServerListener {
             onClipboard?(packet)
 
         case .byeBye:
-            Logger.network.info("Received ByeBye packet, disconnecting")
+            mwbInfo(MWBLog.network,"Received ByeBye packet, disconnecting")
             // ServerListener doesn't maintain state, just log it
 
         case .hi:
-            Logger.network.info("Received Hi packet")
+            mwbInfo(MWBLog.network,"Received Hi packet")
 
         default:
             break

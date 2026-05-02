@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(handleSleep), name: NSWorkspace.willSleepNotification, object: nil)
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(handleWake), name: NSWorkspace.didWakeNotification, object: nil)
 
+        NotificationCenter.default.addObserver(self, selector: #selector(handleScreenParametersChanged), name: NSApplication.didChangeScreenParametersNotification, object: nil)
+
         // Set up tray menu and auto-connect
         if let coordinator = Self.sharedCoordinator, let settings = Self.sharedSettings {
             trayMenu = TrayMenu(coordinator: coordinator)
@@ -40,7 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Apply initial activation policy based on dock icon setting
             applyActivationPolicy(hideDockIcon: settings.hideDockIcon, windowOpen: false)
 
-            if !settings.windowsIP.isEmpty && !settings.securityKey.isEmpty {
+            if settings.autoConnect && !settings.windowsIP.isEmpty && !settings.securityKey.isEmpty {
                 // Only start services if not running in a test environment
                 let isTesting = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_TESTS"] != nil || NSClassFromString("XCTestCase") != nil
                 if !isTesting {
@@ -48,6 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -67,8 +73,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func windowWillClose(_ notification: Notification) {
         guard isSettingsWindow(notification.object as? NSWindow) else { return }
-        guard let settings = Self.sharedSettings, !settings.hideDockIcon else { return }
-        NSApp.setActivationPolicy(.accessory)
+        guard let settings = Self.sharedSettings else { return }
+        if settings.hideDockIcon {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 
     // MARK: - OS Sleep / Wake
@@ -81,6 +89,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func handleWake() {
         guard let coordinator = Self.sharedCoordinator else { return }
         coordinator.handleWake()
+    }
+
+    @objc private func handleScreenParametersChanged() {
+        ScreenInfo.invalidateCache()
     }
 
     // MARK: - Helpers

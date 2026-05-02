@@ -149,12 +149,12 @@ final class EdgeDetector {
         let warpTarget = insetPosition(crossingEntryPosition, for: crossingEdge, inset: threshold + 1)
         CGWarpMouseCursorPosition(warpTarget)
         
-        if UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge") {
+        if CachedSettings.hideMouseAtScreenEdge {
             CGDisplayShowCursor(CGMainDisplayID())
             NSCursor.unhide()
         }
         
-        Logger.input.info("Edge crossing ended, warped cursor to (\(warpTarget.x), \(warpTarget.y))")
+        mwbInfo(MWBLog.input, "Edge crossing ended, warped cursor to (\(warpTarget.x), \(warpTarget.y))")
 
         isCrossingActive = false
         crossingEntryPosition = .zero
@@ -165,7 +165,7 @@ final class EdgeDetector {
     ///
     /// Useful when the connection is lost or crossing is explicitly cancelled.
     func reset() {
-        mwbDebug(Logger.input, "Edge detector reset")
+        mwbDebug(MWBLog.input, "Edge detector reset")
         if isCrossingActive {
             CGAssociateMouseAndMouseCursorPosition(1) // Unfreeze the cursor if we were crossing
         }
@@ -207,13 +207,13 @@ final class EdgeDetector {
         
         CGAssociateMouseAndMouseCursorPosition(0) // Freeze the cursor
         
-        if UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge") {
+        if CachedSettings.hideMouseAtScreenEdge {
             CGDisplayHideCursor(CGMainDisplayID())
             NSCursor.hide()
         }
         
         let edgeName = crossingEdge.rawValue
-        Logger.input.info("Edge crossing triggered at \(edgeName) edge, screen: (\(screenPoint.x), \(screenPoint.y))")
+        mwbInfo(MWBLog.input, "Edge crossing triggered at \(edgeName) edge, screen: (\(screenPoint.x), \(screenPoint.y))")
 
         let info = CrossingStartInfo(
             edge: crossingEdge,
@@ -227,7 +227,7 @@ final class EdgeDetector {
 
     /// Returns true if the cursor is within cornerBlockMargin of any screen corner.
     func isInCornerZone(_ point: CGPoint) -> Bool {
-        guard UserDefaults.standard.bool(forKey: "settings.blockMouseAtCorners") else { return false }
+        guard CachedSettings.blockMouseAtCorners else { return false }
         
         let bounds = displayBounds
         let margin = cornerBlockMargin

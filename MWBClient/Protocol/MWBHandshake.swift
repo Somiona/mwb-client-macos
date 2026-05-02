@@ -113,9 +113,9 @@ struct HandshakeHandler {
         packet.setDataUInt16(screenHeight, at: 2)
 
         let nameData = Self.encodeMachineName(machineName)
-        if UserDefaults.standard.bool(forKey: "settings.debugLogging") {
+        if CachedSettings.debugLogging {
             let nameStr = String(data: nameData, encoding: .ascii) ?? "(non-ascii)"
-            mwbDebug(Logger.network, "Identity packet: name=\"\(nameStr.trimmingCharacters(in: .whitespaces))\" id=\(machineID) screen=\(screenWidth)x\(screenHeight)")
+            mwbDebug(MWBLog.network, "Identity packet: name=\"\(nameStr.trimmingCharacters(in: .whitespaces))\" id=\(machineID) screen=\(screenWidth)x\(screenHeight)")
         }
         var fullData = packet.data
         fullData.replaceSubrange(16..<48, with: nameData)

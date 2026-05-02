@@ -34,14 +34,14 @@ enum ClipboardCodec {
     static func decodeText(from packets: [MWBPacket]) -> String? {
         let chunks = extractChunks(from: packets, expectedType: .clipboardText)
         guard !chunks.isEmpty else {
-            Logger.clipboard.warning("ClipboardCodec: no text chunks found in \(packets.count) packets")
+            mwbWarning(MWBLog.clipboard, "ClipboardCodec: no text chunks found in \(packets.count) packets")
             return nil
         }
         let assembled = reassemble(chunks: chunks)
         guard !assembled.isEmpty else { return nil }
         let decompressed = decompressData(assembled)
         guard let text = String(data: decompressed, encoding: .utf16LittleEndian) else {
-            Logger.clipboard.error("ClipboardCodec: failed to decode UTF-16 LE text (\(decompressed.count) bytes)")
+            mwbError(MWBLog.clipboard, "ClipboardCodec: failed to decode UTF-16 LE text (\(decompressed.count) bytes)")
             return nil
         }
         return text
@@ -68,7 +68,7 @@ enum ClipboardCodec {
     static func decodeImage(from packets: [MWBPacket]) -> Data? {
         let chunks = extractChunks(from: packets, expectedType: .clipboardImage)
         guard !chunks.isEmpty else {
-            Logger.clipboard.warning("ClipboardCodec: no image chunks found in \(packets.count) packets")
+            mwbWarning(MWBLog.clipboard, "ClipboardCodec: no image chunks found in \(packets.count) packets")
             return nil
         }
         let assembled = reassemble(chunks: chunks)
@@ -158,7 +158,7 @@ enum ClipboardCodec {
                 COMPRESSION_ZLIB
             )
             guard result > 0 else {
-                Logger.clipboard.error("ClipboardCodec: compression failed for \(data.count) bytes input")
+                mwbError(MWBLog.clipboard, "ClipboardCodec: compression failed for \(data.count) bytes input")
                 return Data()
             }
             return Data(bytes: outputBuffer, count: result)
@@ -182,7 +182,7 @@ enum ClipboardCodec {
                 COMPRESSION_ZLIB
             )
             guard result > 0 else {
-                Logger.clipboard.error("ClipboardCodec: decompression failed for \(data.count) bytes input")
+                mwbError(MWBLog.clipboard, "ClipboardCodec: decompression failed for \(data.count) bytes input")
                 return Data()
             }
             return Data(bytes: outputBuffer, count: result)

@@ -58,7 +58,7 @@ actor HeartbeatService {
 
     func start() {
         guard heartbeatTask == nil else { return }
-        Logger.network.info("HeartbeatService starting")
+        mwbInfo(MWBLog.network, "HeartbeatService starting")
 
         heartbeatTask = Task { [weak self] in
             guard let self else { return }
@@ -67,7 +67,7 @@ actor HeartbeatService {
     }
 
     func stop() {
-        Logger.network.info("HeartbeatService stopping")
+        mwbInfo(MWBLog.network, "HeartbeatService stopping")
         heartbeatTask?.cancel()
         heartbeatTask = nil
     }
@@ -95,13 +95,13 @@ actor HeartbeatService {
 
     private func sendHeartbeat() async {
         guard let networkManager else {
-            Logger.network.warning("HeartbeatService: no NetworkManager bound, skipping heartbeat")
+            mwbWarning(MWBLog.network, "HeartbeatService: no NetworkManager bound, skipping heartbeat")
             return
         }
 
         let state = await networkManager.state
         guard state == .connected else {
-            mwbDebug(Logger.network, "HeartbeatService: NetworkManager not connected (\(String(describing: state))), skipping heartbeat")
+            mwbDebug(MWBLog.network, "HeartbeatService: NetworkManager not connected (\(String(describing: state))), skipping heartbeat")
             return
         }
 
