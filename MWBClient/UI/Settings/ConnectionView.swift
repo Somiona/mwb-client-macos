@@ -72,7 +72,8 @@ struct ConnectionView: View {
         }
 
         if settings.checkForUpdates, VersionChecker.shared.isUpdateAvailable,
-           let version = VersionChecker.shared.latestVersion {
+          let version = VersionChecker.shared.latestVersion
+        {
           HStack(spacing: 0) {
             Image(systemName: "arrow.down.circle.fill")
               .foregroundStyle(.green)
@@ -182,13 +183,18 @@ struct ConnectionView: View {
           await coordinator.disconnect()
         }
       } else {
-        coordinator.connect()
+        if !coordinator.accessibilityGranted {
+          InputCapture.showPermissionAlert()
+        } else {
+          coordinator.connect()
+        }
       }
     }
     .controlSize(.large)
     .buttonStyle(.borderedProminent)
     .disabled(
       !isConnected && !isConnecting
-        && (settings.windowsIP.isEmpty || settings.securityKey.isEmpty))
+        && (settings.windowsIP.isEmpty || settings.securityKey.isEmpty)
+    )
   }
 }

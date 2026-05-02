@@ -125,7 +125,8 @@ final class TrayMenu {
       let canConnect = coordinator.canConnect
       enabledToggleItem.title = "Connect"
       enabledToggleItem.isEnabled = canConnect
-      enabledToggleItem.toolTip = canConnect ? nil : "Incomplete setup — please check Settings for details"
+      enabledToggleItem.toolTip =
+        canConnect ? nil : "Incomplete setup — please check Settings for details"
 
     case .connecting, .handshaking, .reconnecting:
       let label: String
@@ -161,7 +162,11 @@ final class TrayMenu {
     Task {
       switch coordinator.connectionState {
       case .disconnected:
-        coordinator.connect()
+        if !coordinator.accessibilityGranted {
+          InputCapture.showPermissionAlert()
+        } else {
+          coordinator.connect()
+        }
       case .connected, .connecting, .handshaking, .reconnecting:
         await coordinator.disconnect()
       }
