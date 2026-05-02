@@ -112,10 +112,10 @@ Enable or disable text and image clipboard sync on the **Clipboard** settings pa
 
 ## Known Issues
 
-- **Display hotplug** -- Screen bounds are cached when input capture starts and do not refresh when displays are added, removed, or rearranged. Restart the app after changing display configuration.
 - **Drag & Drop** -- Experimental support for cross-border file dragging. This may not work flawlessly with all Windows configurations or high-integrity (Admin) applications.
-- **Mac Controlling Windows** -- Currently partially work - it does not travels back to mac, and not hiding the mac cursor properly
-- **Keyboard input** -- Currently doesn't work at all
+- **Cursor position on cross-back** -- When the cursor returns from a remote machine to the Mac, it may appear at the position where it originally left the Mac screen instead of the expected landing position based on the remote cursor's location. *(help wanted)*
+- **Layout changes during crossing** -- If the device arrangement is changed on Windows (e.g., reordering machines) while the cursor is actively controlling a remote machine from macOS, the warp-back may fail. Clicking "Refresh connection" in the Windows PowerToys Mouse Without Borders settings resolves this. *(help wanted)*
+- **Multi-machine setups** -- Setups with more than 2 machines (Mac + 2+ Windows) have not been tested. The protocol support is implemented but real-world verification is needed. *(help wanted)*
 
 ---
 
