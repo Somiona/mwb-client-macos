@@ -84,11 +84,19 @@ Or open `MWBClient.xcodeproj` in Xcode directly and hit Cmd+R.
 
 ### First Launch
 
-1. Launch MWBClient — it will appear as an icon in your menu bar.
-2. Click the menu bar icon and select **Settings**.
-3. Go to the **Connection** page and enter your Windows machine's IP address and the security key from PowerToys.
-4. Choose your screen position on the **Layout** page (this tells the app where your Windows machine sits relative to your Mac).
-5. Grant **Accessibility** permissions when prompted (required for input capture and injection). You can check the status on the **Permissions** settings page.
+Since MWBClient is not signed with an Apple Developer certificate, macOS will block it on first launch and prompt you to move it to the Trash. To bypass this:
+
+1. **Right-click** (or Control-click) the `MWBClient.app` and choose **Open**.
+2. A dialog will appear saying the app is from an unidentified developer — click **Open** again.
+3. macOS will remember your choice and launch normally from now on.
+
+> **Alternative:** Go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway** next to the "MWBClient was blocked" message.
+
+After the app launches:
+
+1. Go to the **Connection** page and enter your Windows machine's IP address and the security key from PowerToys.
+2. Choose your screen position on the **Layout** page (this tells the app where your Windows machine sits relative to your Mac).
+3. Grant **Accessibility** permissions when prompted (required for input capture and injection). You can check the status on the **Permissions** settings page.
 
 ### Connecting
 
