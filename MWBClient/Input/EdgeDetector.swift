@@ -95,12 +95,13 @@ final class EdgeDetector {
     /// Updates the detector with the latest cursor position.
     ///
     /// Should be called from ``InputCapture``'s mouse event callback with the
-    /// MWB virtual desktop coordinates and the original screen coordinates.
+    /// MWB absolute virtual desktop coordinates and the original screen coordinates.
     ///
     /// - Parameters:
-    ///   - mouseData: The MWB mouse data (with virtual desktop coords 0-65535).
+    ///   - vx: The absolute virtual desktop X coordinate (0-65535).
+    ///   - vy: The absolute virtual desktop Y coordinate (0-65535).
     ///   - screenPoint: The cursor position in macOS screen coordinates.
-    func updateCursorPosition(_ mouseData: MouseData, screenPoint: CGPoint) {
+    func updateCursorPosition(vx: Int32, vy: Int32, screenPoint: CGPoint) {
         // While crossing is active, track the entry position but do not
         // trigger another crossing.
         if isCrossingActive {
@@ -126,7 +127,7 @@ final class EdgeDetector {
             // Cursor is at the edge. Start or keep the debounce timer.
             if debounceWork == nil {
                 let work = DispatchWorkItem { [weak self] in
-                    self?.triggerCrossing(mouseData: mouseData, screenPoint: screenPoint)
+                    self?.triggerCrossing(vx: vx, vy: vy, screenPoint: screenPoint)
                 }
                 debounceWork = work
                 DispatchQueue.main.asyncAfter(deadline: .now() + debounceInterval, execute: work)
@@ -197,7 +198,7 @@ final class EdgeDetector {
     // MARK: - Crossing trigger
 
     /// Fires the ``crossingStart`` callback and enters the crossing-active state.
-    private func triggerCrossing(mouseData: MouseData, screenPoint: CGPoint) {
+    private func triggerCrossing(vx: Int32, vy: Int32, screenPoint: CGPoint) {
         debounceWork = nil
 
         guard !isCrossingActive else { return }
@@ -217,7 +218,7 @@ final class EdgeDetector {
 
         let info = CrossingStartInfo(
             edge: crossingEdge,
-            virtualPosition: (mouseData.x, mouseData.y),
+            virtualPosition: (vx, vy),
             screenPosition: screenPoint
         )
         crossingStart?(info)
@@ -261,9 +262,9 @@ final class EdgeDetector {
         case .right:
             return CGPoint(x: point.x - inset, y: point.y)
         case .top:
-            return CGPoint(x: point.x, y: point.y - inset)
-        case .bottom:
             return CGPoint(x: point.x, y: point.y + inset)
+        case .bottom:
+            return CGPoint(x: point.x, y: point.y - inset)
         }
     }
 }

@@ -20,7 +20,7 @@ final class EdgeDetectorTests: XCTestCase {
 
     detector.screenBoundsProvider = { self.mockBounds }
     // Update detector with a dummy position to refresh displayBounds
-    detector.updateCursorPosition(MouseData(), screenPoint: .zero)
+    detector.updateCursorPosition(vx: 1000, vy: 500, screenPoint: .zero)
 
     detector.cornerBlockMargin = 100.0
 
@@ -41,7 +41,7 @@ final class EdgeDetectorTests: XCTestCase {
     detector.screenBoundsProvider = { self.mockBounds }
     detector.crossingEdge = .right
     detector.threshold = 2.0
-    detector.updateCursorPosition(MouseData(), screenPoint: CGPoint(x: 1000, y: 500))
+    detector.updateCursorPosition(vx: 1000, vy: 500, screenPoint: CGPoint(x: 1000, y: 500))
 
     // Not at edge
     XCTAssertFalse(detector.isAtEdge(CGPoint(x: 1000, y: 500)))
@@ -65,7 +65,7 @@ final class EdgeDetectorTests: XCTestCase {
     }
 
     // Move to edge
-    detector.updateCursorPosition(MouseData(), screenPoint: CGPoint(x: 1919, y: 500))
+    detector.updateCursorPosition(vx: 65535, vy: 500, screenPoint: CGPoint(x: 1919, y: 500))
 
     waitForExpectations(timeout: 0.2)
   }

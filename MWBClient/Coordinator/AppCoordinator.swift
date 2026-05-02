@@ -604,9 +604,9 @@ final class AppCoordinator {
         }
 
         // Feed mouse position to edge detector
-        inputCapture.onMousePosition = { [weak self] mouseData, screenPoint in
+        inputCapture.onMousePosition = { [weak self] vx, vy, screenPoint in
             Task { @MainActor [weak self] in
-                self?.edgeDetector.updateCursorPosition(mouseData, screenPoint: screenPoint)
+                self?.edgeDetector.updateCursorPosition(vx: vx, vy: vy, screenPoint: screenPoint)
             }
         }
 
@@ -656,25 +656,35 @@ final class AppCoordinator {
     /// machine where the cursor should appear after crossing the given edge.
     ///
     /// Matches the PowerToys logic in MachineStuff.MoveRight/MoveLeft/MoveUp/MoveDown:
-    /// - Crossing RIGHT edge → cursor lands at LEFT edge of remote (x = JUMP_PIXELS ≈ 2)
+    /// - Crossing RIGHT edge → cursor lands at LEFT edge of remote (x = JUMP_PIXELS ≈ 2 physical pixels)
     /// - Crossing LEFT edge  → cursor lands at RIGHT edge of remote (x = max - JUMP_PIXELS)
     /// - Crossing BOTTOM edge → cursor lands at TOP edge of remote (y = JUMP_PIXELS)
     /// - Crossing TOP edge    → cursor lands at BOTTOM edge of remote (y = max - JUMP_PIXELS)
     private func remoteLandingPosition(for edge: CrossingEdge, virtualX: Int32, virtualY: Int32) -> (x: Int32, y: Int32) {
         let max = Int32(MWBConstants.virtualDesktopMax)
-        let jump: Int32 = 2
+        
+        // Convert 2 physical pixels (JUMP_PIXELS in Windows) to virtual units (0-65535).
+        // Use local main screen bounds as an approximation for the remote screen size.
+        let bounds = NSScreen.fullDesktopBounds
+        let jumpX: Int32 = Int32((2.0 / bounds.width) * CGFloat(max))
+        let jumpY: Int32 = Int32((2.0 / bounds.height) * CGFloat(max))
+        
+        // Ensure jump isn't too small
+        let safeJumpX = Swift.max(2, jumpX)
+        let safeJumpY = Swift.max(2, jumpY)
+
         let cx = Swift.max(0, Swift.min(max, virtualX))
         let cy = Swift.max(0, Swift.min(max, virtualY))
 
         switch edge {
         case .right:
-            return (jump, cy)
+            return (safeJumpX, cy)
         case .left:
-            return (max - jump, cy)
+            return (max - safeJumpX, cy)
         case .bottom:
-            return (cx, jump)
+            return (cx, safeJumpY)
         case .top:
-            return (cx, max - jump)
+            return (cx, max - safeJumpY)
         }
     }
 

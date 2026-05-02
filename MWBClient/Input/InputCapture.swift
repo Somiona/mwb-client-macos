@@ -21,8 +21,8 @@ final class InputCapture {
     typealias MouseCallback = @Sendable (MouseData) -> Void
 
     /// Callback for mouse position tracking (e.g. edge detection). Includes
-    /// the screen-space point alongside the protocol ``MouseData``.
-    typealias MousePositionCallback = @Sendable (MouseData, CGPoint) -> Void
+    /// the absolute virtual coordinates (0-65535) and screen-space point.
+    typealias MousePositionCallback = @Sendable (Int32, Int32, CGPoint) -> Void
 
     /// Callback invoked with a ``KeyboardData`` packet whenever a local keyboard
     /// event is captured (including during crossing, before suppression).
@@ -35,10 +35,13 @@ final class InputCapture {
     var crossingActive = false {
         didSet {
             if crossingActive {
-                // When crossing begins, we rely on EdgeDetector to set the initial virtualX/Y via setVirtualPosition
+                crossingStartTime = Date()
             }
         }
     }
+    
+    /// The timestamp when the current crossing started. Used to debounce immediate cross-backs.
+    private var crossingStartTime: Date = .distantPast
     
     /// Virtual cursor position while crossing (0-65535).
     /// Tracked by accumulating deltas so the physical cursor doesn't hit screen edges.
@@ -139,6 +142,9 @@ final class InputCapture {
         let rightUpBit = 1 << CGEventType.rightMouseUp.rawValue
         let otherDownBit = 1 << CGEventType.otherMouseDown.rawValue
         let otherUpBit = 1 << CGEventType.otherMouseUp.rawValue
+        let leftDraggedBit = 1 << CGEventType.leftMouseDragged.rawValue
+        let rightDraggedBit = 1 << CGEventType.rightMouseDragged.rawValue
+        let otherDraggedBit = 1 << CGEventType.otherMouseDragged.rawValue
         let scrollBit = 1 << CGEventType.scrollWheel.rawValue
         let keyDownBit = 1 << CGEventType.keyDown.rawValue
         let keyUpBit = 1 << CGEventType.keyUp.rawValue
@@ -148,6 +154,7 @@ final class InputCapture {
             mouseMovedBit | leftDownBit | leftUpBit
             | rightDownBit | rightUpBit
             | otherDownBit | otherUpBit
+            | leftDraggedBit | rightDraggedBit | otherDraggedBit
             | scrollBit
             | keyDownBit | keyUpBit | flagsChangedBit
         )
@@ -259,7 +266,7 @@ final class InputCapture {
         let wmMessage: WMMouseMessage
 
         switch type {
-        case .mouseMoved:
+        case .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged:
             wmMessage = .mouseMove
             if crossingActive {
                 let dx = Int32(event.getIntegerValueField(.mouseEventDeltaX))
@@ -276,21 +283,27 @@ final class InputCapture {
                 virtualX += vdx
                 virtualY += vdy
                 
-                // Only trigger crossing-back when cursor moves toward the Mac edge.
-                // Crossing RIGHT edge means Mac is to the LEFT → return when virtualX < 0
-                // Crossing LEFT edge means Mac is to the RIGHT → return when virtualX > max
-                // Crossing BOTTOM edge means Mac is ABOVE → return when virtualY < 0
-                // Crossing TOP edge means Mac is BELOW → return when virtualY > max
-                let crossedBack: Bool
-                switch activeCrossingEdge {
-                case .right:  crossedBack = virtualX < 0
-                case .left:   crossedBack = virtualX > MWBConstants.virtualDesktopMax
-                case .bottom: crossedBack = virtualY < 0
-                case .top:    crossedBack = virtualY > MWBConstants.virtualDesktopMax
-                }
+                // Clamp virtualX and virtualY to prevent them from growing infinitely
+                // and breaking the "cross back" experience.
+                virtualX = Swift.max(-1, Swift.min(MWBConstants.virtualDesktopMax + 1, virtualX))
+                virtualY = Swift.max(-1, Swift.min(MWBConstants.virtualDesktopMax + 1, virtualY))
                 
-                if crossedBack {
-                    onVirtualBoundsExceeded?(virtualX, virtualY)
+                // If using absolute coordinates, trigger cross-back based on virtual bounds.
+                // If using relative coordinates, rely purely on the remote machine's edge detection (NextMachine packet).
+                if !CachedSettings.moveMouseRelatively {
+                    let crossedBack: Bool
+                    switch activeCrossingEdge {
+                    case .right:  crossedBack = virtualX < 0
+                    case .left:   crossedBack = virtualX > MWBConstants.virtualDesktopMax
+                    case .bottom: crossedBack = virtualY < 0
+                    case .top:    crossedBack = virtualY > MWBConstants.virtualDesktopMax
+                    }
+                    
+                    let hasImmunity = Date().timeIntervalSince(crossingStartTime) < 0.3
+                    
+                    if crossedBack && !hasImmunity {
+                        onVirtualBoundsExceeded?(virtualX, virtualY)
+                    }
                 }
                 
                 // Clamp for the MouseData packet
@@ -298,7 +311,9 @@ final class InputCapture {
                 let clampedY = Swift.max(Int32(0), Swift.min(MWBConstants.virtualDesktopMax, virtualY))
                 
                 if CachedSettings.moveMouseRelatively {
-                    mouseData = MouseData(x: dx + 100000, y: dy + 100000, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+                    let mwbDx = dx + (dx < 0 ? -100000 : 100000)
+                    let mwbDy = dy + (dy < 0 ? -100000 : 100000)
+                    mouseData = MouseData(x: mwbDx, y: mwbDy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
                 } else {
                     mouseData = MouseData(x: clampedX, y: clampedY, wheelDelta: 0, dwFlags: wmMessage.rawValue)
                 }
@@ -308,7 +323,9 @@ final class InputCapture {
                 if CachedSettings.moveMouseRelatively {
                     let dx = Int32(event.getIntegerValueField(.mouseEventDeltaX))
                     let dy = Int32(event.getIntegerValueField(.mouseEventDeltaY))
-                    mouseData = MouseData(x: dx + 100000, y: dy + 100000, wheelDelta: 0, dwFlags: wmMessage.rawValue)
+                    let mwbDx = dx + (dx < 0 ? -100000 : 100000)
+                    let mwbDy = dy + (dy < 0 ? -100000 : 100000)
+                    mouseData = MouseData(x: mwbDx, y: mwbDy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
                 } else {
                     mouseData = MouseData(x: vx, y: vy, wheelDelta: 0, dwFlags: wmMessage.rawValue)
                 }
@@ -370,7 +387,7 @@ final class InputCapture {
 
         // Forward to callback regardless of suppression state.
         onMouseEvent?(mouseData)
-        onMousePosition?(mouseData, location)
+        onMousePosition?(vx, vy, location)
         lastInputTimestamp = Date()
 
         // Suppress the event when crossing is active.
@@ -514,7 +531,7 @@ private func eventTapCallback(
 
     // Route to the appropriate handler based on event type.
     switch type {
-    case .mouseMoved,
+    case .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged,
          .leftMouseDown, .leftMouseUp,
          .rightMouseDown, .rightMouseUp,
          .otherMouseDown, .otherMouseUp,

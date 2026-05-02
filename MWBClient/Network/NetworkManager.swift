@@ -155,7 +155,11 @@ actor NetworkManager {
         let endpointHost = NWEndpoint.Host(host)
         guard let endpointPort = NWEndpoint.Port(rawValue: port) else { return }
 
-        connection = NWConnection(host: endpointHost, port: endpointPort, using: .tcp)
+        let tcpOptions = NWProtocolTCP.Options()
+        tcpOptions.noDelay = true
+        let params = NWParameters(tls: nil, tcp: tcpOptions)
+
+        connection = NWConnection(host: endpointHost, port: endpointPort, using: params)
 
         guard let conn = connection else { return }
 
