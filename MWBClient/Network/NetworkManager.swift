@@ -69,7 +69,6 @@ actor NetworkManager {
     private var reconnectTask: Task<Void, Never>?
     private var heartbeatMonitorTask: Task<Void, Never>?
     private var intentionalDisconnect = false
-    private var dedup = PackageDeduplicator()
     private var nextPacketID: UInt32 = UInt32.random(in: 1..<0x7FFFFFFF)
 
     // MARK: Heartbeat Timeout Tracking
@@ -180,7 +179,6 @@ actor NetworkManager {
         receiveTask = nil
         connection?.cancel()
         connection = nil
-        dedup.reset()
         updateState(.disconnected)
     }
 
@@ -360,7 +358,9 @@ actor NetworkManager {
         }
         let now = MWBCrypto.stamp()
         mwbDebug(MWBLog.crypto, "[\(now)] [PHASE] noise-send: \(randomNoise.count) bytes plaintext")
-        let encryptedNoise = crypto.encrypt(padToBlock(randomNoise))
+        // Exactly one AES block on the wire (.NET CryptoStream, Zeros padding: 16 in -> 16 out).
+        // Padding to 32 here would leave a stray ciphertext block that desynchronizes the peer.
+        let encryptedNoise = crypto.encrypt(randomNoise)
         let now2 = MWBCrypto.stamp()
         mwbDebug(MWBLog.crypto, "[\(now2)] [PHASE] noise-send: \(encryptedNoise.count) bytes ciphertext on wire")
         try await conn.send(content: encryptedNoise)
@@ -372,7 +372,9 @@ actor NetworkManager {
         }
         let now3 = MWBCrypto.stamp()
         mwbDebug(MWBLog.crypto, "[\(now3)] [PHASE] noise-recv: \(noiseData.count) bytes ciphertext from wire")
-        _ = crypto.decrypt(padToBlock(noiseData))
+        // Decrypt the single block as-is so decryptIV advances to the noise ciphertext
+        // (the peer's next packet is CBC-chained from it).
+        _ = crypto.decrypt(noiseData)
         let now4 = MWBCrypto.stamp()
         mwbDebug(MWBLog.crypto, "[\(now4)] [PHASE] noise-recv: decrypted")
     }
@@ -537,7 +539,9 @@ actor NetworkManager {
         // Skip dedup for certain packet types (per PowerToys Receiver.cs)
         let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
         if !exemptFromDedup.contains(type) {
-            if dedup.isDuplicate(packet.id) {
+            // Shared across all sessions: the same packet can arrive through the
+            // outbound socket and the peer's inbound socket simultaneously.
+            if PackageDeduplicator.shared.isDuplicate(packet.id) {
                 mwbDebug(MWBLog.network, "Dedup: dropping duplicate packet id=\(packet.id)")
                 return
             }

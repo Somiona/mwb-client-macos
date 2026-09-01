@@ -30,7 +30,6 @@ actor ServerListener {
     private var listener: NWListener?
     private var connectionTasks: [UInt32: Task<Void, Never>] = [:]
     private var connections: [UInt32: (NWConnection, MWBCrypto, UInt32)] = [:]
-    private var dedup = PackageDeduplicator()
     private var nextPacketID: UInt32 = UInt32.random(in: 1..<0x7FFFFFFF)
 
     // MARK: Callbacks
@@ -337,7 +336,7 @@ actor ServerListener {
         randomNoise.withUnsafeMutableBytes { ptr in
             _ = SecRandomCopyBytes(kSecRandomDefault, MWBConstants.noiseSize, ptr.baseAddress!)
         }
-        let encryptedNoise = crypto.encrypt(padToBlock(randomNoise))
+        let encryptedNoise = crypto.encrypt(randomNoise)
         try await conn.send(content: encryptedNoise)
 
         // Receive 16 bytes of noise
@@ -348,7 +347,8 @@ actor ServerListener {
         guard let noiseData = receivedNoise, noiseData.count == MWBConstants.noiseSize else {
             throw NetworkError.invalidNoise
         }
-        _ = crypto.decrypt(padToBlock(noiseData))
+        // Decrypt the single block as-is so decryptIV advances to the noise ciphertext.
+        _ = crypto.decrypt(noiseData)
     }
 
     // MARK: Send Handshake Challenges
@@ -594,7 +594,10 @@ actor ServerListener {
         // Skip dedup for certain packet types (per PowerToys Receiver.cs)
         let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
         if !exemptFromDedup.contains(type) {
-            if dedup.isDuplicate(packet.id) {
+            // Shared across all sessions: the peer broadcasts input on every
+            // socket it has to us, so the same packet can arrive here and via
+            // the outbound NetworkManager session simultaneously.
+            if PackageDeduplicator.shared.isDuplicate(packet.id) {
                 mwbDebug(MWBLog.network, "ServerListener dedup: dropping duplicate packet id=\(packet.id)")
                 return
             }
