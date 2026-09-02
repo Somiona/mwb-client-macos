@@ -58,6 +58,25 @@ struct AdvancedView: View {
         }
       }
 
+      Section("Keyboard") {
+        VStack(alignment: .leading, spacing: 4) {
+          Picker("Keyboard layout", selection: $settings.keyboardLayout) {
+            Text("Automatic (follow this Mac's layout)")
+              .tag(KeyboardLayoutSetting.automatic.rawValue)
+            Text("US (ANSI)").tag(KeyboardLayoutSetting.usAnsi.rawValue)
+            Text("Brazilian (ABNT2)").tag(KeyboardLayoutSetting.abnt2.rawValue)
+          }
+          .pickerStyle(.radioGroup)
+          .labelsHidden()
+
+          Text(
+            "Makes layout-dependent keys work in both directions, like the ABNT2 \"/ ?\" key next to the right Shift. Choose Brazilian (ABNT2) when any machine in the matrix uses an ABNT2 keyboard; Automatic detects the layout active on this Mac."
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        }
+      }
+
       Section("Security & Power") {
         Toggle("Same Subnet Only", isOn: $settings.sameSubnetOnly)
         Text("Only allow connections from machines on the same local subnet.")

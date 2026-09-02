@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import Foundation
 import Observation
 
@@ -28,6 +29,7 @@ private enum SettingsKey {
     static let disableEasyMouseInFullscreen = "settings.disableEasyMouseInFullscreen"
     static let debugLogging = "settings.debugLogging"
     static let checkForUpdates = "settings.checkForUpdates"
+    static let keyboardLayout = "settings.keyboardLayout"
 }
 
 // MARK: - Defaults
@@ -66,6 +68,43 @@ private enum SettingsDefault {
     static let disableEasyMouseInFullscreen = false
     static let debugLogging = false
     static let checkForUpdates = true
+    static let keyboardLayout = KeyboardLayoutSetting.automatic.rawValue
+}
+
+// MARK: - Keyboard Layout Profile
+
+/// Keyboard layout profile used to translate layout-dependent keys (like the
+/// ABNT2 "/ ?" key, which Windows reports as VK_ABNT_C1 / vk=193) between the
+/// machines in the matrix.
+enum KeyboardLayoutSetting: String {
+    /// Follow the Mac's active input source: Brazilian layouts enable ABNT2.
+    case automatic = "auto"
+    /// US ANSI and other layouts that do not define the ABNT2 keys.
+    case usAnsi = "us"
+    /// Brazilian ABNT2.
+    case abnt2 = "br"
+
+    /// Resolves a stored setting to whether the ABNT2 key profile is active.
+    static func resolvesToABNT2(_ raw: String) -> Bool {
+        switch KeyboardLayoutSetting(rawValue: raw) {
+        case .abnt2: return true
+        case .usAnsi: return false
+        case .automatic, nil: return isMacLayoutBrazilian()
+        }
+    }
+
+    /// Returns whether the active macOS input source is a Brazilian layout
+    /// (`com.apple.keylayout.Brazilian*`). Thread-safe (TIS API).
+    static func isMacLayoutBrazilian() -> Bool {
+        guard let inputSource = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let pointer = TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID)
+        else {
+            return false
+        }
+        // Properties follow the Get rule: do not release the returned object.
+        let sourceID = Unmanaged<CFString>.fromOpaque(pointer).takeUnretainedValue() as String
+        return sourceID.lowercased().contains("brazilian")
+    }
 }
 
 // MARK: - Cached Settings (Hot-Path Optimized)
@@ -80,6 +119,10 @@ enum CachedSettings {
     nonisolated(unsafe) static var moveMouseRelatively = UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively")
     nonisolated(unsafe) static var blockMouseAtCorners = UserDefaults.standard.bool(forKey: "settings.blockMouseAtCorners")
     nonisolated(unsafe) static var hideMouseAtScreenEdge = UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge")
+
+    /// Whether input mapping should use the Brazilian ABNT2 key profile.
+    nonisolated(unsafe) static var abnt2Keyboard = KeyboardLayoutSetting.resolvesToABNT2(
+        UserDefaults.standard.string(forKey: SettingsKey.keyboardLayout) ?? SettingsDefault.keyboardLayout)
 }
 
 // MARK: - SettingsStore
@@ -244,6 +287,19 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(checkForUpdates, forKey: SettingsKey.checkForUpdates) }
     }
 
+    // MARK: - Keyboard Settings
+
+    /// Keyboard layout profile used when translating layout-dependent keys
+    /// (e.g. the ABNT2 "/ ?" key) between macOS keycodes and Windows VK codes.
+    ///
+    /// Stored as a raw string matching ``KeyboardLayoutSetting``.
+    var keyboardLayout: String {
+        didSet {
+            UserDefaults.standard.set(keyboardLayout, forKey: SettingsKey.keyboardLayout)
+            CachedSettings.abnt2Keyboard = KeyboardLayoutSetting.resolvesToABNT2(keyboardLayout)
+        }
+    }
+
     // MARK: - Init
 
     /// Creates a settings store, loading persisted values from UserDefaults
@@ -284,6 +340,7 @@ final class SettingsStore {
         self.disableEasyMouseInFullscreen = defaults.object(forKey: SettingsKey.disableEasyMouseInFullscreen) as? Bool ?? SettingsDefault.disableEasyMouseInFullscreen
         self.debugLogging = defaults.object(forKey: SettingsKey.debugLogging) as? Bool ?? SettingsDefault.debugLogging
         self.checkForUpdates = defaults.object(forKey: SettingsKey.checkForUpdates) as? Bool ?? SettingsDefault.checkForUpdates
+        self.keyboardLayout = defaults.string(forKey: SettingsKey.keyboardLayout) ?? SettingsDefault.keyboardLayout
 
         if let storedID = defaults.object(forKey: SettingsKey.machineID) as? Int {
             self.machineID = UInt32(truncatingIfNeeded: storedID)
@@ -321,5 +378,6 @@ final class SettingsStore {
         disableEasyMouseInFullscreen = SettingsDefault.disableEasyMouseInFullscreen
         debugLogging = SettingsDefault.debugLogging
         checkForUpdates = SettingsDefault.checkForUpdates
+        keyboardLayout = SettingsDefault.keyboardLayout
     }
 }

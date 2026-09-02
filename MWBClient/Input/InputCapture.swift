@@ -451,7 +451,8 @@ final class InputCapture {
   fileprivate func handleKeyboardEvent(_ event: CGEvent, type: CGEventType) -> Unmanaged<CGEvent>? {
     let macKeycode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
 
-    guard let vkCode = KeyCodeMapper.macOSToVK(macOSKeycode: macKeycode) else {
+    let profile: KeyboardLayoutProfile = CachedSettings.abnt2Keyboard ? .abnt2 : .us
+    guard let vkCode = KeyCodeMapper.macOSToVK(macOSKeycode: macKeycode, profile: profile) else {
       // Unmapped key; pass through without forwarding.
       return Unmanaged.passUnretained(event)
     }

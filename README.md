@@ -124,6 +124,7 @@ Enable or disable text and image clipboard sync on the **Clipboard** settings pa
 - **Cursor position on cross-back** -- When the cursor returns from a remote machine to the Mac, it may appear at the position where it originally left the Mac screen instead of the expected landing position based on the remote cursor's location. *(help wanted)*
 - **Layout changes during crossing** -- If the device arrangement is changed on Windows (e.g., reordering machines) while the cursor is actively controlling a remote machine from macOS, the warp-back may fail. Clicking "Refresh connection" in the Windows PowerToys Mouse Without Borders settings resolves this. *(help wanted)*
 - **Multi-machine setups** -- Setups with more than 2 machines (Mac + 2+ Windows) have not been tested. The protocol support is implemented but real-world verification is needed. *(help wanted)*
+- **Brazilian ABNT2 keyboards** -- The ABNT2 keys (`/ ?`, `< >`, numpad `,`) are translated in both directions. The profile is auto-detected from the Mac's active layout; if the Mac does not use a Brazilian layout but the Windows machine does, select **Brazilian (ABNT2)** under Advanced → Keyboard.
 
 ---
 
