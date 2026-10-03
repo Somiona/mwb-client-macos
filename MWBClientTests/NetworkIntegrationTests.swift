@@ -34,13 +34,20 @@ final class NetworkIntegrationTests: XCTestCase {
           let serverCrypto = MWBCrypto(securityKey: securityKey)
           let magicHash = serverCrypto.get24BitHash()
 
+          // 0. Receive the client's 32-byte salt+IV stream header
+          let clientHeader = try await conn.receive(
+            minimumIncompleteLength: MWBConstants.streamHeaderSize,
+            maximumLength: MWBConstants.streamHeaderSize)
+          serverCrypto.processInboundHeader(try XCTUnwrap(clientHeader))
+
           // 1. Receive noise from client
           let clientNoise = try await conn.receive(minimumIncompleteLength: 16, maximumLength: 16)
           XCTAssertEqual(clientNoise?.count, 16)
           let unwrappedNoise = try XCTUnwrap(clientNoise)
           _ = serverCrypto.decrypt(unwrappedNoise)  // Shifts server IV
 
-          // 2. Send noise to client
+          // 2. Send our 32-byte salt+IV stream header, then noise to client
+          try await conn.send(content: serverCrypto.makeOutboundHeader())
           var serverNoise = Data(count: 16)
           try serverNoise.withUnsafeMutableBytes { ptr in
             let baseAddress = try XCTUnwrap(ptr.baseAddress)
@@ -123,9 +130,15 @@ final class NetworkIntegrationTests: XCTestCase {
           let serverCrypto = MWBCrypto(securityKey: securityKey)
           let magicHash = serverCrypto.get24BitHash()
 
+          let clientHeader = try await conn.receive(
+            minimumIncompleteLength: MWBConstants.streamHeaderSize,
+            maximumLength: MWBConstants.streamHeaderSize)
+          serverCrypto.processInboundHeader(try XCTUnwrap(clientHeader))
+
           let clientNoise = try await conn.receive(minimumIncompleteLength: 16, maximumLength: 16)
           _ = serverCrypto.decrypt(clientNoise!)
 
+          try await conn.send(content: serverCrypto.makeOutboundHeader())
           let serverNoise = Data(count: 16)
           let encServerNoise = serverCrypto.encrypt(serverNoise)
           try await conn.send(content: encServerNoise)

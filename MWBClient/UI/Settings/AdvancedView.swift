@@ -20,6 +20,17 @@ struct AdvancedView: View {
           .font(.caption)
       }
 
+      Section("Keyboard") {
+        VStack(alignment: .leading, spacing: 4) {
+          Toggle("Swap Option and Command", isOn: $settings.swapOptionCommand)
+          Text(
+            "Windows Win/Alt keys map to Mac Option/Command in swapped positions (for keyboards laid out Ctrl-Win-Alt)."
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        }
+      }
+
       Section("Advanced Mouse Settings") {
         VStack(alignment: .leading, spacing: 4) {
           Toggle("Move mouse relatively", isOn: $settings.moveMouseRelatively)
@@ -52,6 +63,15 @@ struct AdvancedView: View {
             isOn: $settings.disableEasyMouseInFullscreen)
           Text(
             "Prevent Easy Mouse from moving to another machine when an application is in full-screen mode"
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        }
+
+        VStack(alignment: .leading, spacing: 4) {
+          Toggle("Invert remote scroll wheel", isOn: $settings.invertRemoteScroll)
+          Text(
+            "Only affects scrolling injected from the Windows machine; your Mac's own mouse and trackpad are unaffected."
           )
           .font(.caption)
           .foregroundStyle(.secondary)

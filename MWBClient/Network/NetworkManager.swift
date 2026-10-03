@@ -42,6 +42,11 @@ actor NetworkManager {
         }
     }
     private(set) var machineID: MachineID = .none
+
+    /// Machine ID of the remote peer, learned from inbound packets
+    /// (heartbeats, beats, ...). Used as the destination for machine-level
+    /// packets the remote matches against its own ID.
+    private(set) var peerMachineID: MachineID = .none
     private(set) var connectedMachineName: String = ""
     private(set) var magicHash: UInt32 = 0
 
@@ -69,7 +74,7 @@ actor NetworkManager {
     private var reconnectTask: Task<Void, Never>?
     private var heartbeatMonitorTask: Task<Void, Never>?
     private var intentionalDisconnect = false
-    private var dedup = PackageDeduplicator()
+    private let dedup: SharedPackageDeduplicator
     private var nextPacketID: UInt32 = UInt32.random(in: 1..<0x7FFFFFFF)
 
     // MARK: Heartbeat Timeout Tracking
@@ -92,22 +97,26 @@ actor NetworkManager {
     var onMouse: MouseCallback?
     var onKeyboard: KeyboardCallback?
     var onClipboard: ClipboardCallback?
+    var onMachineEvent: MachineEventCallback?
     var onNextMachine: (@Sendable (MachineID, Int32, Int32) -> Void)?
     var onMatrixUpdate: (@Sendable ([String], Bool, Bool) -> Void)?
 
     /// Sets all four callbacks in a single actor-isolated call.
+    /// Sets all callbacks in a single actor-isolated call.
     func setCallbacks(
         onMouse: MouseCallback?,
         onKeyboard: KeyboardCallback?,
         onClipboard: ClipboardCallback? = nil,
         onNextMachine: (@Sendable (MachineID, Int32, Int32) -> Void)? = nil,
-        onMatrixUpdate: (@Sendable ([String], Bool, Bool) -> Void)? = nil
+        onMatrixUpdate: (@Sendable ([String], Bool, Bool) -> Void)? = nil,
+        onMachineEvent: MachineEventCallback? = nil
     ) {
         self.onMouse = onMouse
         self.onKeyboard = onKeyboard
         self.onClipboard = onClipboard
         self.onNextMachine = onNextMachine
         self.onMatrixUpdate = onMatrixUpdate
+        self.onMachineEvent = onMachineEvent
     }
 
     // MARK: Init
@@ -119,7 +128,8 @@ actor NetworkManager {
         machineID: MachineID,
         machineName: String = Host.current().localizedName ?? "Mac",
         screenWidth: UInt16 = UInt16(NSScreen.main?.frame.width ?? 1920),
-        screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080)
+        screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080),
+        dedup: SharedPackageDeduplicator = SharedPackageDeduplicator()
     ) {
         self.host = host
         self.port = port
@@ -128,6 +138,7 @@ actor NetworkManager {
         self.localMachineName = machineName
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
+        self.dedup = dedup
         self.crypto = MWBCrypto(securityKey: securityKey)
         self.magicHash = crypto.get24BitHash()
         self.stateContinuation = _stateStream.continuation
@@ -180,7 +191,6 @@ actor NetworkManager {
         receiveTask = nil
         connection?.cancel()
         connection = nil
-        dedup.reset()
         updateState(.disconnected)
     }
 
@@ -353,6 +363,10 @@ actor NetworkManager {
     // MARK: Noise Exchange
 
     private func exchangeNoise(_ conn: NWConnection) async throws {
+        // Send the 32-byte cleartext salt+IV stream header first
+        // (PowerToys v0.101.2211+: Encryption.GetEncryptedStream)
+        try await conn.send(content: crypto.makeOutboundHeader())
+
         // Send 16 bytes of random encrypted data
         var randomNoise = Data(count: MWBConstants.noiseSize)
         randomNoise.withUnsafeMutableBytes { ptr in
@@ -364,6 +378,17 @@ actor NetworkManager {
         let now2 = MWBCrypto.stamp()
         mwbDebug(MWBLog.crypto, "[\(now2)] [PHASE] noise-send: \(encryptedNoise.count) bytes ciphertext on wire")
         try await conn.send(content: encryptedNoise)
+
+        // Receive the peer's 32-byte cleartext salt+IV stream header
+        // (PowerToys v0.101.2211+: Encryption.GetDecryptedStream)
+        let receivedHeader = try await conn.receive(
+            minimumIncompleteLength: MWBConstants.streamHeaderSize,
+            maximumLength: MWBConstants.streamHeaderSize
+        )
+        guard let headerData = receivedHeader, headerData.count == MWBConstants.streamHeaderSize else {
+            throw NetworkError.handshakeFailed("short encryption header")
+        }
+        crypto.processInboundHeader(headerData)
 
         // Receive 16 bytes of noise back
         let receivedNoise = try await conn.receive(minimumIncompleteLength: MWBConstants.noiseSize, maximumLength: MWBConstants.noiseSize)
@@ -534,13 +559,14 @@ actor NetworkManager {
     private func dispatchPacket(_ packet: MWBPacket) {
         guard let type = packet.packageType else { return }
 
-        // Skip dedup for certain packet types (per PowerToys Receiver.cs)
-        let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
-        if !exemptFromDedup.contains(type) {
-            if dedup.isDuplicate(packet.id) {
-                mwbDebug(MWBLog.network, "Dedup: dropping duplicate packet id=\(packet.id)")
-                return
-            }
+        // Learn the peer's machine ID from any inbound packet (heartbeats
+        // flow constantly, so this populates shortly after connecting).
+        if packet.src != .none && packet.src != .all && packet.src != machineID {
+            peerMachineID = packet.src
+        }
+        if dedup.isDuplicate(type: type, id: packet.id) {
+            mwbDebug(MWBLog.network, "Dedup: dropping duplicate packet id=\(packet.id)")
+            return
         }
 
         // Track heartbeat timestamp for timeout monitoring
@@ -606,8 +632,12 @@ actor NetworkManager {
             }
 
         case .clipboard, .clipboardText, .clipboardImage, .clipboardDataEnd,
-             .clipboardAsk, .clipboardPush, .clipboardDragDrop, .clipboardDragDropEnd:
+             .clipboardAsk, .clipboardPush:
             onClipboard?(packet)
+
+        case .explorerDragDrop, .clipboardDragDrop, .clipboardDragDropEnd,
+             .clipboardDragDropOperation, .machineSwitched, .hideMouse:
+            onMachineEvent?(packet)
 
         case .heartbeat:
             // Update remote machine name from heartbeat payload
@@ -826,6 +856,11 @@ extension NWConnection {
             self.receive(minimumIncompleteLength: minimumIncompleteLength, maximumLength: maximumLength) { data, _, isComplete, error in
                 if let error {
                     continuation.resume(throwing: error)
+                } else if let data, !data.isEmpty {
+                    // Deliver data even when it arrives together with the
+                    // peer's FIN (isComplete); callers observe EOF on the
+                    // next receive instead.
+                    continuation.resume(returning: data)
                 } else if isComplete {
                     continuation.resume(returning: nil)
                 } else {

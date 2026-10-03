@@ -16,7 +16,7 @@ Contributions and bug reports are welcome. If you run into issues, please [open 
 
 ## Features
 
-- **Encrypted communication** — AES-256-CBC encryption on all packets with PBKDF2 key derivation (50,000 iterations)
+- **Encrypted communication** — AES-256-CBC encryption on all packets with per-connection random salt + IV negotiation and PBKDF2 key derivation (100,000 iterations, PowerToys ≥ v0.101.2211 required)
 - **Full MWB protocol handshake** — 10-round challenge/response with noise exchange and identity verification
 - **Bi-directional input sharing** — Share your mouse and keyboard in both directions between macOS and Windows
 - **Edge crossing** — Move your cursor off the edge of one screen and it appears on the other, with configurable screen position and debounce

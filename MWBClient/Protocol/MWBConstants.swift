@@ -21,11 +21,11 @@ enum MWBConstants {
     static let handshakeIterationCount = 10
     static let noiseSize = 16
 
-    static let pbkdf2Iterations = 50_000
+    static let pbkdf2Iterations = 100_000
     static let derivedKeyLength = 32
     static let ivLength = 16
-    static let saltString = "18446744073709551615"
-    static let ivString = "1844674407370955"
+    static let saltSize = 16
+    static let streamHeaderSize = 32
     static let sha512Rounds = 50_001
 
     static let virtualDesktopMax: Int32 = 65535

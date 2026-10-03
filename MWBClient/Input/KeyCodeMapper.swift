@@ -63,10 +63,10 @@ enum KeyCodeMapper {
         0x10: 0x38, // VK_SHIFT -> Shift (left)
         0xA0: 0x38, // VK_LSHIFT -> Shift
         0xA1: 0x3C, // VK_RSHIFT -> Right Shift
-        0x11: 0x3A, // VK_CONTROL -> Control (left)
-        0xA2: 0x3A, // VK_LCONTROL -> Control
+        0x11: 0x3B, // VK_CONTROL -> Control (left)
+        0xA2: 0x3B, // VK_LCONTROL -> Control
         0xA3: 0x3E, // VK_RCONTROL -> Right Control
-        0x12: 0x3A, // VK_MENU -> Option (mapped to Control since MWB uses Ctrl for Ctrl)
+        0x12: 0x3A, // VK_MENU -> Option (left)
         0xA4: 0x3A, // VK_LMENU -> Option
         0xA5: 0x3D, // VK_RMENU -> Right Option
 
@@ -95,7 +95,7 @@ enum KeyCodeMapper {
         0x5C: 0x36, // VK_RWIN -> Right Command
 
         // Punctuation (US layout)
-        0xBD: 0x0A, // VK_OEM_MINUS -> -
+        0xBD: 0x1B, // VK_OEM_MINUS -> - / _
         0xBB: 0x18, // VK_OEM_PLUS -> =
         0xDB: 0x21, // VK_OEM_4 -> [
         0xDD: 0x1E, // VK_OEM_6 -> ]
@@ -118,23 +118,62 @@ enum KeyCodeMapper {
         0x67: 0x59, // VK_NUMPAD7
         0x68: 0x5B, // VK_NUMPAD8
         0x69: 0x5C, // VK_NUMPAD9
+        0x6A: 0x43, // VK_MULTIPLY -> Keypad *
+        0x6B: 0x45, // VK_ADD -> Keypad +
+        0x6D: 0x4E, // VK_SUBTRACT -> Keypad -
+        0x6E: 0x41, // VK_DECIMAL -> Keypad .
+        0x6F: 0x4B, // VK_DIVIDE -> Keypad /
+        0x90: 0x47, // VK_NUMLOCK -> Keypad Clear
     ]
 
     private static let macToVK: [UInt16: UInt16] = {
         var map = [UInt16: UInt16]()
+        // Left/right-specific VK codes win over the generic ones so the
+        // Mac -> Windows direction is deterministic (PowerToys sends the
+        // specific codes from its low-level keyboard hook).
+        let preferred: Set<UInt16> = [0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0x5B, 0x5C]
         for (vk, mac) in vkToMac {
-            if map[mac] == nil {
-                map[mac] = vk
+            if let existing = map[mac], !preferred.contains(vk) || preferred.contains(existing) {
+                continue
             }
+            map[mac] = vk
         }
         return map
     }()
 
-    static func vkToMacOS(vkCode: UInt16) -> UInt16? {
-        vkToMac[vkCode]
+    static func vkToMacOS(vkCode: UInt16, extended: Bool = false) -> UInt16? {
+        // VK_RETURN from the numeric keypad's Enter carries LLKHF_EXTENDED
+        // (MSDN extended-key set); PowerToys forwards the hook flag verbatim.
+        if vkCode == 0x0D, extended { return 0x4C } // kVK_ANSI_KeypadEnter
+        return vkToMac[vkCode]
     }
 
     static func macOSToVK(macOSKeycode: UInt16) -> UInt16? {
         macToVK[macOSKeycode]
+    }
+
+    /// Swaps Option <-> Command keycodes (0x3A <-> 0x37, 0x3D <-> 0x36).
+    /// Applied after the table lookup when the user enables the Option/Command
+    /// swap for keyboards laid out Ctrl-Win-Alt instead of Ctrl-Opt-Cmd.
+    static func swappedModifierKeycode(_ keycode: UInt16) -> UInt16 {
+        switch keycode {
+        case 0x3A: return 0x37  // Left Option -> Left Command
+        case 0x37: return 0x3A  // Left Command -> Left Option
+        case 0x3D: return 0x36  // Right Option -> Right Command
+        case 0x36: return 0x3D  // Right Command -> Right Option
+        default: return keycode
+        }
+    }
+
+    /// Swaps Win <-> Alt VK codes (0x5B <-> 0xA4, 0x5C <-> 0xA5), the
+    /// Mac -> Windows mirror of ``swappedModifierKeycode``.
+    static func swappedModifierVK(_ vkCode: UInt16) -> UInt16 {
+        switch vkCode {
+        case 0x5B: return 0xA4  // VK_LWIN -> VK_LMENU
+        case 0xA4: return 0x5B  // VK_LMENU -> VK_LWIN
+        case 0x5C: return 0xA5  // VK_RWIN -> VK_RMENU
+        case 0xA5: return 0x5C  // VK_RMENU -> VK_RWIN
+        default: return vkCode
+        }
     }
 }

@@ -34,14 +34,25 @@ final class InputCapture {
   /// and only forwarded via callbacks.
   var crossingActive = false {
     didSet {
-      if crossingActive {
+      if crossingActive != oldValue {
         crossingStartTime = Date()
+        if crossingActive {
+          // A held modifier's key up is suppressed while crossing is active,
+          // which would leave the local session with a stuck modifier. Clear
+          // every currently held modifier up front (mirrors ReleaseAllKeys).
+          releaseLocalModifiers()
+        }
       }
     }
   }
 
   /// The timestamp when the current crossing started. Used to debounce immediate cross-backs.
   private var crossingStartTime: Date = .distantPast
+
+  /// Marker written to `eventSourceUserData` on synthetic events posted by
+  /// ``releaseLocalModifiers()`` so the event tap can pass them through
+  /// unmodified instead of suppressing or forwarding them.
+  fileprivate static let syntheticEventTag: Int64 = 0x4D574253594E5448  // "MWBSYNTH"
 
   /// Virtual cursor position while crossing (0-65535).
   /// Tracked by accumulating deltas so the physical cursor doesn't hit screen edges.
@@ -451,6 +462,25 @@ final class InputCapture {
   fileprivate func handleKeyboardEvent(_ event: CGEvent, type: CGEventType) -> Unmanaged<CGEvent>? {
     let macKeycode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
 
+    // Caps Lock: forward a down+up pair only when the lock state changed.
+    if type == .flagsChanged && macKeycode == 0x39 {
+      let alphaShiftOn = event.flags.contains(.maskAlphaShift)
+      let changed = alphaShiftOn != lastAlphaShift
+      lastAlphaShift = alphaShiftOn
+
+      if changed, let vkCode = KeyCodeMapper.macOSToVK(macOSKeycode: macKeycode) {
+        onKeyboardEvent?(KeyboardData(vkCode: vkCode, flags: 0))
+        onKeyboardEvent?(KeyboardData(vkCode: vkCode, flags: LLKHFFlag.up.rawValue))
+      }
+
+      lastInputTimestamp = Date()
+
+      if crossingActive {
+        return nil
+      }
+      return Unmanaged.passUnretained(event)
+    }
+
     guard let vkCode = KeyCodeMapper.macOSToVK(macOSKeycode: macKeycode) else {
       // Unmapped key; pass through without forwarding.
       return Unmanaged.passUnretained(event)
@@ -516,7 +546,8 @@ final class InputCapture {
   /// Determines whether a modifier key was released in a flagsChanged event.
   ///
   /// Checks the modifier flags bitmask: if the corresponding modifier bit
-  /// is NOT set, the key was released.
+  /// is NOT set, the key was released. Caps Lock never reaches this helper;
+  /// it is handled directly in ``handleKeyboardEvent``.
   private func isModifierReleased(event: CGEvent, keycode: UInt16) -> Bool {
     let flags = event.flags
     switch keycode {
@@ -528,12 +559,42 @@ final class InputCapture {
       return !flags.contains(.maskAlternate)
     case 0x37, 0x36:  // Left Command, Right Command
       return !flags.contains(.maskCommand)
-    case 0x39:  // Caps Lock
-      // Caps Lock toggles; treat as key down (press) for simplicity.
-      return false
     default:
       // Non-modifier key in flagsChanged; treat as key down.
       return false
+    }
+  }
+
+  /// Previous Caps Lock state observed in a flagsChanged event. macOS emits
+  /// an event for both the press and the release of the physical key while
+  /// the lock state changes only once; forwarding both would toggle twice on
+  /// Windows (a no-op). Only actual state transitions are forwarded.
+  private var lastAlphaShift: Bool?
+
+  /// Posts local `.flagsChanged` key-up events for every modifier currently
+  /// held, clearing the local modifier state before input is forwarded to the
+  /// remote machine. The events are tagged so this tap does not consume them.
+  /// Caps Lock is intentionally left alone (hardware toggle semantics).
+  private func releaseLocalModifiers() {
+    var flags = CGEventSource.flagsState(.combinedSessionState)
+
+    let held: [(bit: CGEventFlags, keycode: UInt16)] = [
+      (.maskShift, 0x38),
+      (.maskControl, 0x3B),
+      (.maskAlternate, 0x3A),
+      (.maskCommand, 0x37),
+    ]
+
+    for (bit, keycode) in held where flags.contains(bit) {
+      flags.remove(bit)
+      guard let event = CGEvent(keyboardEventSource: MWBEventSource.shared, virtualKey: keycode, keyDown: false) else {
+        continue
+      }
+      event.type = .flagsChanged
+      event.flags = flags
+      event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticEventTag)
+      event.post(tap: .cghidEventTap)
+      mwbInfo(MWBLog.input, "Crossing start: released local modifier 0x\(String(keycode, radix: 16))")
     }
   }
 }
@@ -572,6 +633,12 @@ private func eventTapCallback(
   }
 
   guard let capture = inputCaptureBridge else {
+    return Unmanaged.passUnretained(event)
+  }
+
+  // Synthetic events posted by InputCapture (local modifier release on
+  // crossing start) must neither be suppressed nor forwarded again.
+  if event.getIntegerValueField(.eventSourceUserData) == InputCapture.syntheticEventTag {
     return Unmanaged.passUnretained(event)
   }
 

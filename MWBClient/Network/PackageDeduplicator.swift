@@ -32,3 +32,34 @@ struct PackageDeduplicator {
         index = 0
     }
 }
+
+/// Thread-safe dedup store shared by every receive path (``NetworkManager``
+/// and ``ServerListener``).
+///
+/// PowerToys sends each packet over *all* connected sockets to the
+/// destination machine (`Common.SkSend` iterates `TcpSockets`), so the same
+/// packet ID can arrive over different connections — one accepted by
+/// NetworkManager (the Mac's outbound connection) and one accepted by
+/// ServerListener (Windows' inbound client connection). Windows dedups in a
+/// single global `Receiver` window; the Mac must do the same or every input
+/// event is dispatched (and injected) twice.
+final class SharedPackageDeduplicator: @unchecked Sendable {
+    /// Packet types that may legitimately repeat with the same ID
+    /// (per PowerToys Receiver.cs).
+    private static let exemptFromDedup: Set<PackageType> = [
+        .handshake, .handshakeAck, .clipboardText, .clipboardImage,
+    ]
+
+    private let lock = NSLock()
+    private var dedup = PackageDeduplicator()
+
+    /// Returns true if this type/id was already seen (duplicate delivery).
+    func isDuplicate(type: PackageType, id: UInt32) -> Bool {
+        if Self.exemptFromDedup.contains(type) { return false }
+        return lock.withLock { dedup.isDuplicate(id) }
+    }
+
+    func reset() {
+        lock.withLock { dedup.reset() }
+    }
+}

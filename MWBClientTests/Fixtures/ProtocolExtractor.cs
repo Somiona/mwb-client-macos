@@ -11,10 +11,12 @@ namespace ProtocolExtractor
         {
             string key = "opencode123!";
             
-            // 1. Generate PBKDF2 Key
-            string initialIV = ulong.MaxValue.ToString();
-            byte[] salt = Encoding.Unicode.GetBytes(initialIV);
-            byte[] derivedKey = Rfc2898DeriveBytes.Pbkdf2(key, salt, 50000, HashAlgorithmName.SHA512, 32);
+            // 1. Generate PBKDF2 Key (PowerToys v0.101.2211+: per-connection
+            //    random 16-byte salt, 100,000 iterations — see
+            //    MouseWithoutBorders/App/Core/Encryption.cs GenLegalKey)
+            byte[] salt = new byte[16];
+            for (int i = 0; i < 16; i++) salt[i] = (byte)i;
+            byte[] derivedKey = Rfc2898DeriveBytes.Pbkdf2(key, salt, 100000, HashAlgorithmName.SHA512, 32);
             File.WriteAllBytes("key.bin", derivedKey);
 
             // 2. Generate Magic Number

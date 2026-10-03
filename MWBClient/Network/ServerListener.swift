@@ -30,7 +30,7 @@ actor ServerListener {
     private var listener: NWListener?
     private var connectionTasks: [UInt32: Task<Void, Never>] = [:]
     private var connections: [UInt32: (NWConnection, MWBCrypto, UInt32)] = [:]
-    private var dedup = PackageDeduplicator()
+    private let dedup: SharedPackageDeduplicator
     private var nextPacketID: UInt32 = UInt32.random(in: 1..<0x7FFFFFFF)
 
     // MARK: Callbacks
@@ -39,16 +39,19 @@ actor ServerListener {
     var onMouse: MouseCallback?
     var onKeyboard: KeyboardCallback?
     var onClipboard: ClipboardCallback?
+    var onMachineEvent: MachineEventCallback?
 
-    /// Sets all three callbacks in a single actor-isolated call.
+    /// Sets all callbacks in a single actor-isolated call.
     func setCallbacks(
         onMouse: MouseCallback?,
         onKeyboard: KeyboardCallback?,
-        onClipboard: ClipboardCallback?
+        onClipboard: ClipboardCallback?,
+        onMachineEvent: MachineEventCallback? = nil
     ) {
         self.onMouse = onMouse
         self.onKeyboard = onKeyboard
         self.onClipboard = onClipboard
+        self.onMachineEvent = onMachineEvent
     }
 
     // MARK: Init
@@ -60,7 +63,8 @@ actor ServerListener {
         machineName: String = Host.current().localizedName ?? "Mac",
         screenWidth: UInt16 = UInt16(NSScreen.main?.frame.width ?? 1920),
         screenHeight: UInt16 = UInt16(NSScreen.main?.frame.height ?? 1080),
-        settings: SettingsStore
+        settings: SettingsStore,
+        dedup: SharedPackageDeduplicator = SharedPackageDeduplicator()
     ) {
         self.port = port
         self.securityKey = securityKey
@@ -69,6 +73,7 @@ actor ServerListener {
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
         self.settings = settings
+        self.dedup = dedup
     }
 
     // MARK: Start / Stop
@@ -332,6 +337,10 @@ actor ServerListener {
     // MARK: Noise Exchange (Outbound — same order as NetworkManager)
 
     private func exchangeNoiseOutbound(_ conn: NWConnection, crypto: MWBCrypto) async throws {
+        // Send the 32-byte cleartext salt+IV stream header first
+        // (PowerToys v0.101.2211+: Encryption.GetEncryptedStream)
+        try await conn.send(content: crypto.makeOutboundHeader())
+
         // Send 16 bytes of random encrypted data
         var randomNoise = Data(count: MWBConstants.noiseSize)
         randomNoise.withUnsafeMutableBytes { ptr in
@@ -339,6 +348,18 @@ actor ServerListener {
         }
         let encryptedNoise = crypto.encrypt(padToBlock(randomNoise))
         try await conn.send(content: encryptedNoise)
+
+        // Receive the peer's 32-byte cleartext salt+IV stream header
+        // (PowerToys v0.101.2211+: Encryption.GetDecryptedStream)
+        guard
+            let headerData = try await conn.receive(
+                minimumIncompleteLength: MWBConstants.streamHeaderSize,
+                maximumLength: MWBConstants.streamHeaderSize),
+            headerData.count == MWBConstants.streamHeaderSize
+        else {
+            throw NetworkError.handshakeFailed("short encryption header")
+        }
+        crypto.processInboundHeader(headerData)
 
         // Receive 16 bytes of noise
         let receivedNoise = try await conn.receive(
@@ -506,17 +527,10 @@ actor ServerListener {
             respondToHeartbeat(packet, connection: connection, crypto: crypto, magicHash: magicHash, machineID: handler.adoptedMachineID)
             return true
 
-        case .explorerDragDrop:
-            Task { @MainActor in
-                DragDropManager.shared.handleExplorerDragDropRequest()
-            }
-            return true
-            
-        case .clipboardDragDrop:
-            Task { @MainActor in
-                DragDropManager.shared.handleRemoteDragAnnounced()
-            }
-            return true
+        case .explorerDragDrop, .clipboardDragDrop:
+            // Routed to onMachineEvent via dispatchPacket (handled by the
+            // coordinator); no longer consumed inline.
+            return false
 
         default:
             return false
@@ -591,13 +605,9 @@ actor ServerListener {
     private func dispatchPacket(_ packet: MWBPacket) {
         guard let type = packet.packageType else { return }
 
-        // Skip dedup for certain packet types (per PowerToys Receiver.cs)
-        let exemptFromDedup: Set<PackageType> = [.handshake, .handshakeAck, .clipboardText, .clipboardImage]
-        if !exemptFromDedup.contains(type) {
-            if dedup.isDuplicate(packet.id) {
-                mwbDebug(MWBLog.network, "ServerListener dedup: dropping duplicate packet id=\(packet.id)")
-                return
-            }
+        if dedup.isDuplicate(type: type, id: packet.id) {
+            mwbDebug(MWBLog.network, "ServerListener dedup: dropping duplicate packet id=\(packet.id)")
+            return
         }
 
         switch type {
@@ -632,8 +642,12 @@ actor ServerListener {
             }
 
         case .clipboard, .clipboardText, .clipboardImage, .clipboardDataEnd,
-             .clipboardAsk, .clipboardPush, .clipboardDragDrop, .clipboardDragDropEnd:
+             .clipboardAsk, .clipboardPush:
             onClipboard?(packet)
+
+        case .explorerDragDrop, .clipboardDragDrop, .clipboardDragDropEnd,
+             .clipboardDragDropOperation, .machineSwitched, .hideMouse:
+            onMachineEvent?(packet)
 
         case .byeBye:
             mwbInfo(MWBLog.network,"Received ByeBye packet, disconnecting")

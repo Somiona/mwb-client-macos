@@ -46,6 +46,7 @@ final class AppCoordinator {
     private var serverListener: ServerListener?
     private var heartbeatService: HeartbeatService?
     private var clipboardManager: ClipboardManager?
+    private var clipboardChannel: ClipboardChannel?
 
     private let inputCapture = InputCapture()
     private let inputInjection = InputInjection()
@@ -87,16 +88,38 @@ final class AppCoordinator {
     }
 
     private func setupDragDrop() {
-        DragDropManager.shared.setDragDetectedCallback { [weak self] _ in
+        DragDropManager.shared.setDragDetectedCallback { [weak self] path in
             Task { @MainActor [weak self] in
-                self?.sendClipboardDragDrop()
+                self?.handleLocalDragDetected(path: path)
             }
         }
-        
-        NotificationCenter.default.addObserver(forName: .mwbTriggerClipboardPull, object: nil, queue: .main) { [weak self] (_: Notification) in
+
+        DragDropManager.shared.setDropRequestedCallback { [weak self] postAction in
             Task { @MainActor [weak self] in
-                await self?.clipboardManager?.pullLargeData()
+                self?.pullRemoteClipboard(postAction: postAction)
             }
+        }
+    }
+
+    /// A Mac-local drag was captured while crossing to the remote machine:
+    /// stage the file on the clipboard channel and announce it
+    /// (ClipboardDragDrop 70 broadcast + ClipboardDragDropOperation 75 to the
+    /// drop machine).
+    private func handleLocalDragDetected(path: String) {
+        guard let channel = clipboardChannel else { return }
+
+        Task {
+            await channel.setPendingDragFile(path)
+        }
+
+        sendClipboardDragDrop()
+    }
+
+    /// Pulls the remote machine's large clipboard data over the channel.
+    private func pullRemoteClipboard(postAction: ClipboardPostAction) {
+        guard let channel = clipboardChannel else { return }
+        Task {
+            await channel.pull(postAction: postAction)
         }
     }
 
@@ -114,6 +137,10 @@ final class AppCoordinator {
         let port = MWBConstants.inputPort
         let machineName = settings.machineName
         let screenSize = ScreenInfo.mainScreenSizeUInt16
+        // One dedup window across both receive paths: Windows sends every
+        // packet over all sockets to this machine (Common.SkSend), so the
+        // same packet ID can arrive via NetworkManager and ServerListener.
+        let dedupStore = SharedPackageDeduplicator()
 
         // --- Create subsystems ---
 
@@ -124,14 +151,22 @@ final class AppCoordinator {
             machineID: machineID,
             machineName: machineName,
             screenWidth: screenSize.width,
-            screenHeight: screenSize.height
+            screenHeight: screenSize.height,
+            dedup: dedupStore
         )
 
         let cm = ClipboardManager(
             machineID: machineID,
+            machineName: machineName,
             syncText: settings.syncText,
             syncImages: settings.syncImages,
             syncFiles: settings.syncFiles
+        )
+
+        let channel = ClipboardChannel(
+            securityKey: securityKey,
+            machineID: machineID,
+            machineName: machineName
         )
 
         let sl = ServerListener(
@@ -141,18 +176,39 @@ final class AppCoordinator {
             machineName: machineName,
             screenWidth: screenSize.width,
             screenHeight: screenSize.height,
-            settings: settings
+            settings: settings,
+            dedup: dedupStore
         )
 
         networkManager = nm
         clipboardManager = cm
+        clipboardChannel = channel
         serverListener = sl
 
-        // Wire clipboard manager to send via network manager
+        // Wire clipboard manager and channel callbacks on actor contexts
         Task {
             await cm.setSendPacketCallback { [weak nm] packet in
                 await nm?.sendPacket(packet)
             }
+            await cm.setClipboardChannel(channel)
+            await channel.setCallbacks(
+                onReceivedText: { [weak cm] decoded in
+                    await cm?.handleChannelText(decoded)
+                },
+                onReceivedImage: { [weak cm] imageData in
+                    await cm?.handleChannelImage(imageData)
+                },
+                onReceivedFile: { [weak self] url, postAction in
+                    await MainActor.run {
+                        self?.handleChannelFile(url: url, postAction: postAction)
+                    }
+                },
+                onConnectionAccepted: {
+                    await MainActor.run {
+                        DragDropManager.shared.resetForChannelAccept()
+                    }
+                }
+            )
         }
 
         // --- Edge detector configuration ---
@@ -191,6 +247,11 @@ final class AppCoordinator {
                     Task { @MainActor [weak self] in
                         self?.handleMatrixUpdate(matrix: matrix, oneRow: oneRow, circle: circle)
                     }
+                },
+                onMachineEvent: { [weak self] packet in
+                    Task { @MainActor [weak self] in
+                        self?.handleMachineEvent(packet)
+                    }
                 }
             )
 
@@ -209,6 +270,11 @@ final class AppCoordinator {
                 onClipboard: { [weak cm] packet in
                     Task {
                         await cm?.handleIncomingPacket(packet)
+                    }
+                },
+                onMachineEvent: { [weak self] packet in
+                    Task { @MainActor [weak self] in
+                        self?.handleMachineEvent(packet)
                     }
                 }
             )
@@ -250,7 +316,8 @@ final class AppCoordinator {
         // 3. Clean up other subsystems
         if let hb = heartbeatService { await hb.stop() }
         if let cm = clipboardManager { await cm.stop() }
-        
+        if let channel = clipboardChannel { await channel.stop() }
+
         // 4. Clean up local state
         errorMessage = nil
         statePollTask?.cancel()
@@ -262,6 +329,7 @@ final class AppCoordinator {
         serverListener = nil
         heartbeatService = nil
         clipboardManager = nil
+        clipboardChannel = nil
 
         inputCapture.stop()
         inputCapture.crossingActive = false
@@ -391,7 +459,7 @@ final class AppCoordinator {
         updateCrossingEdgeFromMatrix()
 
         // Update clipboard manager with the adopted machine ID
-        await cm.updateMachineID(machineID)
+        await cm.updateIdentity(machineID: machineID, machineName: settings.machineName)
 
         // Create HeartbeatService with proper parameters
         let hb = HeartbeatService(
@@ -412,6 +480,14 @@ final class AppCoordinator {
         // Start clipboard manager
         await cm.start()
 
+        // Update and start the clipboard channel (port 15100) with the
+        // adopted identity and the remote's coordinates.
+        if let channel = clipboardChannel {
+            await channel.updateIdentity(machineID: machineID, machineName: settings.machineName)
+            await channel.updateRemote(host: settings.windowsIP, name: connectedName)
+            await channel.start()
+        }
+
         // Start server listener (so Windows can connect back to us)
         await sl.start()
 
@@ -422,17 +498,20 @@ final class AppCoordinator {
 
     // MARK: - Subsystem Lifecycle (ReopenSockets Pattern)
 
-    /// Stops all subsystems (HeartbeatService, ClipboardManager, ServerListener).
+    /// Stops all subsystems (HeartbeatService, ClipboardManager, ServerListener,
+    /// ClipboardChannel).
     /// Called when NetworkManager enters .reconnecting or .disconnected state.
     private func stopSubsystems() {
         mwbInfo(MWBLog.coordinator, "Stopping subsystems (ReopenSockets)")
         let hb = heartbeatService
         let cm = clipboardManager
         let sl = serverListener
+        let channel = clipboardChannel
 
         Task {
             await hb?.stop()
             await cm?.stop()
+            await channel?.stop()
             await sl?.stop()
         }
     }
@@ -456,7 +535,7 @@ final class AppCoordinator {
         updateCrossingEdgeFromMatrix()
 
         // Update clipboard manager with the adopted machine ID
-        await clipboardManager?.updateMachineID(machineID)
+        await clipboardManager?.updateIdentity(machineID: machineID, machineName: settings.machineName)
 
         // Recreate HeartbeatService with fresh params from the new connection
         let hb = HeartbeatService(
@@ -474,6 +553,13 @@ final class AppCoordinator {
 
         // Restart clipboard manager (it will reconnect internally)
         await clipboardManager?.start()
+
+        // Restart the clipboard channel with the fresh identity
+        if let channel = clipboardChannel {
+            await channel.updateIdentity(machineID: machineID, machineName: settings.machineName)
+            await channel.updateRemote(host: settings.windowsIP, name: connectedName)
+            await channel.start()
+        }
 
         // Restart server listener
         await serverListener?.start()
@@ -650,6 +736,14 @@ final class AppCoordinator {
             x: landing.x,
             y: landing.y
         )
+
+        // Tell the remote machine it gained control so it pulls our large
+        // clipboard data if we announced any (reference PrepareToSwitchToMachine).
+        sendMachineSwitched()
+
+        // With the mouse held down, a Mac-local drag may be in progress:
+        // capture it before the cursor leaves this screen.
+        DragDropManager.shared.beginLocalDragCheck()
     }
 
     /// Computes the cursor position (in MWB virtual coords 0-65535) on the remote
@@ -718,9 +812,11 @@ final class AppCoordinator {
     private func handleRemoteMouse(_ data: MouseData) {
         guard connectionState == .connected else { return }
 
-        // Track remote mouse up for potential drop
-        if data.dwFlags == WMMouseMessage.lButtonUp.rawValue {
-            DragDropManager.shared.handleRemoteMouseUp()
+        // Track the injected mouse button for drag & drop.
+        if data.dwFlags == WMMouseMessage.lButtonDown.rawValue {
+            DragDropManager.shared.handleRemoteMouseButton(down: true)
+        } else if data.dwFlags == WMMouseMessage.lButtonUp.rawValue {
+            DragDropManager.shared.handleRemoteMouseButton(down: false)
         }
 
         // First mouse event from Windows means cursor is returning
@@ -733,7 +829,71 @@ final class AppCoordinator {
 
     private func handleRemoteKeyboard(_ data: KeyboardData) {
         guard connectionState == .connected else { return }
-        inputInjection.injectKeyboard(data)
+        inputInjection.injectKeyboard(data, swapOptionCommand: settings.swapOptionCommand)
+    }
+
+    // MARK: - Machine Events (switching, drag & drop choreography)
+
+    /// Routes machine-level packets (50/70/71/72/75/77) from either socket.
+    /// Handlers are idempotent, so duplicate delivery over both sockets is
+    /// harmless.
+    private func handleMachineEvent(_ packet: MWBPacket) {
+        guard let type = packet.packageType else { return }
+
+        switch type {
+        case .hideMouse:
+            // We lost control: release everything the remote held down.
+            inputInjection.releaseAllKeys()
+            inputInjection.releaseAllMouseButtons()
+
+        case .machineSwitched:
+            // We gained control: pull the remote's large clipboard data if it
+            // announced any recently.
+            guard packet.des == localMachineID else { return }
+            pullIfFreshBeat()
+
+        case .explorerDragDrop:
+            // The machine being entered asks whether we are dragging a file.
+            DragDropManager.shared.handleExplorerDragDropRequest(from: packet.src)
+
+        case .clipboardDragDrop:
+            // The drag source announces it has a file ready.
+            DragDropManager.shared.handleDragAnnounced(from: packet.src)
+
+        case .clipboardDragDropOperation:
+            // We are the drop target of an in-progress remote drag.
+            guard packet.des == localMachineID else { return }
+            DragDropManager.shared.handleDropBegin()
+
+        case .clipboardDragDropEnd:
+            DragDropManager.shared.handleDragDropEnd()
+
+        default:
+            break
+        }
+    }
+
+    /// A file received over the clipboard channel: put it on the pasteboard
+    /// and, for desktop drops, reveal it in Finder.
+    private func handleChannelFile(url: URL, postAction: ClipboardPostAction) {
+        guard let cm = clipboardManager else { return }
+        Task {
+            await cm.writeFileToPasteboard(url)
+        }
+
+        if postAction == .desktop {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        }
+    }
+
+    /// Pulls the remote's large clipboard data when a fresh beat was recorded.
+    private func pullIfFreshBeat() {
+        guard let cm = clipboardManager, let channel = clipboardChannel else { return }
+        Task {
+            if await cm.consumeFreshBeat() {
+                await channel.pull(postAction: .other)
+            }
+        }
     }
 
     // MARK: - Sleep / Wake
@@ -765,11 +925,16 @@ final class AppCoordinator {
     private func forwardKeyboardToRemote(_ data: KeyboardData) async {
         guard let nm = networkManager else { return }
 
+        var forwarded = data
+        if settings.swapOptionCommand {
+            forwarded.vkCode = KeyCodeMapper.swappedModifierVK(forwarded.vkCode)
+        }
+
         var packet = MWBPacket()
         packet.type = PackageType.keyboard.rawValue
         packet.src = localMachineID
         packet.des = MWBConstants.broadcastDestination
-        data.write(to: &packet)
+        forwarded.write(to: &packet)
 
         await nm.sendPacket(packet)
     }
@@ -781,6 +946,26 @@ final class AppCoordinator {
         isCrossingActive = false
         inputCapture.crossingActive = false
         edgeDetector.crossingDidEnd()
+
+        // We regained control: tell the remote to hide its cursor and release
+        // the keys it held (reference HideMouse handling).
+        sendHideMouse()
+
+        // A Mac -> remote drag that came back without a drop is cancelled.
+        if DragDropManager.shared.isDragging {
+            sendClipboardDragDropEnd()
+            DragDropManager.shared.cancelLocalDrag()
+            if let channel = clipboardChannel {
+                Task { await channel.setPendingDragFile(nil) }
+            }
+        }
+
+        // Flush any modifiers the Windows side still had held down.
+        inputInjection.releaseAllKeys()
+        inputInjection.releaseAllMouseButtons()
+
+        // Pull the remote's large clipboard data if it announced one recently.
+        pullIfFreshBeat()
     }
 
     // MARK: - NextMachine
@@ -819,13 +1004,101 @@ final class AppCoordinator {
     
     private func sendClipboardDragDrop() {
         guard let nm = networkManager else { return }
-        
+
         var packet = MWBPacket()
         packet.type = PackageType.clipboardDragDrop.rawValue
         packet.src = localMachineID
         packet.des = MWBConstants.broadcastDestination
-        
+
         Task {
+            await nm.sendPacket(packet)
+        }
+
+        // Also tell the drop machine the operation begins (reference
+        // DragDropStep06 broadcasts 70 then sends 75 to the drop machine).
+        sendClipboardDragDropOperation()
+    }
+
+    /// The machine ID of the remote peer, learned from inbound packets.
+    private var remoteMachineID: MachineID {
+        get async {
+            if let nm = networkManager {
+                let id = await nm.peerMachineID
+                if id != .none {
+                    return id
+                }
+            }
+            if let sl = serverListener {
+                let id = await sl.remoteMachineID
+                if id != .none {
+                    return id
+                }
+            }
+            return .none
+        }
+    }
+
+    private func sendMachineSwitched() {
+        Task { [weak self] in
+            guard let self, let nm = self.networkManager else { return }
+
+            let target = await self.remoteMachineID
+            guard target != .none else {
+                mwbWarning(MWBLog.coordinator, "Skipping MachineSwitched: remote machine ID unknown")
+                return
+            }
+
+            var packet = MWBPacket()
+            packet.type = PackageType.machineSwitched.rawValue
+            packet.src = self.localMachineID
+            packet.des = target
+            packet.machineName = self.settings.machineName
+
+            await nm.sendPacket(packet)
+        }
+    }
+
+    private func sendHideMouse() {
+        guard let nm = networkManager else { return }
+
+        var packet = MWBPacket()
+        packet.type = PackageType.hideMouse.rawValue
+        packet.src = localMachineID
+        packet.des = MWBConstants.broadcastDestination
+
+        Task {
+            await nm.sendPacket(packet)
+        }
+    }
+
+    private func sendClipboardDragDropEnd() {
+        guard let nm = networkManager else { return }
+
+        var packet = MWBPacket()
+        packet.type = PackageType.clipboardDragDropEnd.rawValue
+        packet.src = localMachineID
+        packet.des = MWBConstants.broadcastDestination
+
+        Task {
+            await nm.sendPacket(packet)
+        }
+    }
+
+    private func sendClipboardDragDropOperation() {
+        Task { [weak self] in
+            guard let self, let nm = self.networkManager else { return }
+
+            let target = await self.remoteMachineID
+            guard target != .none else {
+                mwbWarning(MWBLog.coordinator, "Skipping ClipboardDragDropOperation: remote machine ID unknown")
+                return
+            }
+
+            var packet = MWBPacket()
+            packet.type = PackageType.clipboardDragDropOperation.rawValue
+            packet.src = self.localMachineID
+            packet.des = target
+
             await nm.sendPacket(packet)
         }
     }

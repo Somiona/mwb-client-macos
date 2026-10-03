@@ -1,12 +1,15 @@
 import CommonCrypto
 import CryptoKit
 import Foundation
+import Security
 import os.log
 
 final class MWBCrypto {
-    internal let key: [UInt8]
     private let securityKey: String
-    private let initialIV: [UInt8]
+    // Per-direction keys derived from the per-connection salt+IV headers
+    // (mirrors PowerToys Encryption.GetEncryptedStream/GetDecryptedStream).
+    private var sendKey: [UInt8]?
+    private var recvKey: [UInt8]?
     private var encryptIV: [UInt8]
     private var decryptIV: [UInt8]
 
@@ -25,16 +28,22 @@ final class MWBCrypto {
 
     init(securityKey: String) {
         self.securityKey = securityKey
-        mwbDebug(MWBLog.crypto, "Deriving encryption key from security key")
+        encryptIV = [UInt8](repeating: 0, count: MWBConstants.ivLength)
+        decryptIV = [UInt8](repeating: 0, count: MWBConstants.ivLength)
+        mwbDebug(MWBLog.crypto, "Crypto instance created (keys derived per connection from salt+IV headers)")
+    }
 
-        let salt = MWBConstants.saltString.data(using: .utf16LittleEndian)!
+    /// PBKDF2-HMAC-SHA512 over the security key (UTF-8) and a raw salt,
+    /// 100,000 iterations, 32-byte output. Matches PowerToys
+    /// `Encryption.GenLegalKey(salt)` (`Rfc2898DeriveBytes.Pbkdf2`).
+    internal func deriveKey(salt: [UInt8]) -> [UInt8] {
         var derivedKey = [UInt8](repeating: 0, count: MWBConstants.derivedKeyLength)
-        let kdfStatus = salt.withUnsafeBytes { saltPtr in
+        let kdfStatus = salt.withUnsafeBufferPointer { saltPtr in
             CCKeyDerivationPBKDF(
                 CCPBKDFAlgorithm(kCCPBKDF2),
                 securityKey,
                 securityKey.utf8.count,
-                saltPtr.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                saltPtr.baseAddress!,
                 salt.count,
                 CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA512),
                 UInt32(MWBConstants.pbkdf2Iterations),
@@ -42,18 +51,42 @@ final class MWBCrypto {
                 MWBConstants.derivedKeyLength
             )
         }
-        assert(kdfStatus == kCCSuccess, "PBKDF2 key derivation failed with status \(kdfStatus)")
-        key = derivedKey
+        precondition(kdfStatus == kCCSuccess, "PBKDF2 key derivation failed with status \(kdfStatus)")
+        return derivedKey
+    }
 
-        initialIV = Array(MWBConstants.ivString.utf8.prefix(MWBConstants.ivLength))
-        encryptIV = initialIV
-        decryptIV = initialIV
+    /// Generates the per-connection cleartext stream header (16-byte random
+    /// PBKDF2 salt + 16-byte random AES-CBC IV), configures the outgoing
+    /// cipher, and returns the 32 bytes to write on the wire before any
+    /// ciphertext. Mirrors PowerToys `Encryption.GetEncryptedStream`.
+    func makeOutboundHeader() -> Data {
+        var header = [UInt8](repeating: 0, count: MWBConstants.streamHeaderSize)
+        let rc = SecRandomCopyBytes(kSecRandomDefault, header.count, &header)
+        precondition(rc == errSecSuccess, "SecRandomCopyBytes failed with \(rc)")
 
-        let keyHex = hexPrefix(key, 4)
-        let ivHex = hexPrefix(initialIV, 16)
-        let saltHex = hexPrefix(Array(salt), 4)
+        let salt = Array(header[0..<MWBConstants.saltSize])
+        let iv = Array(header[MWBConstants.saltSize..<MWBConstants.streamHeaderSize])
+        sendKey = deriveKey(salt: salt)
+        encryptIV = iv
+
         let now = Self.stamp()
-        mwbDebug(MWBLog.crypto, "[\(now)] [CRYPTO-INIT] key(4)=\(keyHex) iv=\(ivHex) salt(4)=\(saltHex)")
+        mwbDebug(MWBLog.crypto, "[\(now)] [CRYPTO-OUTBOUND] salt(4)=\(hexPrefix(salt, 4)) iv=\(hexPrefix(iv, 16))")
+        return Data(header)
+    }
+
+    /// Consumes the peer's 32-byte cleartext stream header and configures the
+    /// incoming cipher. Mirrors PowerToys `Encryption.GetDecryptedStream`.
+    func processInboundHeader(_ header: Data) {
+        precondition(header.count == MWBConstants.streamHeaderSize,
+                     "encryption header must be \(MWBConstants.streamHeaderSize) bytes, got \(header.count)")
+        let bytes = [UInt8](header)
+        let salt = Array(bytes[0..<MWBConstants.saltSize])
+        let iv = Array(bytes[MWBConstants.saltSize..<MWBConstants.streamHeaderSize])
+        recvKey = deriveKey(salt: salt)
+        decryptIV = iv
+
+        let now = Self.stamp()
+        mwbDebug(MWBLog.crypto, "[\(now)] [CRYPTO-INBOUND] salt(4)=\(hexPrefix(salt, 4)) iv=\(hexPrefix(iv, 16))")
     }
 
     private func hexPrefix(_ bytes: [UInt8], _ count: Int) -> String {
@@ -66,6 +99,9 @@ final class MWBCrypto {
 
     func encrypt(_ plaintext: Data) -> Data {
         precondition(plaintext.count % MWBConstants.ivLength == 0, "Plaintext must be block-aligned")
+        guard let key = sendKey else {
+            preconditionFailure("encrypt called before makeOutboundHeader()")
+        }
 
         let seq = opSequence
         opSequence += 1
@@ -108,6 +144,9 @@ final class MWBCrypto {
 
     func decrypt(_ ciphertext: Data) -> Data {
         precondition(ciphertext.count % MWBConstants.ivLength == 0, "Ciphertext must be block-aligned")
+        guard let key = recvKey else {
+            preconditionFailure("decrypt called before processInboundHeader(_:)")
+        }
 
         let seq = opSequence
         opSequence += 1
@@ -155,8 +194,10 @@ final class MWBCrypto {
         let now = Self.stamp()
         mwbDebug(MWBLog.crypto, "[\(now)] [CRYPTO-RESET] seq=\(seq)")
         opSequence = 0
-        encryptIV = initialIV
-        decryptIV = initialIV
+        sendKey = nil
+        recvKey = nil
+        encryptIV = [UInt8](repeating: 0, count: MWBConstants.ivLength)
+        decryptIV = [UInt8](repeating: 0, count: MWBConstants.ivLength)
     }
 
     func get24BitHash() -> UInt32 {

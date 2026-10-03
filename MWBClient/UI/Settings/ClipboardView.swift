@@ -26,7 +26,9 @@ struct ClipboardView: View {
                         .onChange(of: settings.syncFiles) {
                             coordinator.clipboardSettingsDidChange()
                         }
-                    Text("If a file (<100MB) is copied, it will be transferred to the remote machine clipboard")
+                    Text(
+                        "Copied files (<100MB) are transferred to ~/Desktop/MouseWithoutBorders on the receiving machine; drag and drop is also supported."
+                    )
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

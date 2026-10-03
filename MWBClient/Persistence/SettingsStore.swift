@@ -28,6 +28,8 @@ private enum SettingsKey {
     static let disableEasyMouseInFullscreen = "settings.disableEasyMouseInFullscreen"
     static let debugLogging = "settings.debugLogging"
     static let checkForUpdates = "settings.checkForUpdates"
+    static let swapOptionCommand = "settings.swapOptionCommand"
+    static let invertRemoteScroll = "settings.invertRemoteScroll"
 }
 
 // MARK: - Defaults
@@ -66,6 +68,8 @@ private enum SettingsDefault {
     static let disableEasyMouseInFullscreen = false
     static let debugLogging = false
     static let checkForUpdates = true
+    static let swapOptionCommand = false
+    static let invertRemoteScroll = false
 }
 
 // MARK: - Cached Settings (Hot-Path Optimized)
@@ -80,6 +84,7 @@ enum CachedSettings {
     nonisolated(unsafe) static var moveMouseRelatively = UserDefaults.standard.bool(forKey: "settings.moveMouseRelatively")
     nonisolated(unsafe) static var blockMouseAtCorners = UserDefaults.standard.bool(forKey: "settings.blockMouseAtCorners")
     nonisolated(unsafe) static var hideMouseAtScreenEdge = UserDefaults.standard.bool(forKey: "settings.hideMouseAtScreenEdge")
+    nonisolated(unsafe) static var invertRemoteScroll = UserDefaults.standard.bool(forKey: "settings.invertRemoteScroll")
 }
 
 // MARK: - SettingsStore
@@ -225,6 +230,21 @@ final class SettingsStore {
         }
     }
 
+    /// Swap the Option and Command keys, for keyboards laid out Ctrl-Win-Alt
+    /// (Windows order) instead of Ctrl-Opt-Cmd (Mac order).
+    var swapOptionCommand: Bool {
+        didSet { UserDefaults.standard.set(swapOptionCommand, forKey: SettingsKey.swapOptionCommand) }
+    }
+
+    /// Invert the direction of scroll events injected from the remote machine.
+    /// Mac-local scrolling is unaffected.
+    var invertRemoteScroll: Bool {
+        didSet {
+            UserDefaults.standard.set(invertRemoteScroll, forKey: SettingsKey.invertRemoteScroll)
+            CachedSettings.invertRemoteScroll = invertRemoteScroll
+        }
+    }
+
     var disableEasyMouseInFullscreen: Bool {
         didSet { UserDefaults.standard.set(disableEasyMouseInFullscreen, forKey: SettingsKey.disableEasyMouseInFullscreen) }
     }
@@ -284,6 +304,8 @@ final class SettingsStore {
         self.disableEasyMouseInFullscreen = defaults.object(forKey: SettingsKey.disableEasyMouseInFullscreen) as? Bool ?? SettingsDefault.disableEasyMouseInFullscreen
         self.debugLogging = defaults.object(forKey: SettingsKey.debugLogging) as? Bool ?? SettingsDefault.debugLogging
         self.checkForUpdates = defaults.object(forKey: SettingsKey.checkForUpdates) as? Bool ?? SettingsDefault.checkForUpdates
+        self.swapOptionCommand = defaults.object(forKey: SettingsKey.swapOptionCommand) as? Bool ?? SettingsDefault.swapOptionCommand
+        self.invertRemoteScroll = defaults.object(forKey: SettingsKey.invertRemoteScroll) as? Bool ?? SettingsDefault.invertRemoteScroll
 
         if let storedID = defaults.object(forKey: SettingsKey.machineID) as? Int {
             self.machineID = UInt32(truncatingIfNeeded: storedID)
@@ -321,5 +343,7 @@ final class SettingsStore {
         disableEasyMouseInFullscreen = SettingsDefault.disableEasyMouseInFullscreen
         debugLogging = SettingsDefault.debugLogging
         checkForUpdates = SettingsDefault.checkForUpdates
+        swapOptionCommand = SettingsDefault.swapOptionCommand
+        invertRemoteScroll = SettingsDefault.invertRemoteScroll
     }
 }
