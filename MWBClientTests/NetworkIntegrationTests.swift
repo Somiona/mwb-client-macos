@@ -35,10 +35,12 @@ final class NetworkIntegrationTests: XCTestCase {
           let magicHash = serverCrypto.get24BitHash()
 
           // 1. Receive noise from client
-          let clientNoise = try await conn.receive(minimumIncompleteLength: 16, maximumLength: 16)
-          XCTAssertEqual(clientNoise?.count, 16)
-          let unwrappedNoise = try XCTUnwrap(clientNoise)
-          _ = serverCrypto.decrypt(unwrappedNoise)  // Shifts server IV
+          // Client sends 32-byte cleartext salt+IV header, then 16 bytes of noise
+          let clientHello = try await conn.receive(minimumIncompleteLength: 48, maximumLength: 48)
+          XCTAssertEqual(clientHello?.count, 48)
+          let unwrappedHello = try XCTUnwrap(clientHello)
+          serverCrypto.startDecryptStream(header: unwrappedHello.prefix(32))
+          _ = serverCrypto.decrypt(unwrappedHello.dropFirst(32))  // Shifts server IV
 
           // 2. Send noise to client
           var serverNoise = Data(count: 16)
@@ -123,8 +125,9 @@ final class NetworkIntegrationTests: XCTestCase {
           let serverCrypto = MWBCrypto(securityKey: securityKey)
           let magicHash = serverCrypto.get24BitHash()
 
-          let clientNoise = try await conn.receive(minimumIncompleteLength: 16, maximumLength: 16)
-          _ = serverCrypto.decrypt(clientNoise!)
+          let clientHello = try await conn.receive(minimumIncompleteLength: 48, maximumLength: 48)
+          serverCrypto.startDecryptStream(header: clientHello!.prefix(32))
+          _ = serverCrypto.decrypt(clientHello!.dropFirst(32))
 
           let serverNoise = Data(count: 16)
           let encServerNoise = serverCrypto.encrypt(serverNoise)
