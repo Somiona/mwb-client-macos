@@ -365,6 +365,16 @@ actor NetworkManager {
         mwbDebug(MWBLog.crypto, "[\(now2)] [PHASE] noise-send: \(encryptedNoise.count) bytes ciphertext on wire")
         try await conn.send(content: encryptedNoise)
 
+        // Receive the peer's cleartext salt+IV header, then derive the decrypt key
+        let rawHeader = try await conn.receive(
+            minimumIncompleteLength: MWBConstants.streamHeaderLength,
+            maximumLength: MWBConstants.streamHeaderLength
+        )
+        guard let headerData = rawHeader, headerData.count == MWBConstants.streamHeaderLength else {
+            throw NetworkError.invalidNoise
+        }
+        crypto.startDecryptStream(header: headerData)
+
         // Receive 16 bytes of noise back
         let receivedNoise = try await conn.receive(minimumIncompleteLength: MWBConstants.noiseSize, maximumLength: MWBConstants.noiseSize)
         guard let noiseData = receivedNoise, noiseData.count == MWBConstants.noiseSize else {
