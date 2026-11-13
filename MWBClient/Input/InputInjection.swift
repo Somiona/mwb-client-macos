@@ -224,10 +224,16 @@ final class InputInjection {
     /// and posts a key down or key up event. Unmapped VK codes are silently
     /// ignored.
     func injectKeyboard(_ data: KeyboardData) {
-        guard let macOSKeycode = KeyCodeMapper.vkToMacOS(vkCode: data.vkCode) else {
+        let profile: KeyboardLayoutProfile = CachedSettings.abnt2Keyboard ? .abnt2 : .us
+        guard let macOSKeycode = KeyCodeMapper.vkToMacOS(vkCode: data.vkCode, profile: profile) else {
             mwbDebug(MWBLog.input, "Inject keyboard: unmapped VK code \(data.vkCode)")
             return
         }
+
+        mwbDebug(
+            MWBLog.input,
+            "Inject keyboard: VK \(data.vkCode) -> keycode \(macOSKeycode) "
+                + "[\(data.isKeyUp ? "up" : "down")]")
 
         guard let event = CGEvent(
             keyboardEventSource: nil,

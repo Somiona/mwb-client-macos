@@ -21,11 +21,13 @@ enum MWBConstants {
     static let handshakeIterationCount = 10
     static let noiseSize = 16
 
-    static let pbkdf2Iterations = 50_000
+    // PowerToys >= 0.101 (PRs #48742, #49600): per-connection random salt + IV sent in the
+    // clear at the start of each direction, PBKDF2-HMAC-SHA512 with 100,000 iterations.
+    static let pbkdf2Iterations = 100_000
     static let derivedKeyLength = 32
     static let ivLength = 16
-    static let saltString = "18446744073709551615"
-    static let ivString = "1844674407370955"
+    static let saltLength = 16
+    static let streamHeaderLength = saltLength + ivLength
     static let sha512Rounds = 50_001
 
     static let virtualDesktopMax: Int32 = 65535

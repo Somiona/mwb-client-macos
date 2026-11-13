@@ -3,7 +3,12 @@ import XCTest
 
 final class ProtocolBinaryTests: XCTestCase {
     func testHandshakePacketMatchesGoldenFile() throws {
+        // Xcode (xcodegen) bundles fixtures in the test bundle; SPM puts them in Bundle.module.
+        #if SWIFT_PACKAGE
+        let url = Bundle.module.url(forResource: "handshake", withExtension: "bin")!
+        #else
         let url = Bundle(for: type(of: self)).url(forResource: "handshake", withExtension: "bin")!
+        #endif
         let goldenData = try Data(contentsOf: url)
 
         var packet = MWBPacket()

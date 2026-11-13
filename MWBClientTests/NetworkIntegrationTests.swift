@@ -34,11 +34,12 @@ final class NetworkIntegrationTests: XCTestCase {
           let serverCrypto = MWBCrypto(securityKey: securityKey)
           let magicHash = serverCrypto.get24BitHash()
 
-          // 1. Receive noise from client
-          let clientNoise = try await conn.receive(minimumIncompleteLength: 16, maximumLength: 16)
-          XCTAssertEqual(clientNoise?.count, 16)
-          let unwrappedNoise = try XCTUnwrap(clientNoise)
-          _ = serverCrypto.decrypt(unwrappedNoise)  // Shifts server IV
+          // 1. Receive client hello: 32-byte cleartext salt+IV header, then 16-byte noise ciphertext
+          let clientHello = try await conn.receive(minimumIncompleteLength: 48, maximumLength: 48)
+          XCTAssertEqual(clientHello?.count, 48)
+          let unwrappedHello = try XCTUnwrap(clientHello)
+          serverCrypto.startDecryptStream(header: unwrappedHello.prefix(32))
+          _ = serverCrypto.decrypt(unwrappedHello.dropFirst(32))  // Shifts server IV
 
           // 2. Send noise to client
           var serverNoise = Data(count: 16)
@@ -58,8 +59,8 @@ final class NetworkIntegrationTests: XCTestCase {
           let encChallenge = serverCrypto.encrypt(challenge.transmittedData)
           try await conn.send(content: encChallenge)
 
-          // 4. Expect Handshake ACK (type 127) back from client
-          let ackData = try await conn.receive(minimumIncompleteLength: 32, maximumLength: 32)
+          // 4. Expect Handshake ACK (type 127) back from client (big packet: 64 bytes)
+          let ackData = try await conn.receive(minimumIncompleteLength: 64, maximumLength: 64)
           let unwrappedAck = try XCTUnwrap(ackData)
           let decAck = serverCrypto.decrypt(unwrappedAck)
           let ackPacket = MWBPacket(rawData: decAck)
@@ -123,8 +124,9 @@ final class NetworkIntegrationTests: XCTestCase {
           let serverCrypto = MWBCrypto(securityKey: securityKey)
           let magicHash = serverCrypto.get24BitHash()
 
-          let clientNoise = try await conn.receive(minimumIncompleteLength: 16, maximumLength: 16)
-          _ = serverCrypto.decrypt(clientNoise!)
+          let clientHello = try await conn.receive(minimumIncompleteLength: 48, maximumLength: 48)
+          serverCrypto.startDecryptStream(header: clientHello!.prefix(32))
+          _ = serverCrypto.decrypt(clientHello!.dropFirst(32))
 
           let serverNoise = Data(count: 16)
           let encServerNoise = serverCrypto.encrypt(serverNoise)
@@ -137,10 +139,14 @@ final class NetworkIntegrationTests: XCTestCase {
 
           // Client expects 10 iterations of handshake
           print("DEBUG: Mock server starting handshake")
-          for _ in 0..<10 {
+          for round in 0..<10 {
             try await conn.send(content: serverCrypto.encrypt(challenge.transmittedData))
-            let ackData = try await conn.receive(minimumIncompleteLength: 32, maximumLength: 32)
-            _ = serverCrypto.decrypt(ackData!)
+            // HandshakeAck is a big packet: 64 bytes on the wire
+            let ackData = try await conn.receive(minimumIncompleteLength: 64, maximumLength: 64)
+            let decAck = serverCrypto.decrypt(try XCTUnwrap(ackData))
+            XCTAssertEqual(
+              MWBPacket(rawData: decAck).packageType, .handshakeAck,
+              "Round \(round): client must ACK each challenge")
           }
           print("DEBUG: Mock server finished handshake")
 
