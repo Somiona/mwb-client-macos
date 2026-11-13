@@ -339,6 +339,16 @@ actor ServerListener {
         let encryptedNoise = crypto.encrypt(randomNoise)
         try await conn.send(content: encryptedNoise)
 
+        // Receive the peer's cleartext salt+IV header, then derive the decrypt key
+        let rawHeader = try await conn.receive(
+            minimumIncompleteLength: MWBConstants.streamHeaderLength,
+            maximumLength: MWBConstants.streamHeaderLength
+        )
+        guard let headerData = rawHeader, headerData.count == MWBConstants.streamHeaderLength else {
+            throw NetworkError.invalidNoise
+        }
+        crypto.startDecryptStream(header: headerData)
+
         // Receive 16 bytes of noise
         let receivedNoise = try await conn.receive(
             minimumIncompleteLength: MWBConstants.noiseSize,

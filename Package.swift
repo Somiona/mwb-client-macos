@@ -19,6 +19,21 @@ let package = Package(
                 .swiftLanguageMode(.v6),
                 .enableUpcomingFeature("StrictConcurrency"),
             ]
+        ),
+        .testTarget(
+            name: "MWBClientTests",
+            dependencies: ["MWBClient"],
+            path: "MWBClientTests",
+            exclude: [
+                "**/.DS_Store",
+            ],
+            resources: [
+                .copy("Fixtures"),
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v6),
+                .enableUpcomingFeature("StrictConcurrency"),
+            ]
         )
     ]
 )
